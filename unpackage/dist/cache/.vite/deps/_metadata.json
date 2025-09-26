@@ -1,0 +1,25 @@
+{
+  "hash": "18f10609",
+  "configHash": "22048ed6",
+  "lockfileHash": "e4fbabf8",
+  "browserHash": "17b347ca",
+  "optimized": {
+    "vuedraggable": {
+      "src": "../../../../../node_modules/vuedraggable/dist/vuedraggable.umd.js",
+      "file": "vuedraggable.js",
+      "fileHash": "fc0ae901",
+      "needsInterop": true
+    },
+    "uview-ui": {
+      "src": "../../../../../node_modules/uview-ui/index.js",
+      "file": "uview-ui.js",
+      "fileHash": "8da7f2cb",
+      "needsInterop": false
+    }
+  },
+  "chunks": {
+    "chunk-CEQRFMJQ": {
+      "file": "chunk-CEQRFMJQ.js"
+    }
+  }
+}

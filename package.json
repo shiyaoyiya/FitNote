@@ -1,0 +1,8 @@
+{
+  "dependencies": {
+    "@vant/weapp": "^1.11.7",
+    "pinia": "^3.0.3",
+    "uview-ui": "^2.0.38",
+    "vuedraggable": "^2.24.3"
+  }
+}
