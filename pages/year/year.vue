@@ -79,18 +79,24 @@
         longPressThreshold: 500, // 若需实现长按此处可用
         todayYear: new Date().getFullYear(),
         todayMonth: new Date().getMonth(), // 0-11
-        DAYDATA_PREFIX: 'fitness_daydata_'
+        DAYDATA_PREFIX: 'fitness_daydata_',
+        templateColorCache: new Map(), // 新增：颜色缓存
+        isCalculating: false, // 防止重复计算
+        isLoading: false, // 新增：加载状态标记
+        hasDataLoaded: false, // 新增：标记数据是否已加载
       };
     },
     onLoad(options) {
-      // 1. 接收传参、决定 year
+      console.log('年页面开始加载');
+      this.isLoading = true;
+
+      // 设置年份和深色模式（快速操作）
       if (options.year) {
         this.year = parseInt(options.year, 10);
       } else {
         this.year = new Date().getFullYear();
       }
 
-      // 2. 设置深色模式变量（不更新导航栏，onShow 里再统一执行）
       const dm = uni.getStorageSync('darkMode');
       if (dm === 'auto') {
         const sysTheme = uni.getSystemInfoSync().theme || 'light';
@@ -100,11 +106,24 @@
       }
       this.darkModeClass = this.darkMode ? 'dark' : 'light';
 
-      // 3. 构建日历
+      // 立即设置导航栏（快速操作）
+      this.updateNavigationBarStyle(this.darkMode);
+      uni.setNavigationBarTitle({
+        title: `${this.year} 年`
+      });
+
+      // 开始构建月份数据
       this.buildAllMonths(this.year);
     },
+
     onShow() {
-      // 页面每次“显示”时，都重新设置导航栏的颜色和标题
+      if (this.hasDataLoaded && this.isLoading) {
+        setTimeout(() => {
+          uni.hideLoading();
+          this.isLoading = false;
+        }, 300);
+      }
+      // 原有的 onShow 逻辑
       this.updateNavigationBarStyle(this.darkMode);
       uni.setNavigationBarTitle({
         title: `${this.year} 年`
@@ -144,22 +163,42 @@
         }
       },
 
-      // 切换到上一年
+      // 切换年份时优化
       prevYear() {
         this.year -= 1;
-        // 更新导航栏标题
         uni.setNavigationBarTitle({
           title: `${this.year} 年`
         });
-        // 重新构建 12 个月
+
+        uni.showLoading({
+          title: '加载中...',
+          mask: true
+        });
+        this.isLoading = true;
+        this.hasDataLoaded = false;
+
+        // 清空缓存
+        this.templateColorCache.clear();
+
         this.buildAllMonths(this.year);
       },
-      // 切换到下一年
+
       nextYear() {
         this.year += 1;
         uni.setNavigationBarTitle({
           title: `${this.year} 年`
         });
+
+        uni.showLoading({
+          title: '加载中...',
+          mask: true
+        });
+        this.isLoading = true;
+        this.hasDataLoaded = false;
+
+        // 清空缓存
+        this.templateColorCache.clear();
+
         this.buildAllMonths(this.year);
       },
 
@@ -172,20 +211,78 @@
       selectMonth(monthIndex) {
         if (monthIndex < 0) monthIndex = 0;
         if (monthIndex > 11) monthIndex = 11;
+
+        // 显示跳转加载提示
+        uni.showLoading({
+          title: '跳转中...',
+          mask: true
+        });
+
         uni.navigateTo({
-          url: `/pages/index/index?year=${this.year}&month=${monthIndex}`
+          url: `/pages/index/index?year=${this.year}&month=${monthIndex}`,
+          success: () => {
+            // 跳转成功后在下一个 tick 隐藏（确保页面已跳转）
+            setTimeout(() => {
+              uni.hideLoading();
+            }, 100);
+          },
+          fail: () => {
+            // 跳转失败时隐藏
+            uni.hideLoading();
+          }
         });
       },
 
-      // 构建当前 this.year 的 12 个月数据（每个月的天数列表）
-      buildAllMonths(year) {
+      // 优化的构建方法
+      async buildAllMonths(year) {
+        try {
+          console.log('开始构建月份数据');
+
+          // 1. 先快速构建基础月份结构
+          const months = this.buildBasicMonthStructure(year);
+          this.months = months;
+          this.hasDataLoaded = true;
+
+          // 2. 立即更新UI，然后进行耗时操作
+          this.$nextTick(() => {
+            // 3. 延迟执行耗时的统计和颜色计算
+            setTimeout(async () => {
+              await this.calcActiveDays();
+              await this.preloadTemplateColors();
+
+              // 所有数据加载完成后再隐藏loading
+              console.log('年页面数据加载完成');
+              if (this.isLoading) {
+                uni.hideLoading();
+                this.isLoading = false;
+              }
+            }, 100);
+          });
+
+        } catch (error) {
+          console.error('构建月份数据出错:', error);
+
+          // 出错时也要隐藏loading
+          if (this.isLoading) {
+            uni.hideLoading();
+            this.isLoading = false;
+          }
+
+          // 降级方案
+          this.calcActiveDaysSimple();
+        }
+      },
+
+      // 快速构建基础月份结构
+      buildBasicMonthStructure(year) {
         const arr = [];
+        const todayStr = this.formatDate(new Date());
+
         for (let m = 0; m < 12; m++) {
           const daysArray = [];
-
-          // 先计算当月第一天是星期几（0 = 周日，1 = 周一…6 = 周六）
           const firstWeekday = new Date(year, m, 1).getDay();
-          // 在 daysArray 前插入 firstWeekday 个空位
+
+          // 添加空白格
           for (let i = 0; i < firstWeekday; i++) {
             daysArray.push({
               key: `empty-${m}-${i}`,
@@ -195,7 +292,7 @@
             });
           }
 
-          // 再插入该月的真实天数
+          // 添加日期格
           const daysInMonth = new Date(year, m + 1, 0).getDate();
           for (let d = 1; d <= daysInMonth; d++) {
             const dt = new Date(year, m, d);
@@ -205,7 +302,7 @@
               day: d,
               full,
               empty: false,
-              isToday: (full === this.formatDate(new Date()))
+              isToday: (full === todayStr)
             });
           }
 
@@ -214,10 +311,8 @@
             days: daysArray
           });
         }
-        this.months = arr;
 
-        // 构建完毕后统计当年有模板的天数
-        this.calcActiveDays();
+        return arr;
       },
 
       // 将 Date 转为 “YYYY-MM-DD”
@@ -233,30 +328,73 @@
           (dd < 10 ? '0' + dd : dd)
         );
       },
-      // 统计当年里“任意模板名”存在的天数
-      calcActiveDays() {
-        let count = 0;
-        // 遍历 this.months 中的每一天
-        this.months.forEach(monthObj => {
-          monthObj.days.forEach(dateObj => {
-            // 跳过空白格
-            if (dateObj.empty) return;
+      // 优化的统计方法（分批处理）
+      async calcActiveDays() {
+        try {
+          const storageInfo = uni.getStorageInfoSync();
+          const allKeys = Array.isArray(storageInfo.keys) ? storageInfo.keys : [];
+          const dayDataKeys = allKeys.filter(key => key.startsWith(this.DAYDATA_PREFIX));
 
-            const full = dateObj.full;
-            const key = this.DAYDATA_PREFIX + full; // e.g. 'fitness_daydata_2025-06-12'
-            const dayData = uni.getStorageSync(key) || {};
+          // 创建日期到数据的映射
+          const dateDataMap = new Map();
 
-            // 如果标记为休息日，就跳过这一天
-            if (dayData.isRestDay) return;
+          // 分批读取存储数据（避免阻塞）
+          const batchSize = 30;
+          for (let i = 0; i < dayDataKeys.length; i += batchSize) {
+            const batch = dayDataKeys.slice(i, i + batchSize);
+            await this.processBatch(batch, dateDataMap);
+          }
 
-            // 否则，照常检测是否有运动模板
-            const tplName = this.getTemplateName(full);
-            if (tplName) {
-              count += 1;
-            }
+          // 统计有效天数
+          let count = 0;
+          this.months.forEach(monthObj => {
+            monthObj.days.forEach(dateObj => {
+              if (dateObj.empty) return;
+
+              const dayData = dateDataMap.get(dateObj.full) || {};
+              if (dayData.isRestDay) return;
+
+              if (dayData.templates && Object.keys(dayData.templates).length > 0) {
+                count += 1;
+              }
+            });
           });
+
+          this.activeDays = count;
+
+        } catch (error) {
+          console.error('统计活动天数出错:', error);
+          this.calcActiveDaysSimple(); // 降级方案
+        }
+      },
+
+      // 处理一批数据
+      processBatch(batch, dateDataMap) {
+        return new Promise(resolve => {
+          setTimeout(() => {
+            batch.forEach(key => {
+              const date = key.replace(this.DAYDATA_PREFIX, '');
+              const data = uni.getStorageSync(key) || {};
+              dateDataMap.set(date, data);
+            });
+            resolve();
+          }, 10);
         });
-        this.activeDays = count;
+      },
+
+      // 预加载模板颜色（优化渲染性能）
+      preloadTemplateColors() {
+        // 预加载最近几个月的颜色数据
+        const recentMonths = [this.year - 1, this.year, this.year + 1];
+        recentMonths.forEach(year => {
+          for (let m = 0; m < 12; m++) {
+            const daysInMonth = new Date(year, m + 1, 0).getDate();
+            for (let d = 1; d <= Math.min(10, daysInMonth); d++) { // 只预加载前10天
+              const full = this.formatDate(new Date(year, m, d));
+              this.getTemplateColor(full); // 触发预加载
+            }
+          }
+        });
       },
 
       // ========== 修改后的“模板颜色”相关方法，与首页保持一致 ==========
@@ -279,49 +417,42 @@
         return null;
       },
 
+      // 优化的颜色获取（带缓存）
       getTemplateColor(fullDate) {
-        // 1) 先读当天的 dayData
+        if (this.templateColorCache.has(fullDate)) {
+          return this.templateColorCache.get(fullDate);
+        }
+
         const dayData = uni.getStorageSync(this.DAYDATA_PREFIX + fullDate) || {};
+        let color = '';
 
-        // 2) 如果是休息日且有 color 字段，就用它
         if (dayData.isRestDay && dayData.color) {
-          return dayData.color;
-        }
-
-        // 3) 如果有全局 color 字段，优先使用
-        if (dayData.color) {
-          return dayData.color;
-        }
-
-        // 4) 再看 templates 里最后一个 tplName 有没有自带 color
-        if (dayData.templates) {
+          color = dayData.color;
+        } else if (dayData.color) {
+          color = dayData.color;
+        } else if (dayData.templates) {
           const tplNames = Object.keys(dayData.templates);
           if (tplNames.length) {
             const last = tplNames[tplNames.length - 1];
             const tplObj = dayData.templates[last];
             if (tplObj && tplObj.color) {
-              return tplObj.color;
+              color = tplObj.color;
             }
           }
         }
 
-        // 5) 最后回退到全局模板列表里的默认色
-        const tplName = this.getTemplateName(fullDate);
-        if (!tplName) return '';
-
-        const tplArr = uni.getStorageSync('fitness_templates') || [];
-        const global = tplArr.find(t => t.name === tplName);
-        if (global && global.color) {
-          return global.color;
+        if (!color) {
+          const tplName = this.getTemplateName(fullDate);
+          if (tplName) {
+            const tplArr = uni.getStorageSync('fitness_templates') || [];
+            const global = tplArr.find(t => t.name === tplName);
+            color = global && global.color ? global.color :
+              (dayData.templates && Object.keys(dayData.templates).length > 0 ? '#93d5dc' : '');
+          }
         }
 
-        // 新增：如果全局模板列表中找不到，但当天数据中有模板记录，使用默认颜色
-        if (dayData.templates && Object.keys(dayData.templates).length > 0) {
-          // 返回一个默认颜色
-          return '#93d5dc'; // 使用清水蓝作为默认颜色
-        }
-
-        return '';
+        this.templateColorCache.set(fullDate, color);
+        return color;
       },
 
       getContrastColor(hex) {
@@ -395,6 +526,22 @@
           };
         }
         return {};
+      },
+      calcActiveDaysSimple() {
+        let count = 0;
+        this.months.forEach(monthObj => {
+          monthObj.days.forEach(dateObj => {
+            if (dateObj.empty) return;
+
+            const dayData = uni.getStorageSync(this.DAYDATA_PREFIX + dateObj.full) || {};
+            if (dayData.isRestDay) return;
+
+            if (dayData.templates && Object.keys(dayData.templates).length > 0) {
+              count += 1;
+            }
+          });
+        });
+        this.activeDays = count;
       },
     }
   };

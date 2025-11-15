@@ -556,16 +556,30 @@
       },
       // 新增：点击“年/月”标题，跳转到年份页面
       goToYearPage() {
+        // 立即显示加载提示
         uni.showLoading({
-          title: '加载中…',
+          title: '加载中...',
           mask: true
         });
-        uni.navigateTo({
-          url: `/pages/year/year?year=${this.curYear}&month=${this.curMonth}`
-        });
+
+        // 使用 Promise 确保跳转和加载逻辑
         setTimeout(() => {
-          uni.hideLoading();
-        }, 100)
+          uni.navigateTo({
+            url: `/pages/year/year?year=${this.curYear}&month=${this.curMonth}`,
+            success: () => {
+              console.log('跳转到年页面成功');
+              // 不在这里隐藏 loading，让年页面自己控制
+            },
+            fail: (err) => {
+              console.error('跳转到年页面失败:', err);
+              uni.hideLoading();
+              uni.showToast({
+                title: '跳转失败',
+                icon: 'none'
+              });
+            }
+          });
+        }, 50);
       },
       // 生成对比色字体
       getContrastColor(hex) {

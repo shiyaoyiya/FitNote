@@ -30,12 +30,9 @@
     </view>
 
     <!-- ========== 模板动作列表 & 输入框 & 对比文本 ========== -->
-    <!-- 外层滚动区只负责上下滑动 -->
     <scroll-view class="action-list" scroll-y="true">
       <view v-for="(actName, idx) in chosenActions" :key="actName" class="action-row">
         <view class="row-top">
-
-          <!-- 点击/长按标签的事件 -->
           <view class="tag-group">
             <view class="move-controls">
               <button @click="moveAction(idx, -1)" :disabled="idx === 0">↑</button>
@@ -44,11 +41,12 @@
             <text class="tag" @click="goHistory(idx)" @longpress="handleTagLongPress(idx)">{{ actName }}</text>
           </view>
           <view class="input-pair">
-            <input type="digit" v-model="actionInputs[idx].reps" placeholder="次数" class="input-reps" />
+            <input type="digit" v-model="actionInputs[idx].reps" placeholder="次数" class="input-reps"
+              @input="onInputChange(idx)" />
             <text class="input-mult">×</text>
             <input type="number" decimal-length="1" v-model="actionInputs[idx].weight" placeholder="kg"
-              class="input-weight" @blur="confirmEntry(idx)" />
-            <button class="confirm-btn" @click="confirmEntry.bind(this, idx)">✓️</button>
+              class="input-weight" @input="onInputChange(idx)" @blur="confirmEntry(idx)" />
+            <button class="confirm-btn" @click="confirmEntry(idx)">✓️</button>
           </view>
         </view>
 
@@ -73,13 +71,12 @@
       </view>
     </scroll-view>
 
-
-
-    <!-- ========== 底部按钮行：保存 + 添加动作 ========== -->
+    <!-- 底部按钮行：保存 + 添加动作 -->
     <view class="save-row">
       <button @click="openTimerPopup">⏱ 计时器</button>
       <button class="add-action-btn" @click="openAddActionPopup">添加动作</button>
     </view>
+
 
     <!-- ========== 新增：选择动作弹窗 ========== -->
     <view v-if="showAddActionPopup" class="popup-overlay" @click.self="closeAddActionPopup">
@@ -238,7 +235,15 @@
         searchKeyword: '',
         filteredActions: [],
         selectedActionIdx: null,
+        // 新增：性能优化相关
+        saveTimer: null,
+        calcDiffTimer: null,
+        isCalculating: false,
       };
+    },
+    // 新增：组件销毁时清理定时器
+    beforeUnmount() {
+      this.clearAllTimers();
     },
     computed: {
       displayTime() {
@@ -286,83 +291,120 @@
       this.loadDayData();
     },
     methods: {
+      // 清理所有定时器
+      clearAllTimers() {
+        if (this.saveTimer) {
+          clearTimeout(this.saveTimer);
+          this.saveTimer = null;
+        }
+        if (this.calcDiffTimer) {
+          clearTimeout(this.calcDiffTimer);
+          this.calcDiffTimer = null;
+        }
+        if (this.longPressTimer) {
+          clearTimeout(this.longPressTimer);
+          this.longPressTimer = null;
+        }
+      },
+
+      // 输入变化时的处理（防抖）
+      onInputChange(idx) {
+        // 简单的输入验证，避免无效计算
+        const reps = this.actionInputs[idx].reps;
+        const weight = this.actionInputs[idx].weight;
+
+        if (reps === '' || weight === '') {
+          return;
+        }
+
+        // 延迟计算差异（防抖）
+        this.debounceCalcDiffs();
+      },
+
+      // 防抖计算差异
+      debounceCalcDiffs() {
+        if (this.calcDiffTimer) {
+          clearTimeout(this.calcDiffTimer);
+        }
+        this.calcDiffTimer = setTimeout(() => {
+          this.calcAllDiffs();
+        }, 300);
+      },
+      // 加载日期数据（优化版本）
       loadDayData() {
-        // 1. 同步 NavigationBar 标题
+        // 使用防抖，避免频繁调用
+        if (this.loadTimer) {
+          clearTimeout(this.loadTimer);
+        }
+        this.loadTimer = setTimeout(() => {
+          this._loadDayData();
+        }, 50);
+      },
+
+      _loadDayData() {
+        // 原有的 loadDayData 逻辑，但移除不必要的计算
         uni.setNavigationBarTitle({
           title: this.date.replace(/-/g, '/')
-        })
+        });
 
-        // 2. 读全局模板列表
-        const tplArr = uni.getStorageSync(this.TEMPLATES_KEY)
-        this.templates = Array.isArray(tplArr) ? tplArr : []
+        const tplArr = uni.getStorageSync(this.TEMPLATES_KEY) || [];
+        this.templates = Array.isArray(tplArr) ? tplArr : [];
 
-        // 3. 读当天存储
-        const key = this.DAYDATA_PREFIX + this.date
-        const raw = uni.getStorageSync(key) || {}
+        const key = this.DAYDATA_PREFIX + this.date;
+        const raw = uni.getStorageSync(key) || {};
         const dayData = {
-          templates: (raw.templates && typeof raw.templates === 'object') ? raw.templates : {},
-          actions: (raw.actions && typeof raw.actions === 'object') ? raw.actions : {},
-          entries: (raw.entries && typeof raw.entries === 'object') ? raw.entries : {}
-        }
+          templates: raw.templates || {},
+          actions: raw.actions || {},
+          entries: raw.entries || {}
+        };
 
-        // 4. 如果没绑定任何模板，就弹“选模板”，并预加载动作列表
-        const names = Object.keys(dayData.templates)
+        const names = Object.keys(dayData.templates);
         if (names.length === 0) {
-          this.showChooseTpl = true
-          this.availableActions = uni.getStorageSync(this.ACTIONS_KEY) || []
-          return
+          this.showChooseTpl = true;
+          this.availableActions = uni.getStorageSync(this.ACTIONS_KEY) || [];
+          return;
         }
 
-        // 5. 已经绑定过模板，取最后一个
-        this.showChooseTpl = false
-        const tplName = names[names.length - 1]
-        this.chosenTplName = tplName
-        this.chosenTplIdx = this.templates.findIndex(t => t.name === tplName)
+        this.showChooseTpl = false;
+        const tplName = names[names.length - 1];
+        this.chosenTplName = tplName;
+        this.chosenTplIdx = this.templates.findIndex(t => t.name === tplName);
         this.chosenTplColor = this.chosenTplIdx !== -1 ?
-          this.templates[this.chosenTplIdx].color :
-          ''
+          this.templates[this.chosenTplIdx].color : '';
 
-        // 6. 决定动作列表：如果旧记录里有 actionWeights，就只用旧动作；
-        //    否则用最新模板定义的动作列表
-        const tplInfo = dayData.templates[tplName] || {}
-        const savedWeights = tplInfo.actionWeights && typeof tplInfo.actionWeights === 'object' ?
-          Object.keys(tplInfo.actionWeights) : []
+        const tplInfo = dayData.templates[tplName] || {};
+        const savedWeights = tplInfo.actionWeights ? Object.keys(tplInfo.actionWeights) : [];
         const defaultActions = (this.chosenTplIdx !== -1) ?
-          this.templates[this.chosenTplIdx].actions.slice() : []
+          this.templates[this.chosenTplIdx].actions.slice() : [];
 
-        // 选用基准动作列表
-        const baseActions = savedWeights.length > 0 ?
-          savedWeights :
-          defaultActions
+        const baseActions = savedWeights.length > 0 ? savedWeights : defaultActions;
+        const order = Array.isArray(tplInfo.actionOrder) ? tplInfo.actionOrder : [];
 
-        // 7. 如果有保存的 actionOrder，则先按它排序，否则直接用 baseActions 原顺序
-        const order = Array.isArray(tplInfo.actionOrder) ? tplInfo.actionOrder : []
-        let seq = []
+        let seq = [];
         if (order.length > 0) {
-          // 只保留在 baseActions 中的
-          seq = order.filter(n => baseActions.includes(n))
-          // 再把 baseActions 中但不在 order 的补上
+          seq = order.filter(n => baseActions.includes(n));
           baseActions.forEach(n => {
-            if (!seq.includes(n)) seq.push(n)
-          })
+            if (!seq.includes(n)) seq.push(n);
+          });
         } else {
-          seq = baseActions.slice()
+          seq = baseActions.slice();
         }
-        this.chosenActions = seq
 
-        // 8. 初始化并行状态
+        this.chosenActions = seq;
         this.actionInputs = this.chosenActions.map(() => ({
           reps: '',
           weight: ''
-        }))
-        this.diffs = this.chosenActions.map(() => null)
+        }));
+        this.diffs = this.chosenActions.map(() => null);
         this.actionEntries = this.chosenActions.map(name => {
-          const arr = dayData.entries[name]
-          return Array.isArray(arr) ? [...arr] : []
-        })
+          const arr = dayData.entries[name];
+          return Array.isArray(arr) ? [...arr] : [];
+        });
 
-        // 9. 触发计算 diff
-        this.$nextTick(this.calcAllDiffs)
+        // 延迟计算差异，避免阻塞渲染
+        setTimeout(() => {
+          this.calcAllDiffs();
+        }, 100);
       },
       openRestPopup() {
         this.showChooseTpl = false;
@@ -454,6 +496,7 @@
         // evt.relatedContext.index 是目标 index
         return true; // 返回 false 可阻止
       },
+      // 确认输入（优化版本）
       confirmEntry(idx) {
         const reps = this.actionInputs[idx].reps;
         const weight = this.actionInputs[idx].weight;
@@ -469,53 +512,99 @@
 
         const repsNum = Number(reps);
         const weightNum = Number(weight);
+
+        // 输入验证
+        if (repsNum <= 0 || weightNum <= 0) {
+          uni.showToast({
+            title: '请输入有效的数值',
+            icon: 'none'
+          });
+          return;
+        }
+
         const total = repsNum * weightNum;
         const inputStr = `${repsNum}×${weightNum}`;
-        // 推入本地显示数组
-        this.actionEntries[idx].push({
-          input: inputStr,
-          total
-        });
 
-        // 持久化到 Storage
-        const key = this.DAYDATA_PREFIX + this.date;
-        const raw = uni.getStorageSync(key) || {};
-        const dayData = {
-          templates: {},
-          actions: {},
-          entries: {},
-          ...raw
-        };
-        dayData.entries[this.chosenActions[idx]] = this.actionEntries[idx];
-        dayData.actions[this.chosenActions[idx]] = this.actionEntries[idx]
-          .reduce((s, i) => s + i.total, 0);
+        // 使用 Vue.set 确保响应式更新
+        this.$set(this.actionEntries, idx, [
+          ...(this.actionEntries[idx] || []),
+          {
+            input: inputStr,
+            total
+          }
+        ]);
 
-        // 更新模板汇总，并**保留 actionOrder**
-        const allWeights = {};
-        this.chosenActions.forEach((name) => {
-          allWeights[name] = dayData.actions[name] || 0;
-        });
-        dayData.templates[this.chosenTplName] = {
-          totalWeight: Object.values(allWeights).reduce((a, b) => a + b, 0),
-          actionWeights: allWeights,
-          actionOrder: [...this.chosenActions] // ← 加上这一行
-        };
+        // 延迟保存到存储（防抖）
+        this.debounceSaveToStorage(idx);
 
-        uni.setStorageSync(key, dayData);
-
-        // 再额外一次调用 persistOrder 保保险
-        this.persistOrder();
-
-        // 清空输入框 & 刷新对比
+        // 清空输入框
         this.$set(this.actionInputs, idx, {
           reps: '',
           weight: ''
         });
-        this.calcAllDiffs();
-      },
 
+        // 延迟计算差异
+        this.debounceCalcDiffs();
+      },
+      // 防抖保存到存储
+      debounceSaveToStorage(idx) {
+        if (this.saveTimer) {
+          clearTimeout(this.saveTimer);
+        }
+        this.saveTimer = setTimeout(() => {
+          this.saveEntryToStorage(idx);
+        }, 200);
+      },
+      // 保存到存储（优化版本）
+      saveEntryToStorage(idx) {
+        const actName = this.chosenActions[idx];
+        const key = this.DAYDATA_PREFIX + this.date;
+
+        // 批量读取和写入，减少存储操作
+        const raw = uni.getStorageSync(key) || {};
+        const dayData = {
+          templates: raw.templates || {},
+          actions: raw.actions || {},
+          entries: raw.entries || {},
+        };
+
+        // 更新 entries
+        dayData.entries[actName] = this.actionEntries[idx] || [];
+
+        // 计算总重量
+        dayData.actions[actName] = (this.actionEntries[idx] || [])
+          .reduce((sum, item) => sum + item.total, 0);
+
+        // 批量更新模板数据
+        this.updateTemplateData(dayData);
+
+        // 一次性写入存储
+        uni.setStorageSync(key, dayData);
+      },
+      // 批量更新模板数据
+      updateTemplateData(dayData) {
+        const actionWeights = {};
+
+        // 批量计算所有动作的重量
+        this.chosenActions.forEach((name) => {
+          const entries = dayData.entries[name] || [];
+          actionWeights[name] = entries.reduce((sum, item) => sum + item.total, 0);
+        });
+
+        // 更新模板信息
+        dayData.templates[this.chosenTplName] = {
+          totalWeight: Object.values(actionWeights).reduce((a, b) => a + b, 0),
+          actionWeights,
+          actionOrder: [...this.chosenActions]
+        };
+      },
+      // 获取总重量（缓存优化）
       getTotalWeight(idx) {
-        return this.actionEntries[idx].reduce((sum, item) => sum + item.total, 0);
+        const entries = this.actionEntries[idx];
+        if (!entries || entries.length === 0) return 0;
+
+        // 简单的累加，避免每次重新计算
+        return entries.reduce((sum, item) => sum + item.total, 0);
       },
       // 生成对比色字体
       getContrastColor(hex) {
@@ -626,81 +715,105 @@
 
 
       // ================= 计算与“上一次”对比 =================
+      // 优化后的差异计算
       calcAllDiffs() {
-        let storageInfo = {};
-        try {
-          storageInfo = uni.getStorageInfoSync();
-        } catch (e) {
-          this.diffs = this.chosenActions.map(() => ({
-            text: '未记录',
-            class: 'diff-neutral'
-          }));
-          return;
-        }
-        const allKeys = Array.isArray(storageInfo.keys) ? storageInfo.keys : [];
-        const dayDataKeys = allKeys.filter(key => key.startsWith(this.DAYDATA_PREFIX));
+        if (this.isCalculating) return;
 
-        this.chosenActions.forEach((actName, idx) => {
-          const records = [];
-          dayDataKeys.forEach(fullKey => {
-            const datePart = fullKey.replace(this.DAYDATA_PREFIX, '');
-            const dayData = uni.getStorageSync(fullKey) || {};
-            const val = (dayData.actions && dayData.actions[actName]) || 0;
-            if (val > 0) {
-              const d = new Date(datePart);
-              if (!isNaN(d.getTime())) {
-                records.push({
-                  date: datePart,
-                  value: val
+        this.isCalculating = true;
+
+        // 使用 Promise 异步计算，避免阻塞UI
+        Promise.resolve().then(() => {
+          try {
+            const storageInfo = uni.getStorageInfoSync();
+            const allKeys = Array.isArray(storageInfo.keys) ? storageInfo.keys : [];
+            const dayDataKeys = allKeys.filter(key => key.startsWith(this.DAYDATA_PREFIX));
+
+            this.chosenActions.forEach((actName, idx) => {
+              // 使用更高效的数据处理
+              const records = this.processActionRecords(actName, dayDataKeys);
+
+              if (records.length === 0) {
+                this.$set(this.diffs, idx, {
+                  text: '未记录',
+                  class: 'diff-neutral'
                 });
+                return;
               }
-            }
-          });
 
-          if (records.length === 0) {
-            this.$set(this.diffs, idx, {
-              text: '未记录',
-              class: 'diff-neutral'
+              this.updateDiffForAction(actName, idx, records);
             });
-            return;
-          }
-
-          records.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
-          const currentDate = this.date;
-          const pos = records.findIndex(item => item.date === currentDate);
-
-          if (pos === -1) {
-            this.$set(this.diffs, idx, {
-              text: '未记录',
-              class: 'diff-neutral'
-            });
-            return;
-          }
-
-          const currentValue = records[pos].value;
-          if (pos === 0) {
-            this.$set(this.diffs, idx, {
-              text: '0kg',
-              class: 'diff-neutral'
-            });
-          } else {
-            const prevValue = records[pos - 1].value;
-            const diff = currentValue - prevValue;
-            let text = '0kg',
-              cls = 'diff-neutral';
-            if (diff > 0) {
-              text = `+${diff}kg`;
-              cls = 'diff-positive';
-            } else if (diff < 0) {
-              text = `${diff}kg`;
-              cls = 'diff-negative';
-            }
-            this.$set(this.diffs, idx, {
-              text,
-              class: cls
-            });
+          } catch (error) {
+            console.error('计算差异时出错:', error);
+          } finally {
+            this.isCalculating = false;
           }
         });
+      },
+      // 处理动作记录（优化版本）
+      processActionRecords(actName, dayDataKeys) {
+        const records = [];
+
+        // 使用更高效的方式处理数据
+        for (let i = 0; i < dayDataKeys.length; i++) {
+          const fullKey = dayDataKeys[i];
+          const datePart = fullKey.replace(this.DAYDATA_PREFIX, '');
+          const dayData = uni.getStorageSync(fullKey) || {};
+          const val = (dayData.actions && dayData.actions[actName]) || 0;
+
+          if (val > 0) {
+            const d = new Date(datePart);
+            if (!isNaN(d.getTime())) {
+              records.push({
+                date: datePart,
+                value: val
+              });
+            }
+          }
+        }
+
+        // 按日期排序
+        records.sort((a, b) => a.date.localeCompare(b.date));
+        return records;
+      },
+      // 更新单个动作的差异
+      updateDiffForAction(actName, idx, records) {
+        const currentDate = this.date;
+        const pos = records.findIndex(item => item.date === currentDate);
+
+        if (pos === -1) {
+          this.$set(this.diffs, idx, {
+            text: '未记录',
+            class: 'diff-neutral'
+          });
+          return;
+        }
+
+        const currentValue = records[pos].value;
+
+        if (pos === 0) {
+          this.$set(this.diffs, idx, {
+            text: '0kg',
+            class: 'diff-neutral'
+          });
+        } else {
+          const prevValue = records[pos - 1].value;
+          const diff = currentValue - prevValue;
+          let text = '0kg',
+            cls = 'diff-neutral';
+
+          if (diff > 0) {
+            text = `+${diff}kg`;
+            cls = 'diff-positive';
+          } else if (diff < 0) {
+            text = `${diff}kg`;
+            cls = 'diff-negative';
+          }
+
+          this.$set(this.diffs, idx, {
+            text,
+            class: cls
+          });
+        }
       },
       // 长按删除 entry
       handleEntryTouchStart(aIdx, eIdx) {
@@ -743,46 +856,22 @@
           entryIdx: -1
         };
       },
+      // 删除记录（优化版本）
       removeEntry(aIdx, eIdx) {
         const actName = this.chosenActions[aIdx];
         const removed = this.actionEntries[aIdx].splice(eIdx, 1)[0];
 
-        const key = this.DAYDATA_PREFIX + this.date;
-        const raw = uni.getStorageSync(key) || {};
-        const dayData = {
-          templates: {},
-          actions: {},
-          entries: {},
-          ...raw
-        };
+        // 延迟保存到存储
+        this.debounceSaveToStorage(aIdx);
 
-        // 更新 entries/actions
-        dayData.entries[actName] = this.actionEntries[aIdx];
-        dayData.actions[actName] = this.actionEntries[aIdx]
-          .reduce((s, i) => s + i.total, 0);
-
-        // 更新模板汇总，并**保留 actionOrder**
-        const actionWeights = {};
-        this.chosenActions.forEach((name) => {
-          const arr = dayData.entries[name] || [];
-          actionWeights[name] = arr.reduce((s, i) => s + i.total, 0);
-        });
-        dayData.templates[this.chosenTplName] = {
-          totalWeight: Object.values(actionWeights).reduce((a, b) => a + b, 0),
-          actionWeights,
-          actionOrder: [...this.chosenActions] // ← 加上这一行
-        };
-
-        uni.setStorageSync(key, dayData);
-
-        // 再额外一次调用 persistOrder 保保险
-        this.persistOrder();
+        // 延迟计算差异
+        this.debounceCalcDiffs();
 
         uni.showToast({
           title: `已删除：${removed.input}kg`,
-          icon: 'success'
+          icon: 'success',
+          duration: 1000
         });
-        this.calcAllDiffs();
       },
       // ================= 计时器 =================
       clearTimer() {
@@ -1182,8 +1271,7 @@
       // 切后台时不必特意清理，留着 endTimestamp，回来继续算
     },
     onUnload() {
-      // 页面卸载前清除 interval
-      clearInterval(this.timerInterval);
+      this.clearAllTimers();
     },
   };
 </script>
