@@ -59,8 +59,11 @@ export const useTemplateStore = defineStore('template', {
       Object.assign(tpl, payload)
       this.save()
     },
-    removeTemplate(id) {
-      const idx = this.templates.findIndex(t => t.id === id)
+    removeTemplate(key) {
+      let idx = this.templates.findIndex(t => t.id === key)
+      if (idx === -1) {
+        idx = this.templates.findIndex(t => t.name === key)
+      }
       if (idx !== -1) {
         this.templates.splice(idx, 1)
         this.save()

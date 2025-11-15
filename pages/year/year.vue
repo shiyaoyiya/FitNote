@@ -78,7 +78,8 @@
         longPressTimer: null,
         longPressThreshold: 500, // 若需实现长按此处可用
         todayYear: new Date().getFullYear(),
-        todayMonth: new Date().getMonth() // 0-11
+        todayMonth: new Date().getMonth(), // 0-11
+        DAYDATA_PREFIX: 'fitness_daydata_'
       };
     },
     onLoad(options) {
@@ -169,6 +170,8 @@
 
       // 点击某个月：跳回首页并带上 year & month 参数
       selectMonth(monthIndex) {
+        if (monthIndex < 0) monthIndex = 0;
+        if (monthIndex > 11) monthIndex = 11;
         uni.navigateTo({
           url: `/pages/index/index?year=${this.year}&month=${monthIndex}`
         });
@@ -256,11 +259,17 @@
         this.activeDays = count;
       },
 
-      // ========== “模板颜色” 相关方法，与首页一致 ==========
+      // ========== 修改后的“模板颜色”相关方法，与首页保持一致 ==========
       getTemplateName(fullDate) {
-        const prefix = 'fitness_daydata_';
-        const dayData = uni.getStorageSync(prefix + fullDate) || {};
-        if (dayData.isRestDay) return null;
+        const key = this.DAYDATA_PREFIX + fullDate;
+        const dayData = uni.getStorageSync(key) || {};
+
+        // 如果是休息日，返回休息理由作为"模板名"
+        if (dayData.isRestDay) {
+          const tplNames = Object.keys(dayData.templates || {});
+          return tplNames.length > 0 ? tplNames[0] : null;
+        }
+
         if (dayData.templates && typeof dayData.templates === 'object') {
           const tplNames = Object.keys(dayData.templates);
           if (tplNames.length > 0) {
@@ -269,13 +278,52 @@
         }
         return null;
       },
+
       getTemplateColor(fullDate) {
+        // 1) 先读当天的 dayData
+        const dayData = uni.getStorageSync(this.DAYDATA_PREFIX + fullDate) || {};
+
+        // 2) 如果是休息日且有 color 字段，就用它
+        if (dayData.isRestDay && dayData.color) {
+          return dayData.color;
+        }
+
+        // 3) 如果有全局 color 字段，优先使用
+        if (dayData.color) {
+          return dayData.color;
+        }
+
+        // 4) 再看 templates 里最后一个 tplName 有没有自带 color
+        if (dayData.templates) {
+          const tplNames = Object.keys(dayData.templates);
+          if (tplNames.length) {
+            const last = tplNames[tplNames.length - 1];
+            const tplObj = dayData.templates[last];
+            if (tplObj && tplObj.color) {
+              return tplObj.color;
+            }
+          }
+        }
+
+        // 5) 最后回退到全局模板列表里的默认色
         const tplName = this.getTemplateName(fullDate);
         if (!tplName) return '';
+
         const tplArr = uni.getStorageSync('fitness_templates') || [];
-        const tplObj = tplArr.find(t => t.name === tplName);
-        return tplObj ? tplObj.color : '';
+        const global = tplArr.find(t => t.name === tplName);
+        if (global && global.color) {
+          return global.color;
+        }
+
+        // 新增：如果全局模板列表中找不到，但当天数据中有模板记录，使用默认颜色
+        if (dayData.templates && Object.keys(dayData.templates).length > 0) {
+          // 返回一个默认颜色
+          return '#93d5dc'; // 使用清水蓝作为默认颜色
+        }
+
+        return '';
       },
+
       getContrastColor(hex) {
         if (hex && typeof hex === 'object' && 'value' in hex) {
           hex = hex.value;
@@ -290,18 +338,33 @@
         const brightness = (r * 299 + g * 587 + b * 114) / 1000;
         return brightness > 128 ? '#000000' : '#FFFFFF';
       },
+
       getCellStyle(fullDate) {
-        if (fullDate === this.formatDate(new Date())) {
+        const todayStr = this.formatDate(new Date());
+        const templateColor = this.getTemplateColor(fullDate);
+
+        // 1. 如果是"今天"且存在模板色，用模板色做背景
+        if (fullDate === todayStr && templateColor) {
+          return {
+            backgroundColor: templateColor
+          };
+        }
+
+        // 2. 如果是"今天"且**无**模板，则用蓝色高亮
+        if (fullDate === todayStr) {
           return {
             backgroundColor: '#0d82cf'
           };
         }
-        const color = this.getTemplateColor(fullDate);
-        if (color) {
+
+        // 3. 如果非今天，但有模板色，就用模板色
+        if (templateColor) {
           return {
-            backgroundColor: color
+            backgroundColor: templateColor
           };
         }
+
+        // 4. 其它情况不设背景
         return {};
       },
       // ================================================

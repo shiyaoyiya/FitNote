@@ -458,14 +458,25 @@
       this.loadAnnivs()
     },
     onLoad(options) {
-      // … 你的 onLoad 逻辑不变
-      // 初始化 store
+      // 保留并初始化 store（你的原逻辑）
       this.actStore = useActionStore()
       this.actStore.load()
       this.actions = this.actStore.actions
       this.tplStore = useTemplateStore()
       this.tplStore.load()
+
+      // 读取外部传参（来自 year 页），优先使用传参
+      const now = new Date()
+      // 注意：options.month 预期是 0-11
+      this.curYear = (options && options.year) ? Number(options.year) : now.getFullYear()
+      this.curMonth = (options && (typeof options.month !== 'undefined')) ? Number(options.month) : now.getMonth()
+
+      // 根据 curYear/curMonth 初始化视图（确保立即渲染正确的月份）
+      this.buildMonthDays(this.curYear, this.curMonth)
+      this.calcWeeklyTotals()
+      this.loadAnnivs()
     },
+
     mounted() {
       // 深色模式
       const dm = uni.getStorageSync('darkMode')
@@ -477,8 +488,14 @@
       }
       this.darkModeClass = this.darkMode ? 'dark' : 'light'
       this.updateNavigationBarStyle(this.darkMode)
-      // 日历
-      this.initCalendar()
+      // —— 日历初始化：只有在 onLoad 没设置 curYear/curMonth 时，才使用当前日期初始化
+      // 如果 onLoad 已经把 curYear/curMonth 设好（例如从 year 页传参），就用它们。
+      if (typeof this.curYear === 'undefined' || this.curYear === 0) {
+        this.initCalendar()
+      } else {
+        // 确保视图与数据同步（onLoad 里也会调用，但防护无妨）
+        this.buildMonthDays(this.curYear, this.curMonth)
+      }
       this.tplStore = useTemplateStore()
       this.tplStore.load()
       this.templates = this.tplStore.templates
@@ -1026,27 +1043,23 @@
         const filt = this.filteredTemplates
         if (!filt || filteredIdx < 0 || filteredIdx >= filt.length) return
         const tpl = filt[filteredIdx]
-        // 校验是否被使用
-        if (this.templateStore.isUsed && this.templateStore.isUsed(tpl.name)) {
-          uni.showToast({
-            title: '模板已被使用，无法删除',
-            icon: 'none'
-          })
-          return
-        }
+
         uni.vibrateShort({
           type: 'light'
         })
+
         uni.showModal({
           title: '删除模板',
           content: `确定删除「${tpl.name}」吗？`,
           success: res => {
             if (res.confirm) {
-              // 在 store 中删除（如果 store 有方法优先用）
+              // 在删除模板前，先保存颜色信息到相关日期数据中
+              this.backupTemplateColorToDayData(tpl.name, tpl.color);
+
+              // 然后删除模板
               if (typeof this.templateStore.removeTemplate === 'function') {
-                this.templateStore.removeTemplate(tpl.name)
+                this.templateStore.removeTemplate(tpl.id || tpl.name)
               } else {
-                // 否则在数组中删除并保存
                 const gIdx = this.templateStore.templates.findIndex(t => t.name === tpl.name)
                 if (gIdx !== -1) {
                   this.templateStore.templates.splice(gIdx, 1)
@@ -1054,13 +1067,40 @@
                   else uni.setStorageSync(this.TEMPLATES_KEY, this.templateStore.templates)
                 }
               }
-              // 同步视图
+
               this.templates = this.templateStore.templates
             }
           }
         })
+
         this.pressedTemplateIndex = -1
         clearTimeout(this.longPressTimer)
+      },
+
+      // 新增方法：在删除模板前备份颜色信息到日期数据中
+      backupTemplateColorToDayData(templateName, templateColor) {
+        if (!templateColor) return;
+
+        // 获取所有日期键
+        const storageInfo = uni.getStorageInfoSync();
+        const dayKeys = storageInfo.keys.filter(key => key.startsWith(this.DAYDATA_PREFIX));
+
+        dayKeys.forEach(key => {
+          const dayData = uni.getStorageSync(key) || {};
+          if (dayData.templates && dayData.templates[templateName]) {
+            // 如果该日期使用了这个模板，保存颜色信息
+            if (!dayData.color) {
+              dayData.color = templateColor;
+              uni.setStorageSync(key, dayData);
+            }
+
+            // 同时保存到模板数据中
+            if (dayData.templates[templateName] && !dayData.templates[templateName].color) {
+              dayData.templates[templateName].color = templateColor;
+              uni.setStorageSync(key, dayData);
+            }
+          }
+        });
       },
 
       // goToTemplateDetail 保持不变（但确保传入模板名而不是 filtered idx）
@@ -1207,51 +1247,69 @@
         if (dayData.isRestDay && dayData.color) {
           return dayData.color;
         }
-        // （或者更宽松地，只要 dayData.color 就用它）
-        // if (dayData.color) return dayData.color;
 
-        // 3) 再看 templates 里最后一个 tplName 有没有自带 color
+        // 3) 如果有全局 color 字段，优先使用
+        if (dayData.color) {
+          return dayData.color;
+        }
+
+        // 4) 再看 templates 里最后一个 tplName 有没有自带 color
         if (dayData.templates) {
           const tplNames = Object.keys(dayData.templates);
           if (tplNames.length) {
             const last = tplNames[tplNames.length - 1];
             const tplObj = dayData.templates[last];
-            if (tplObj.color) {
+            if (tplObj && tplObj.color) {
               return tplObj.color;
             }
           }
         }
 
-        // 4) 最后回退到全局模板列表里的默认色
+        // 5) 最后回退到全局模板列表里的默认色（如果模板已被删除，这里会返回空）
         const tplName = this.getTemplateName(fullDate);
         if (!tplName) return '';
+
+        // 修改：即使全局模板列表中找不到，也要保持原来的颜色逻辑
         const global = this.templates.find(t => t.name === tplName);
-        return global ? global.color : '';
+        if (global && global.color) {
+          return global.color;
+        }
+
+        // 新增：如果全局模板列表中找不到，但当天数据中有模板记录，使用默认颜色
+        if (dayData.templates && Object.keys(dayData.templates).length > 0) {
+          // 返回一个默认颜色，或者从预设颜色中取第一个
+          return this.presetColors[0]?.value || '#93d5dc';
+        }
+
+        return '';
       },
       // ==== 新增：根据日期决定这个格子的 style ====
       getCellStyle(fullDate) {
         const todayStr = this.formatDate(new Date());
         const templateColor = fullDate ? this.getTemplateColor(fullDate) : '';
 
-        // 1. 如果是“今天”且存在模板色，用模板色做背景并加边框
+        // 1. 如果是"今天"且存在模板色，用模板色做背景并加边框
         if (fullDate === todayStr && templateColor) {
           return {
             backgroundColor: templateColor,
             boxShadow: 'inset 0 0 10px 5px #287eff'
           };
         }
-        // 2. 如果是“今天”且**无**模板，则用原来的渐变高亮
+
+        // 2. 如果是"今天"且**无**模板，则用原来的渐变高亮
         if (fullDate === todayStr) {
           return {
             backgroundColor: '#287eff'
           };
         }
+
         // 3. 如果非今天，但有模板色，就用模板色
         if (templateColor) {
           return {
             backgroundColor: templateColor
           };
         }
+
         // 4. 其它情况不设背景
         return {};
       },
