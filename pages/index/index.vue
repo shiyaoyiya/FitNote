@@ -142,30 +142,53 @@
           <text class="panel-title">快速创建模板</text>
           <text class="close-btn" @click="showTemplatePopup = false">×</text>
         </view>
+
         <view class="panel-body">
+          <!-- 输入区 -->
           <view class="input-row">
             <input v-model="newTemplateName" placeholder="输入模板名称" class="action-input" />
             <text class="btn-add" @click="prepareNewTemplate">确认</text>
           </view>
+
+          <!-- 模板区 -->
           <scroll-view class="template-tag-scroll" scroll-y="true" show-scrollbar="false"
-            :style="{ maxHeight: '30vh' }">
+            :style="{ maxHeight: '40vh' }">
             <view class="template-tag-container">
-              <view v-for="(tpl, idx) in templates.filter(tpl => !tpl.isAerobic)" :key="idx" class="template-tag"
-                :style="{ backgroundColor: tpl.color }" @touchstart="handleTemplateTouchStart(idx)"
-                @touchmove="handleTagTouchMove" @touchend="handleTemplateTouchEnd"
-                @click="goToTemplateDetail(tpl.name)">
-                <text class="tag-text-center" :style="{ color: getContrastColor(tpl.color) }">
-                  {{ tpl.name }}
-                </text>
+
+              <view v-for="(tpl, idx) in filteredTemplates" :key="tpl.id ? tpl.id : tpl.name" class="template-tag"
+                :style="{ backgroundColor: tpl.color || '#ddd' }" @touchstart="handleTemplateTouchStart(idx)"
+                @touchmove="handleTemplateTouchMove" @touchend="handleTemplateTouchEnd(idx)">
+                <!-- 左：上移按钮 -->
+                <button v-if="idx !== 0" class="move-btn left" @click.stop="moveTemplate(idx, -1)">
+                  ↑
+                </button>
+
+                <!-- 模板主体 -->
+                <view class="tag-body" @click="goToTemplateDetail(tpl.name)">
+                  <text class="tag-text-center" :style="{ color: getContrastColor(tpl.color || '#ddd') }">
+                    {{ tpl.name }}
+                  </text>
+                </view>
+
+                <!-- 右：下移按钮 -->
+                <button v-if="idx !== filteredTemplates.length - 1" class="move-btn right"
+                  @click.stop="moveTemplate(idx, +1)">
+                  ↓
+                </button>
               </view>
-              <view v-if="templates.length === 0" class="no-data">
+
+              <view v-if="filteredTemplates.length === 0" class="no-data">
                 <text>暂无模板，先添加一个吧~</text>
               </view>
+
             </view>
           </scroll-view>
         </view>
       </view>
     </view>
+
+
+
 
     <!-- 新建模板——选择动作 & 颜色 弹窗 -->
     <view v-if="showTemplateActionPopup" class="popup-overlay" @click.self="cancelNewTemplate">
@@ -415,6 +438,9 @@
       },
       templates() {
         return this.templateStore.templates
+      },
+      filteredTemplates() {
+        return (this.templates || []).filter(t => !t.isAerobic)
       }
     },
     created() {
@@ -889,6 +915,35 @@
 
 
       // —— 模板管理 —— 
+      moveTemplate(filteredIdx, delta) {
+        const filt = this.filteredTemplates;
+        if (!filt || filteredIdx < 0 || filteredIdx >= filt.length) return;
+
+        const tplName = filt[filteredIdx].name;
+        const globalIdx = this.templateStore.templates.findIndex(t => t.name === tplName);
+        if (globalIdx === -1) return;
+
+        const newIdx = globalIdx + delta;
+        if (newIdx < 0 || newIdx >= this.templateStore.templates.length) return;
+
+        // 调整模板顺序
+        const arr = this.templateStore.templates.slice();
+        const [moved] = arr.splice(globalIdx, 1);
+        arr.splice(newIdx, 0, moved);
+
+        // 写回 store
+        this.templateStore.templates = arr;
+        if (typeof this.templateStore.save === 'function') {
+          this.templateStore.save();
+        } else {
+          uni.setStorageSync(this.TEMPLATES_KEY, arr);
+        }
+
+        // 同步视图
+        this.templates = arr;
+      },
+
+
       prepareNewTemplate() {
         const name = this.newTemplateName.trim()
         if (!name) {
@@ -953,32 +1008,32 @@
       },
 
       // —— 模板标签长按删除 —— 
-      handleTemplateTouchStart(idx) {
-        this.pressedTemplateIndex = idx
+      // 触摸开始：记录按下的模板名，并启动长按定时器
+      handleTemplateTouchStart(filteredIdx) {
+        this.pressedTemplateIndex = filteredIdx
         clearTimeout(this.longPressTimer)
-        this.longPressTimer = setTimeout(
-          () => this.handleTemplateLongPress(idx),
-          this.longPressThreshold
-        )
+        this.longPressTimer = setTimeout(() => this.handleTemplateLongPress(filteredIdx), this.longPressThreshold)
       },
       handleTemplateTouchMove() {
         clearTimeout(this.longPressTimer)
       },
-      handleTemplateTouchEnd() {
+      handleTemplateTouchEnd(filteredIdx) {
         clearTimeout(this.longPressTimer)
         this.pressedTemplateIndex = -1
       },
-      handleTemplateLongPress(idx) {
-        const tpl = this.templates[idx]
-        // 如果被日历数据引用，禁止删除
-        if (this.templateStore.isUsed(tpl.name)) {
+
+      handleTemplateLongPress(filteredIdx) {
+        const filt = this.filteredTemplates
+        if (!filt || filteredIdx < 0 || filteredIdx >= filt.length) return
+        const tpl = filt[filteredIdx]
+        // 校验是否被使用
+        if (this.templateStore.isUsed && this.templateStore.isUsed(tpl.name)) {
           uni.showToast({
             title: '模板已被使用，无法删除',
             icon: 'none'
           })
           return
         }
-        // 否则正常弹出确认框
         uni.vibrateShort({
           type: 'light'
         })
@@ -987,14 +1042,40 @@
           content: `确定删除「${tpl.name}」吗？`,
           success: res => {
             if (res.confirm) {
-              this.templateStore.removeTemplate(tpl.name)
-              // computed: templates 会自动更新，无需手动赋值
+              // 在 store 中删除（如果 store 有方法优先用）
+              if (typeof this.templateStore.removeTemplate === 'function') {
+                this.templateStore.removeTemplate(tpl.name)
+              } else {
+                // 否则在数组中删除并保存
+                const gIdx = this.templateStore.templates.findIndex(t => t.name === tpl.name)
+                if (gIdx !== -1) {
+                  this.templateStore.templates.splice(gIdx, 1)
+                  if (typeof this.templateStore.save === 'function') this.templateStore.save()
+                  else uni.setStorageSync(this.TEMPLATES_KEY, this.templateStore.templates)
+                }
+              }
+              // 同步视图
+              this.templates = this.templateStore.templates
             }
           }
         })
         this.pressedTemplateIndex = -1
         clearTimeout(this.longPressTimer)
       },
+
+      // goToTemplateDetail 保持不变（但确保传入模板名而不是 filtered idx）
+      goToTemplateDetail(name) {
+        this.showTemplatePopup = false
+        uni.navigateTo({
+          url: `/pages/templateDetail/templateDetail?template=${encodeURIComponent(name)}`
+        })
+      },
+
+      // （可选）关闭弹窗简便方法
+      closeTemplatePopup() {
+        this.showTemplatePopup = false
+      },
+
 
       // ================= 纪念日管理 =================
       updateAnnivDaysFor(dateStr) {
@@ -1622,44 +1703,199 @@
     flex: 1;
   }
 
-  /* ========== 新建模板 弹窗 样式 ========== */
+  /* ========== 模板管理弹窗专用样式 ========== */
+  .template-tag-scroll {
+    flex: 1;
+    min-height: 0;
+    /* 重要：让滚动区域可以收缩 */
+  }
+
   .template-tag-container {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    padding: 4px 0;
+    /* 上下留点内边距 */
   }
 
+  /* 模板标签样式 - 完全重写 */
   .template-tag {
-    background-color: #e0e0e0;
-    padding: 6px 12px;
-    border-radius: 5px;
+    position: relative;
     display: flex;
     align-items: center;
-    justify-content: center;
-    font-size: 16px;
-    height: 30px;
+    background-color: #fff;
+    border-radius: 10px;
+    min-height: 44px;
+    /* 最小高度 */
+    padding: 8px 44px;
+    /* 调整内边距 */
+    margin: 0 12px 6px 12px;
+    /* 只设置底部外边距 */
+    box-sizing: border-box;
+    transition: all 0.2s ease;
   }
 
   .container.dark .template-tag {
     background-color: #505050;
   }
 
-  .tag-text-center {
-    text-align: center;
+  /* 标签主体内容 */
+  .tag-body {
     flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 0;
+    /* 重要：允许内容收缩 */
+    padding: 4px 0;
+    /* 内部上下留白 */
   }
 
+  .tag-text-center {
+    font-size: 15px;
+    font-weight: 500;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+    /* 防止文本溢出 */
+  }
+
+  /* 移动按钮样式 */
+  .move-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 36px;
+    height: 32px;
+    border: none;
+    background: transparent !important;
+    font-size: 16px;
+    color: #666;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+  }
+
+  .move-btn:active {
+    background-color: rgba(0, 0, 0, 0.1);
+  }
+
+  .move-btn.left {
+    left: 4px;
+  }
+
+  .move-btn.right {
+    right: 4px;
+  }
+
+  .move-btn:disabled {
+    visibility: hidden;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .container.dark .move-btn {
+    color: #bbb;
+  }
+
+  .container.dark .move-btn:active {
+    background-color: rgba(255, 255, 255, 0.1);
+  }
+
+  /* 无数据提示 */
   .no-data {
     text-align: center;
     color: #999;
     font-size: 14px;
+    padding: 20px;
+    margin: 20px 12px;
+    background-color: #f8f8f8;
+    border-radius: 10px;
   }
 
-  /* .checkbox-row {
-    flex-direction: row;
+  .container.dark .no-data {
+    background-color: #3a3a3a;
+    color: #bbb;
+  }
+
+  /* 弹窗面板高度优化 */
+  .popup-panel {
+    max-height: 70vh !important;
+    /* 增加最大高度 */
+    min-height: 200px;
+    /* 设置最小高度 */
+  }
+
+  .panel-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    /* 重要：让内容区域可以收缩 */
+  }
+
+  /* 输入行样式 */
+  .input-row {
+    display: flex;
     align-items: center;
     margin-bottom: 12px;
-  } */
+    flex-shrink: 0;
+    /* 防止输入行被压缩 */
+  }
+
+  .action-input {
+    flex: 1;
+    height: 36px;
+    padding: 0 12px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 14px;
+  }
+
+  .container.dark .action-input {
+    border-color: #555;
+    background-color: #3a3a3a;
+    color: #fff;
+  }
+
+  .btn-add {
+    background-color: #379bff;
+    color: #fff;
+    padding: 0 16px;
+    height: 36px;
+    border-radius: 6px;
+    text-align: center;
+    line-height: 36px;
+    margin-left: 8px;
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+
+  /* 滚动条样式优化 */
+  .template-tag-scroll ::-webkit-scrollbar {
+    width: 4px;
+  }
+
+  .template-tag-scroll ::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 2px;
+  }
+
+  .template-tag-scroll ::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 2px;
+  }
+
+  .container.dark .template-tag-scroll ::-webkit-scrollbar-track {
+    background: #3a3a3a;
+  }
+
+  .container.dark .template-tag-scroll ::-webkit-scrollbar-thumb {
+    background: #666;
+  }
 
   /* ========== 颜色选择行 ========== */
   .color-picker-row {
@@ -2053,11 +2289,5 @@
     background: rgba(255, 255, 255, 0.1);
     backdrop-filter: blur(10px);
 
-  }
-
-  .rest-text {
-    font-size: 12px;
-    color: #666;
-    text-align: center;
   }
 </style>

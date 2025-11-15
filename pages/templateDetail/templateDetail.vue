@@ -14,18 +14,23 @@
         <view v-for="(act, idx) in chosenActions" :key="idx" class="action-row" @touchstart="handleTagTouchStart(idx)"
           @touchmove="handleTagTouchMove" @touchend="handleTagTouchEnd">
           <view class="action-tag">
-            <button class="move-btn left" @click.stop="moveAction(idx, -1)" :disabled="idx === 0">
+            <!-- 左：上移按钮 -->
+            <button v-if="idx !== 0" class="move-btn left" @click.stop="moveAction(idx, -1)">
               ↑
             </button>
+
+            <!-- 中间主体 -->
             <text class="tag-label" @click="goHistory(idx)">
               {{ act }}
             </text>
-            <button class="move-btn right" @click.stop="moveAction(idx, +1)"
-              :disabled="idx === chosenActions.length - 1">
+
+            <!-- 右：下移按钮 -->
+            <button v-if="idx !== chosenActions.length - 1" class="move-btn right" @click.stop="moveAction(idx, +1)">
               ↓
             </button>
           </view>
         </view>
+
         <view v-if="chosenActions.length === 0" class="no-data-mid">
           <text>该模板下暂无动作，点击“添加动作”添加</text>
         </view>

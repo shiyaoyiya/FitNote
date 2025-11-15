@@ -14,58 +14,61 @@ export const useTemplateStore = defineStore('template', {
   actions: {
     /** 从本地读取所有模板 */
     load() {
-      const arr = uni.getStorageSync(STORAGE_KEY) || []
+      const arr = uni.getStorageSync('fitness_templates')
       this.templates = Array.isArray(arr) ? arr : []
+      // 兼容老数据：如果模板没有 id，则给它补 id
+      let patched = false
+      this.templates = this.templates.map(t => {
+        if (!t.id) {
+          patched = true
+          return {
+            id: String(Date.now()) + Math.random().toString(36).slice(2),
+            ...t
+          }
+        }
+        return t
+      })
+      if (patched) this.save()
     },
-
-    /** 保存当前所有模板到本地 */
     save() {
-      uni.setStorageSync(STORAGE_KEY, this.templates)
+      uni.setStorageSync('fitness_templates', this.templates)
     },
-
-    /** 新增一个空模板（只设名称） */
+    // 添加模板：生成唯一 id
     addTemplate(name) {
-      if (name && !this.templates.find(t => t.name === name)) {
-        this.templates.push({
-          name,
-          actions: [],
-          color: '',
-          customColors: []
-        })
+      if (!name) return
+      if (this.templates.find(t => t.name === name)) return
+      this.templates.push({
+        id: String(Date.now()) + Math.random().toString(36).slice(2),
+        name,
+        actions: [],
+        color: '',
+        customColors: []
+      })
+      this.save()
+    },
+    // 通过 id 更新名字（不触碰 dayData）
+    renameTemplate(id, newName) {
+      const tpl = this.templates.find(t => t.id === id)
+      if (!tpl) return
+      tpl.name = newName
+      this.save()
+    },
+    updateTemplate(id, payload) {
+      const tpl = this.templates.find(t => t.id === id)
+      if (!tpl) return
+      Object.assign(tpl, payload)
+      this.save()
+    },
+    removeTemplate(id) {
+      const idx = this.templates.findIndex(t => t.id === id)
+      if (idx !== -1) {
+        this.templates.splice(idx, 1)
         this.save()
       }
     },
-
-    /** 删除某个模板（按名） */
-    removeTemplate(name) {
-      this.templates = this.templates.filter(t => t.name !== name)
-      this.save()
-    },
-
-    /**
-     * 重命名模板，并迁移所有 dayData 中对旧名的引用
-     * @param {string} oldName 
-     * @param {string} newName 
-     */
-    rename(oldName, newName) {
-      if (!newName || oldName === newName) return
-      // 修改列表
-      const tpl = this.templates.find(t => t.name === oldName)
-      if (tpl) tpl.name = newName
-
-      // 遍历 dayData，迁移 key
-      const info = uni.getStorageInfoSync()
-      info.keys.forEach(key => {
-        if (!key.startsWith(DAYDATA_PREFIX)) return
-        const dd = uni.getStorageSync(key) || {}
-        if (dd.templates?.[oldName]) {
-          dd.templates[newName] = dd.templates[oldName]
-          delete dd.templates[oldName]
-          uni.setStorageSync(key, dd)
-        }
-      })
-
-      this.save()
+    // small helper: find by name
+    findByName(name) {
+      return this.templates.find(t => t.name === name)
     },
     /**
      * 检查一个模板是否在任何“日数据”中被引用

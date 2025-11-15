@@ -16,10 +16,11 @@
         </view>
         <view class="modal-body">
           <scroll-view class="tpl-select-list" scroll-y="true" show-scrollbar="false">
-            <view v-for="(tpl, idx) in templates" :key="idx" class="tpl-item" :style="{ backgroundColor: tpl.color }"
-              @click="chooseTemplate(idx)">
+            <view v-for="tpl in templates.filter(t => !t.isAerobic)" :key="tpl.name" class="tpl-item"
+              :style="{ backgroundColor: tpl.color }" @click="chooseTemplateByName(tpl.name)">
               <text :style="{ color: getContrastColor(tpl.color) }">{{ tpl.name }}</text>
             </view>
+
             <view v-if="templates.length === 0" class="no-data">
               <text>暂无可用模板，请返回首页新建</text>
             </view>
@@ -47,7 +48,7 @@
             <text class="input-mult">×</text>
             <input type="number" decimal-length="1" v-model="actionInputs[idx].weight" placeholder="kg"
               class="input-weight" @blur="confirmEntry(idx)" />
-            <button class="confirm-btn" @click="confirmEntry(idx)">✓️</button>
+            <button class="confirm-btn" @click="confirmEntry.bind(this, idx)">✓️</button>
           </view>
         </view>
 
@@ -142,7 +143,19 @@
           <view class="input-row">
             <input v-model.number="aerobicTime" type="number" placeholder="时长（分钟）" class="action-input" />
           </view>
+          <!-- 分割线 -->
+          <view class="divider"></view>
+          <!-- 新增：历史有氧模板 -->
+          <view v-if="aerobicHistory.length > 0" class="aerobic-history">
+            <text class="subtitle">历史有氧</text>
+            <view class="tag-container">
+              <text v-for="(a, i) in aerobicHistory" :key="i" class="reason-tag" @click="aerobicName = a">
+                {{ a }}
+              </text>
+            </view>
+          </view>
         </view>
+
         <view class="modal-footer btn-row">
           <button @click="saveAerobic">完成</button>
         </view>
@@ -235,6 +248,11 @@
           return `${m}:${s < 10 ? '0' + s : s}`;
         }
         return String(this.remaining);
+      },
+      aerobicHistory() {
+        return this.templates
+          .filter(t => t.isAerobic)
+          .map(t => t.name);
       }
     },
     created() {
@@ -308,11 +326,9 @@
         //    否则用最新模板定义的动作列表
         const tplInfo = dayData.templates[tplName] || {}
         const savedWeights = tplInfo.actionWeights && typeof tplInfo.actionWeights === 'object' ?
-          Object.keys(tplInfo.actionWeights) :
-          []
+          Object.keys(tplInfo.actionWeights) : []
         const defaultActions = (this.chosenTplIdx !== -1) ?
-          this.templates[this.chosenTplIdx].actions.slice() :
-          []
+          this.templates[this.chosenTplIdx].actions.slice() : []
 
         // 选用基准动作列表
         const baseActions = savedWeights.length > 0 ?
@@ -439,17 +455,22 @@
         return true; // 返回 false 可阻止
       },
       confirmEntry(idx) {
-        const reps = Number(this.actionInputs[idx].reps);
-        const weight = Number(this.actionInputs[idx].weight);
-        if (!reps || !weight) {
+        const reps = this.actionInputs[idx].reps;
+        const weight = this.actionInputs[idx].weight;
+
+        // 检查输入是否为空
+        if (reps === '' || weight === '') {
           uni.showToast({
             title: '次数和重量都要输入',
             icon: 'none'
           });
           return;
         }
-        const total = reps * weight;
-        const inputStr = `${reps}×${weight}`;
+
+        const repsNum = Number(reps);
+        const weightNum = Number(weight);
+        const total = repsNum * weightNum;
+        const inputStr = `${repsNum}×${weightNum}`;
         // 推入本地显示数组
         this.actionEntries[idx].push({
           input: inputStr,
@@ -544,6 +565,11 @@
       closeChooseTpl() {
         this.showChooseTpl = false;
       },
+      chooseTemplateByName(name) {
+        const idx = this.templates.findIndex(t => t.name === name);
+        if (idx === -1) return;
+        this.chooseTemplate(idx);
+      },
       chooseTemplate(idx) {
         this.chosenTplIdx = idx;
         this.chosenTplName = this.templates[idx].name;
@@ -593,6 +619,7 @@
         this.showChooseTpl = false;
         this.loadDayData();
       },
+
 
 
 
@@ -1760,6 +1787,17 @@
     margin-top: 12px;
     font-size: 14px;
     color: #666;
+  }
+
+  .divider {
+    width: 100%;
+    height: 1px;
+    background-color: #eee;
+    margin: 10px 0;
+  }
+
+  .container.dark .divider {
+    background-color: #555;
   }
 
   .tag-container {

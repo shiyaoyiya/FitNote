@@ -2,8 +2,8 @@
     "name" : "FitNote",
     "appid" : "__UNI__0B27BED",
     "description" : "",
-    "versionName" : "1.2.3",
-    "versionCode" : 123,
+    "versionName" : "1.3.0",
+    "versionCode" : 130,
     "transformPx" : false,
     /* 5+App特有相关 */
     "app-plus" : {
@@ -81,9 +81,9 @@
             "splashscreen" : {
                 "androidStyle" : "default",
                 "android" : {
-                    "xxhdpi" : "C:/Users/liao/Downloads/21.png",
-                    "xhdpi" : "",
-                    "hdpi" : ""
+                    "xxhdpi" : "static/1442x3202.png",
+                    "xhdpi" : "static/1442x3202.png",
+                    "hdpi" : "static/1442x3202.png"
                 }
             }
         }
