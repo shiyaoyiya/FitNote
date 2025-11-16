@@ -207,28 +207,33 @@
         uni.navigateBack();
       },
 
-      // 点击某个月：跳回首页并带上 year & month 参数
+      // 点击某个月：使用 redirectTo 替换当前页面栈
       selectMonth(monthIndex) {
         if (monthIndex < 0) monthIndex = 0;
         if (monthIndex > 11) monthIndex = 11;
 
-        // 显示跳转加载提示
         uni.showLoading({
           title: '跳转中...',
           mask: true
         });
 
-        uni.navigateTo({
+        // 使用 redirectTo 而不是 navigateTo
+        // redirectTo 会关闭当前页面，直接跳转到新页面
+        uni.redirectTo({
           url: `/pages/index/index?year=${this.year}&month=${monthIndex}`,
           success: () => {
-            // 跳转成功后在下一个 tick 隐藏（确保页面已跳转）
+            // 跳转成功后隐藏loading
             setTimeout(() => {
               uni.hideLoading();
             }, 100);
           },
-          fail: () => {
-            // 跳转失败时隐藏
+          fail: (err) => {
+            console.error('跳转失败:', err);
             uni.hideLoading();
+            uni.showToast({
+              title: '跳转失败',
+              icon: 'none'
+            });
           }
         });
       },

@@ -2,63 +2,65 @@
   <view :class="['container', darkModeClass]">
     <!-- 顶部：年月 -->
     <view class="calendar-container" @touchstart="onTouchStart" @touchend="onTouchEnd">
-      <view :key="monthKey">
-        <view class="calendar-header">
-          <text class="month-title" @click="goToYearPage">{{ curYear }}/{{ curMonth + 1 }}</text>
-        </view>
-        <view class="weekday-row">
-          <text class="weekday">日</text>
-          <text class="weekday">一</text>
-          <text class="weekday">二</text>
-          <text class="weekday">三</text>
-          <text class="weekday">四</text>
-          <text class="weekday">五</text>
-          <text class="weekday">六</text>
-        </view>
+      <view class="calendar-slide-container" :style="{ transform: `translateX(${slideOffset}px)` }">
+        <view class="calendar-month" :key="monthKey" :class="{ sliding: isSliding }">
+          <view class="calendar-header">
+            <text class="month-title" @click="goToYearPage">{{ curYear }}/{{ curMonth + 1 }}</text>
+          </view>
+          <view class="weekday-row">
+            <text class="weekday">日</text>
+            <text class="weekday">一</text>
+            <text class="weekday">二</text>
+            <text class="weekday">三</text>
+            <text class="weekday">四</text>
+            <text class="weekday">五</text>
+            <text class="weekday">六</text>
+          </view>
 
-        <!-- ===== 修改后的“日网格”部分 ===== -->
-        <view class="calendar-grid">
-          <view v-for="date in monthDays" :key="date.key" class="calendar-cell" :class="{
+          <!-- ===== 修改后的“日网格”部分 ===== -->
+          <view class="calendar-grid">
+            <view v-for="date in monthDays" :key="date.key" class="calendar-cell" :class="{
               today: date.isToday && !getTemplateColor(date.full),           /* 如果今天且无模板，用“today”类 */
               'today-has-template': date.isToday && getTemplateColor(date.full) /* 今天有模板时用另一类 */
             }" :style="getCellStyle(date.full)" @click="!date.isEmpty && handleDateClick(date.full)"
-            @longpress="!date.isEmpty && onDateLongPress(date.full)">
-            <view class="cell-content">
-              <!-- 如果是空位，什么都不渲染 -->
-              <template v-if="date.isEmpty">
-                <!-- 占位空格 -->
-              </template>
+              @longpress="!date.isEmpty && onDateLongPress(date.full)">
+              <view class="cell-content">
+                <!-- 如果是空位，什么都不渲染 -->
+                <template v-if="date.isEmpty">
+                  <!-- 占位空格 -->
+                </template>
 
-              <!-- 非空格、有模板时优先显示模板背景与边框 -->
-              <template v-else-if="getTemplateColor(date.full)">
-                <!-- 横向累计重量 -->
-                <text v-if="getTotalWeight(date.full) > 0" class="weight-text"
-                  :style="{ color: getContrastColor(getTemplateColor(date.full)) }">
-                  {{ getTotalWeight(date.full) }}{{ isAerobicDay(date.full) ? 'min' : '' }}
-                </text>
+                <!-- 非空格、有模板时优先显示模板背景与边框 -->
+                <template v-else-if="getTemplateColor(date.full)">
+                  <!-- 横向累计重量 -->
+                  <text v-if="getTotalWeight(date.full) > 0" class="weight-text"
+                    :style="{ color: getContrastColor(getTemplateColor(date.full)) }">
+                    {{ getTotalWeight(date.full) }}{{ isAerobicDay(date.full) ? 'min' : '' }}
+                  </text>
 
-                <!-- 日期数字 -->
-                <text class="cell-text" :style="{ color: getContrastColor(getTemplateColor(date.full)) }">
-                  {{ date.day }}
-                </text>
-                <!-- 模板名 -->
-                <text class="template-name" :style="{ color: getContrastColor(getTemplateColor(date.full)) }">
-                  {{ getTemplateName(date.full) }}
-                </text>
-              </template>
+                  <!-- 日期数字 -->
+                  <text class="cell-text" :style="{ color: getContrastColor(getTemplateColor(date.full)) }">
+                    {{ date.day }}
+                  </text>
+                  <!-- 模板名 -->
+                  <text class="template-name" :style="{ color: getContrastColor(getTemplateColor(date.full)) }">
+                    {{ getTemplateName(date.full) }}
+                  </text>
+                </template>
 
-              <!-- 非空格、无模板时正常渲染 -->
-              <template v-else>
-                <text v-if="getTotalWeight(date.full) > 0" class="weight-text"
-                  :style="{ color: getContrastColor(getTemplateColor(date.full)) }">
-                  {{ getTotalWeight(date.full) }}{{ isAerobicDay(date.full) ? 'min' : '' }}
-                </text>
+                <!-- 非空格、无模板时正常渲染 -->
+                <template v-else>
+                  <text v-if="getTotalWeight(date.full) > 0" class="weight-text"
+                    :style="{ color: getContrastColor(getTemplateColor(date.full)) }">
+                    {{ getTotalWeight(date.full) }}{{ isAerobicDay(date.full) ? 'min' : '' }}
+                  </text>
 
-                <text class="cell-text">{{ date.day }}</text>
-                <text v-if="getTemplateName(date.full)" class="template-name">
-                  {{ getTemplateName(date.full) }}
-                </text>
-              </template>
+                  <text class="cell-text">{{ date.day }}</text>
+                  <text v-if="getTemplateName(date.full)" class="template-name">
+                    {{ getTemplateName(date.full) }}
+                  </text>
+                </template>
+              </view>
             </view>
           </view>
         </view>
@@ -430,6 +432,13 @@
           color: ''
         },
         showRestColorPicker: false,
+        // 新增滑动相关数据
+        slideOffset: 0, // 滑动偏移量
+        isSliding: false, // 是否正在滑动
+        slideDirection: 0, // 滑动方向：-1左滑，1右滑，0无
+        touchStartX: 0,
+        touchStartY: 0,
+        slideThreshold: 50, // 滑动阈值
       }
     },
     computed: {
@@ -735,13 +744,56 @@
       },
       onTouchStart(e) {
         this.touchStartX = e.changedTouches[0].clientX;
+        this.touchStartY = e.changedTouches[0].clientY;
+        this.slideOffset = 0;
+        this.isSliding = false;
       },
+
       onTouchEnd(e) {
-        const dx = e.changedTouches[0].clientX - this.touchStartX;
-        if (dx > 50) this.prevMonth();
-        else if (dx < -50) this.nextMonth();
+        const endX = e.changedTouches[0].clientX;
+        const endY = e.changedTouches[0].clientY;
+        const dx = endX - this.touchStartX;
+        const dy = endY - this.touchStartY;
+
+        // 只处理水平滑动，避免误触垂直滑动
+        if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 10) {
+          this.handleSwipe(dx);
+        }
+      },
+      handleSwipe(dx) {
+        if (Math.abs(dx) < this.slideThreshold) {
+          // 滑动距离不足，回弹
+          this.slideOffset = 0;
+          return;
+        }
+
+        this.isSliding = true;
+        this.slideDirection = dx > 0 ? 1 : -1;
+
+        // 设置滑动偏移（类似图片中的效果）
+        this.slideOffset = dx > 0 ? 50 : -50;
+
+        // 延迟执行月份切换，让动画更流畅
+        setTimeout(() => {
+          if (dx > 0) {
+            this.prevMonth();
+          } else {
+            this.nextMonth();
+          }
+
+          // 月份切换完成后重置状态
+          setTimeout(() => {
+            this.slideOffset = 0;
+            this.isSliding = false;
+            this.slideDirection = 0;
+          }, 300);
+        }, 150);
       },
       prevMonth() {
+        uni.showLoading({
+          title: '切换中...',
+          mask: false
+        });
         let y = this.curYear,
           m = this.curMonth - 1;
         if (m < 0) {
@@ -752,8 +804,16 @@
         this.curMonth = m;
         this.monthKey += 1;
         this.buildMonthDays(y, m);
+        setTimeout(() => {
+          uni.hideLoading();
+        }, 300);
       },
+
       nextMonth() {
+        uni.showLoading({
+          title: '切换中...',
+          mask: false
+        });
         let y = this.curYear,
           m = this.curMonth + 1;
         if (m > 11) {
@@ -764,6 +824,9 @@
         this.curMonth = m;
         this.monthKey += 1;
         this.buildMonthDays(y, m);
+        setTimeout(() => {
+          uni.hideLoading();
+        }, 300);
       },
       handleDateClick(full) {
         const key = this.DAYDATA_PREFIX + full;
@@ -1254,44 +1317,40 @@
       },
       // ==== 新增：根据日期拿模板颜色 ====
       getTemplateColor(fullDate) {
-        // 1) 先读当天的 dayData
         const dayData = uni.getStorageSync(this.DAYDATA_PREFIX + fullDate) || {};
 
-        // 2) 如果是休息日且有 color 字段，就用它
+        // 1. 休息日颜色
         if (dayData.isRestDay && dayData.color) {
           return dayData.color;
         }
 
-        // 3) 如果有全局 color 字段，优先使用
+        // 2. 全局颜色
         if (dayData.color) {
           return dayData.color;
         }
 
-        // 4) 再看 templates 里最后一个 tplName 有没有自带 color
+        // 3. 模板颜色（从日期数据中获取）
         if (dayData.templates) {
           const tplNames = Object.keys(dayData.templates);
           if (tplNames.length) {
-            const last = tplNames[tplNames.length - 1];
-            const tplObj = dayData.templates[last];
-            if (tplObj && tplObj.color) {
-              return tplObj.color;
+            const lastTplName = tplNames[tplNames.length - 1];
+            const tplData = dayData.templates[lastTplName];
+
+            // 优先使用日期数据中保存的模板颜色
+            if (tplData && tplData.color) {
+              return tplData.color;
+            }
+
+            // 如果日期数据中没有颜色，尝试从全局模板中查找
+            const globalTpl = this.templates.find(t => t.name === lastTplName);
+            if (globalTpl && globalTpl.color) {
+              return globalTpl.color;
             }
           }
         }
 
-        // 5) 最后回退到全局模板列表里的默认色（如果模板已被删除，这里会返回空）
-        const tplName = this.getTemplateName(fullDate);
-        if (!tplName) return '';
-
-        // 修改：即使全局模板列表中找不到，也要保持原来的颜色逻辑
-        const global = this.templates.find(t => t.name === tplName);
-        if (global && global.color) {
-          return global.color;
-        }
-
-        // 新增：如果全局模板列表中找不到，但当天数据中有模板记录，使用默认颜色
+        // 4. 默认颜色
         if (dayData.templates && Object.keys(dayData.templates).length > 0) {
-          // 返回一个默认颜色，或者从预设颜色中取第一个
           return this.presetColors[0]?.value || '#93d5dc';
         }
 
@@ -1443,6 +1502,21 @@
 
   .container.dark .weekday {
     color: #bbbbbb;
+  }
+
+  /* 日历滑动容器 */
+  .calendar-slide-container {
+    transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    will-change: transform;
+  }
+
+  /* 日历月份容器 */
+  .calendar-month {
+    transition: all 0.3s ease;
+  }
+
+  .calendar-month.sliding {
+    opacity: 0.7;
   }
 
   .calendar-grid {

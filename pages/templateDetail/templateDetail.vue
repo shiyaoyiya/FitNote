@@ -288,15 +288,75 @@
       },
       // 改名
       onNameBlur() {
-        const oldName = this.originalName.trim()
-        const newName = this.templateName.trim()
-        if (!newName || newName === oldName) return
-        this.tplStore.rename(oldName, newName)
-        this.originalName = newName
+        const oldName = this.originalName.trim();
+        const newName = this.templateName.trim();
+
+        if (!newName || newName === oldName) return;
+
+        // 检查名称重复
+        if (this.tplStore.templates.some(t => t.name === newName && t.name !== oldName)) {
+          uni.showToast({
+            title: '模板名称已存在',
+            icon: 'none'
+          });
+          this.templateName = oldName;
+          return;
+        }
+
+        const template = this.tplStore.templates.find(t => t.name === oldName);
+        if (!template) {
+          this.templateName = oldName;
+          return;
+        }
+
+        // 关键：在重命名前保存颜色到历史数据
+        this.preserveTemplateColorInHistory(oldName, template.color);
+
+        // 执行重命名
+        template.name = newName;
+        this.tplStore.save();
+
+        this.originalName = newName;
         uni.setNavigationBarTitle({
-          title: newName
-        })
-        this.loadTemplateDetail()
+          title: newName + ' 模板详情'
+        });
+        this.loadTemplateDetail();
+
+        uni.showToast({
+          title: '重命名成功',
+          icon: 'success'
+        });
+      },
+
+      // 保存模板颜色到历史数据
+      preserveTemplateColorInHistory(templateName, templateColor) {
+        if (!templateColor) return;
+
+        try {
+          const storageInfo = uni.getStorageInfoSync();
+          const dayKeys = storageInfo.keys.filter(key => key.startsWith('fitness_daydata_'));
+
+          dayKeys.forEach(key => {
+            const dayData = uni.getStorageSync(key) || {};
+            if (dayData.templates && dayData.templates[templateName]) {
+              const tplData = dayData.templates[templateName];
+
+              // 确保日期数据中的模板有颜色记录
+              if (!tplData.color) {
+                tplData.color = templateColor;
+              }
+
+              // 确保日期全局有颜色记录
+              if (!dayData.color) {
+                dayData.color = templateColor;
+              }
+
+              uni.setStorageSync(key, dayData);
+            }
+          });
+        } catch (error) {
+          console.error('保存模板颜色到历史数据时出错:', error);
+        }
       },
 
       // 添加/删除/移动动作
