@@ -1,0 +1,65 @@
+{
+  "pages": [ //pages数组中第一项表示应用启动页，参考：https://uniapp.dcloud.io/collocation/pages
+    {
+      "path": "pages/index/index",
+      "style": {
+        "navigationBarTitleText": "FitNote"
+      }
+    },
+    {
+      "path": "pages/index/day",
+      "style": {
+        "navigationBarTitleText": "FitNote"
+      }
+    },
+    {
+      "path": "pages/actionHistory/actionHistory",
+      "style": {
+        "navigationBarTitleText": "动作历史"
+      }
+    },
+    {
+      "path": "pages/templateDetail/templateDetail",
+      "style": {
+        "navigationBarTitleText": "编辑模板"
+      }
+    },
+    {
+      "path": "pages/year/year",
+      "style": {
+        "navigationBarTitleText": "年度总览"
+      }
+    },
+    {
+      "path": "pages/actionLibrary/actionLibrary",
+      "style": {
+        "navigationBarTitleText": "动作库"
+      }
+    },
+    {
+      "path": "pages/templateManager/templateManager",
+      "style": {
+        "navigationBarTitleText": "模板管理"
+      }
+    },
+    {
+      "path": "pages/trainingStat/trainingStat",
+      "style": {
+        "navigationBarTitleText": "训练统计"
+      }
+    },
+    {
+      "path": "pages/backup/backup",
+      "style": {
+        "navigationBarTitleText": "💾 数据备份"
+      }
+    }
+  ],
+  "globalStyle": {
+    "navigationBarTextStyle": "#f7f7f7",
+    "navigationBarTitleText": "FitNote",
+    "navigationBarBackgroundColor": "#121212",
+    "backgroundColor": "#121212"
+  },
+  "uniIdRouter": {}
+}

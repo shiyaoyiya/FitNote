@@ -1,0 +1,21 @@
+# Mac
+.DS_Store
+**/.DS_Store
+
+# vim/vi
+*.swp
+
+# JavaScript
+node_modules/
+.node_modules/
+.eslintcache
+
+# 编辑器配置
+.hbuilderx/
+.trae/
+
+# 构建产物
+unpackage/
+
+# python
+*.pyc
