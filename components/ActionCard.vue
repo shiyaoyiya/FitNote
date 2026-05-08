@@ -40,9 +40,11 @@
       <view v-for="(stage, i) in extraStages" :key="i" class="extra-stage-row">
         <text class="stage-label">{{ entryType === 'decreasing' ? '递减' : '暂停' }}{{ i + 1 }}：</text>
         <view class="input-pair">
-          <input type="digit" v-model="stage.reps" placeholder="次数" class="input-reps" />
+          <input type="digit" v-model="stage.reps" placeholder="次数" class="input-reps"
+            @focus="onExtraInputFocus(i, 'reps')" @blur="onInputBlur" />
           <text class="input-mult">×</text>
-          <input type="digit" v-model="stage.weight" placeholder="kg" class="input-weight" />
+          <input type="digit" v-model="stage.weight" placeholder="kg" class="input-weight"
+            @focus="onExtraInputFocus(i, 'weight')" @blur="onInputBlur" />
         </view>
         <text class="remove-stage-btn" @click="removeExtraStage(i)">×</text>
         <button class="extra-confirm-btn" @click="confirmExtraStages">✓️</button>
@@ -117,6 +119,7 @@
         showBubble: false,
         bubbleContent: '',
         focusedField: '',
+        focusedStageIndex: -1,
         // 长按删除 entry
         longPressTimer: null,
         pressedEntryIdx: -1,
@@ -155,13 +158,13 @@
 
       onInputFocus(field) {
         this.focusedField = field
+        this.focusedStageIndex = -1
         if (!this.bubbleFill) return
         const currentVal = field === 'reps' ? this.mainReps : this.mainWeight
         if (currentVal) return
         const history = this.getHistoryDataForGroup()
         if (!history) return
-        const repsVal = field === 'reps' ? history.reps : history.weight
-        this.bubbleContent = `上次：${history.reps}×${history.weight}kg，点击填入`
+        this.bubbleContent = history.displayText
         this.showBubble = true
       },
       onInputBlur() {
@@ -174,26 +177,83 @@
         if (groupIndex > historyEntries.length) return null
         const entry = historyEntries[groupIndex - 1]
         if (!entry || !entry.stages || !entry.stages[0]) return null
-        const { reps, weight } = entry.stages[0]
-        if (reps <= 0 && weight <= 0) return null
-        return { reps, weight }
+        const main = entry.stages[0]
+        if (main.reps <= 0 && main.weight <= 0) return null
+
+        // 构建显示文案
+        const parts = entry.stages
+          .filter(s => s.reps > 0)
+          .map(s => s.weight > 0 ? `${s.reps}×${s.weight}kg` : `${s.reps}`)
+        const typeSuffix = entry.type === 'decreasing' ? ' 递减' :
+                           entry.type === 'paused' ? ' 暂停' : ''
+        const displayText = `上次：${parts.join('+')}${typeSuffix}，点击填入`
+
+        return {
+          stages: entry.stages,
+          type: entry.type || 'normal',
+          displayText,
+        }
       },
       fillHistoryData() {
+        // 额外阶段单独填充
+        if (this.focusedStageIndex >= 0) {
+          const history = this.getHistoryDataForExtraStage(this.focusedStageIndex)
+          if (!history) return
+          const stage = this.extraStages[this.focusedStageIndex]
+          if (this.focusedField === 'reps' && !stage.reps) stage.reps = String(history.reps)
+          if (this.focusedField === 'weight' && !stage.weight) stage.weight = String(history.weight)
+          if (this.focusedField === 'reps' && !stage.weight) stage.weight = String(history.weight)
+          if (this.focusedField === 'weight' && !stage.reps) stage.reps = String(history.reps)
+          this.showBubble = false
+          this.focusedStageIndex = -1
+          return
+        }
+
+        // 主输入框填充：填充主阶段 + 自动创建额外阶段
         const history = this.getHistoryDataForGroup()
         if (!history) return
-        if (this.focusedField === 'reps' && !this.mainReps) {
-          this.mainReps = String(history.reps)
+        const { stages, type } = history
+
+        // 填充主输入
+        if (!this.mainReps) this.mainReps = String(stages[0].reps)
+        if (!this.mainWeight) this.mainWeight = String(stages[0].weight)
+
+        // 如果历史有额外阶段（递减/暂停），自动创建并填充
+        if (stages.length > 1) {
+          this.entryType = type || ENTRY_TYPE.NORMAL
+          this.extraStages = stages.slice(1).map(s => ({
+            reps: String(s.reps),
+            weight: s.weight > 0 ? String(s.weight) : ''
+          }))
         }
-        if (this.focusedField === 'weight' && !this.mainWeight) {
-          this.mainWeight = String(history.weight)
-        }
-        if (this.focusedField === 'reps' && !this.mainWeight) {
-          this.mainWeight = String(history.weight)
-        }
-        if (this.focusedField === 'weight' && !this.mainReps) {
-          this.mainReps = String(history.reps)
-        }
+
         this.showBubble = false
+      },
+
+      onExtraInputFocus(stageIndex, field) {
+        this.focusedField = field
+        this.focusedStageIndex = stageIndex
+        if (!this.bubbleFill) return
+        const stage = this.extraStages[stageIndex]
+        if (!stage) return
+        const currentVal = field === 'reps' ? stage.reps : stage.weight
+        if (currentVal) return
+        const history = this.getHistoryDataForExtraStage(stageIndex)
+        if (!history) return
+        const typeLabel = this.entryType === 'decreasing' ? '递减' : '暂停'
+        this.bubbleContent = `上次${typeLabel}${stageIndex + 1}：${history.reps}×${history.weight}kg，点击填入`
+        this.showBubble = true
+      },
+      getHistoryDataForExtraStage(stageIndex) {
+        if (!this.latestRecord || !this.latestRecord.entry) return null
+        const historyEntries = normalizeEntries(this.latestRecord.entry)
+        const groupIndex = this.entries.length
+        if (groupIndex > historyEntries.length) return null
+        const entry = historyEntries[groupIndex - 1]
+        if (!entry || !entry.stages) return null
+        const stage = entry.stages[stageIndex + 1]
+        if (!stage || (stage.reps <= 0 && stage.weight <= 0)) return null
+        return { reps: stage.reps, weight: stage.weight }
       },
 
       addExtraStage() {
