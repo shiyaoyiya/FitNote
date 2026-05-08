@@ -200,6 +200,7 @@
           const history = this.getHistoryDataForExtraStage(this.focusedStageIndex)
           if (!history) return
           const stage = this.extraStages[this.focusedStageIndex]
+          if (!stage) { this.showBubble = false; this.focusedStageIndex = -1; return }
           if (this.focusedField === 'reps' && !stage.reps) stage.reps = String(history.reps)
           if (this.focusedField === 'weight' && !stage.weight) stage.weight = String(history.weight)
           if (this.focusedField === 'reps' && !stage.weight) stage.weight = String(history.weight)
