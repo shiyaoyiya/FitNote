@@ -14,7 +14,7 @@
         <view class="left-block">
           <!-- 明细列表：展示每组重量 -->
           <view v-if="actionEntries[idx]?.length > 0" class="action-entries">
-            <view v-for="(entry, eidx) in actionEntries[idx]" :key="eidx" class="entry-row">
+            <view v-for="(entry, eidx) in actionEntries[idx].filter(e => !e.isPlaceholder)" :key="eidx" class="entry-row">
               <text class="entry-index">第{{ eidx + 1 }}组：</text>
               <text class="entry-text">{{ entry.input }}kg</text>
             </view>

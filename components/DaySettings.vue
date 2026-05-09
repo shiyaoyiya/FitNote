@@ -507,11 +507,13 @@
     border-radius: 12px;
     background: var(--bg-tertiary);
     position: relative;
-    transition: background 0.2s;
+    transition: background 0.2s, border-color 0.2s;
+    border: 2px solid var(--border-color);
   }
 
   .setting-switch.on {
     background: #379bff;
+    border: 2px solid var(--border-color);
   }
 
   .switch-dot {
@@ -727,11 +729,11 @@
 
   .action-selected {
     background: rgba(55, 155, 255, 0.15) !important;
-    border: 2px solid #379bff !important;
+    border: 2px solid var(--theme-primary) !important;
   }
 
   .action-selected .act-name {
-    color: #379bff !important;
+    color: var(--theme-primary) !important;
     font-weight: bold;
   }
 
@@ -741,7 +743,7 @@
     right: -6px;
     width: 18px;
     height: 18px;
-    background: #379bff;
+    background: var(--theme-primary);
     color: #fff;
     border-radius: 50%;
     font-size: 11px;
@@ -791,7 +793,7 @@
     width: 100% !important;
     height: 54px !important;
     line-height: 54px !important;
-    background: linear-gradient(135deg, #379bff, #2d82d6) !important;
+    background: linear-gradient(135deg, var(--theme-primary), var(--theme-primary-variant)) !important;
     border-radius: 16px !important;
     font-size: 16px !important;
     font-weight: bold;

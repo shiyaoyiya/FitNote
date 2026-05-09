@@ -38,7 +38,8 @@
     </view>
 
     <!-- 分化计划设置弹窗 -->
-    <TrainingSplitPlan v-if="showSplitPlan" :templates="templates" :cycle-days="splitPlan.cycleDays"
+    <TrainingSplitPlan v-if="showSplitPlan" :templates="templates" :mode="splitPlan.mode"
+      :cycle-days="splitPlan.cycleDays" :week-plan="splitPlan.weekPlan"
       @close="onCloseSplitPlan" @save="onSaveSplitPlan" />
 
     <!-- 底部：重量显示 + 模板/动作 按钮 -->
@@ -385,27 +386,52 @@
       },
       todayBtnText() {
         const plan = this.splitPlan
-        if (plan && plan.enabled && plan.cycleDays && plan.cycleDays.length > 0) {
+        if (plan && plan.enabled) {
           const todayStr = this.formatDate(new Date())
-          const idx = this.daySettingsStore.getCycleIndex(todayStr, this.dayDataCacheStore)
-          const dayPlan = plan.cycleDays[idx]
-          if (dayPlan && dayPlan.enabled && dayPlan.template) {
-            return `第${idx + 1}天：${dayPlan.template}`
-          }
-          if (dayPlan && !dayPlan.enabled) {
-            return `第${idx + 1}天：休息`
+          if (plan.mode === 'week') {
+            const dayPlan = this.daySettingsStore.getWeekDayPlan(todayStr)
+            if (dayPlan && dayPlan.enabled && dayPlan.template) {
+              const weekday = new Date(todayStr.replace(/-/g, '/')).getDay()
+              const dayNames = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
+              return `${dayNames[weekday]}：${dayPlan.template}`
+            }
+            if (dayPlan && !dayPlan.enabled) {
+              const weekday = new Date(todayStr.replace(/-/g, '/')).getDay()
+              const dayNames = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
+              return `${dayNames[weekday]}：休息`
+            }
+          } else {
+            if (plan.cycleDays && plan.cycleDays.length > 0) {
+              const idx = this.daySettingsStore.getCycleIndex(todayStr, this.dayDataCacheStore)
+              const dayPlan = plan.cycleDays[idx]
+              if (dayPlan && dayPlan.enabled && dayPlan.template) {
+                return `第${idx + 1}天：${dayPlan.template}`
+              }
+              if (dayPlan && !dayPlan.enabled) {
+                return `第${idx + 1}天：休息`
+              }
+            }
           }
         }
         return '开始训练'
       },
       todayHasTemplate() {
         const plan = this.splitPlan
-        if (plan && plan.enabled && plan.cycleDays && plan.cycleDays.length > 0) {
+        if (plan && plan.enabled) {
           const todayStr = this.formatDate(new Date())
-          const idx = this.daySettingsStore.getCycleIndex(todayStr, this.dayDataCacheStore)
-          const dayPlan = plan.cycleDays[idx]
-          if (dayPlan && dayPlan.enabled && dayPlan.template) {
-            return true
+          if (plan.mode === 'week') {
+            const dayPlan = this.daySettingsStore.getWeekDayPlan(todayStr)
+            if (dayPlan && dayPlan.enabled && dayPlan.template) {
+              return true
+            }
+          } else {
+            if (plan.cycleDays && plan.cycleDays.length > 0) {
+              const idx = this.daySettingsStore.getCycleIndex(todayStr, this.dayDataCacheStore)
+              const dayPlan = plan.cycleDays[idx]
+              if (dayPlan && dayPlan.enabled && dayPlan.template) {
+                return true
+              }
+            }
           }
         }
         return false
@@ -1215,23 +1241,42 @@
         const todayStr = this.formatDate(now)
         const plan = this.splitPlan
 
-        if (plan && plan.enabled && plan.cycleDays && plan.cycleDays.length > 0) {
-          const idx = this.daySettingsStore.getCycleIndex(todayStr, this.dayDataCacheStore)
-          const dayPlan = plan.cycleDays[idx]
-          if (dayPlan && dayPlan.enabled && dayPlan.template) {
-            this.daySettingsStore.advanceCycleOffset(todayStr)
-            uni.navigateTo({
-              url: `/pages/index/day?date=${todayStr}&tpl=${encodeURIComponent(dayPlan.template)}`
-            })
-            return
-          }
-          if (dayPlan && !dayPlan.enabled) {
-            this.daySettingsStore.advanceCycleOffset(todayStr)
-            uni.showToast({
-              title: '今天是休息日',
-              icon: 'none'
-            })
-            return
+        if (plan && plan.enabled) {
+          if (plan.mode === 'week') {
+            const dayPlan = this.daySettingsStore.getWeekDayPlan(todayStr)
+            if (dayPlan && dayPlan.enabled && dayPlan.template) {
+              uni.navigateTo({
+                url: `/pages/index/day?date=${todayStr}&tpl=${encodeURIComponent(dayPlan.template)}`
+              })
+              return
+            }
+            if (dayPlan && !dayPlan.enabled) {
+              uni.showToast({
+                title: '今天是休息日',
+                icon: 'none'
+              })
+              return
+            }
+          } else {
+            if (plan.cycleDays && plan.cycleDays.length > 0) {
+              const idx = this.daySettingsStore.getCycleIndex(todayStr, this.dayDataCacheStore)
+              const dayPlan = plan.cycleDays[idx]
+              if (dayPlan && dayPlan.enabled && dayPlan.template) {
+                this.daySettingsStore.advanceCycleOffset(todayStr)
+                uni.navigateTo({
+                  url: `/pages/index/day?date=${todayStr}&tpl=${encodeURIComponent(dayPlan.template)}`
+                })
+                return
+              }
+              if (dayPlan && !dayPlan.enabled) {
+                this.daySettingsStore.advanceCycleOffset(todayStr)
+                uni.showToast({
+                  title: '今天是休息日',
+                  icon: 'none'
+                })
+                return
+              }
+            }
           }
         }
 
@@ -1248,9 +1293,9 @@
       onCloseSplitPlan() {
         this.showSplitPlan = false
       },
-      onSaveSplitPlan(cycleDays) {
+      onSaveSplitPlan(planData) {
         this.daySettingsStore.splitPlan.enabled = true
-        this.daySettingsStore.saveSplitPlan(cycleDays)
+        this.daySettingsStore.saveSplitPlan(planData)
         this.showSplitPlan = false
         uni.showToast({
           title: '分化计划已保存',

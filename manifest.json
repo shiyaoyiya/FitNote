@@ -2,8 +2,8 @@
     "name" : "FitNote",
     "appid" : "__UNI__0B27BED",
     "description" : "",
-    "versionName" : "1.9.1",
-    "versionCode" : 191,
+    "versionName" : "1.9.3",
+    "versionCode" : 193,
     "transformPx" : false,
     /* 5+App特有相关 */
     "app-plus" : {
@@ -102,9 +102,11 @@
     "mp-weixin" : {
         "appid" : "wxea4d8a557d8391ee",
         "setting" : {
-            "urlCheck" : false
+            "urlCheck" : false,
+            "minified" : true
         },
-        "usingComponents" : true
+        "usingComponents" : true,
+        "lazyCodeLoading" : "requiredComponents"
     },
     "mp-alipay" : {
         "usingComponents" : true

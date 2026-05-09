@@ -1,3 +1,5 @@
+import { generateThemeMethod2 } from './color.js'
+
 export function formatDate(dateObj) {
   const y = dateObj.getFullYear();
   const m = dateObj.getMonth() + 1;
@@ -9,9 +11,22 @@ export function updateNavBar() {
   try {
     const data = uni.getStorageSync('fitness_day_settings')
     const isDark = data ? !!data.isDarkMode : true
+    const customTheme = data?.customTheme || { dark: '#379bff', light: '#379bff' }
+    const customColor = isDark ? customTheme.dark : customTheme.light
+
+    // 根据自定义颜色计算导航栏背景色
+    // 使用生成的主题色中的 surface 颜色作为导航栏背景
+    let bgColor = isDark ? '#121212' : '#f5f5f5'
+    if (customColor && customColor !== '#379bff') {
+      const theme = generateThemeMethod2(customColor, isDark ? 'dark' : 'light')
+      if (theme && theme.surface) {
+        bgColor = theme.surface
+      }
+    }
+
     uni.setNavigationBarColor({
       frontColor: isDark ? '#ffffff' : '#000000',
-      backgroundColor: isDark ? '#121212' : '#f5f5f5'
+      backgroundColor: bgColor
     })
   } catch (e) {
     uni.setNavigationBarColor({

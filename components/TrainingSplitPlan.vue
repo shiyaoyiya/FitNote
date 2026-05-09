@@ -1,35 +1,65 @@
 <template>
   <view class="popup-overlay" @click.self="onClose">
     <view class="overlay-bg" @click="onClose"></view>
-    <view class="split-panel fade-in" @click.stop>
+    <view class="split-panel fade-in" :class="{ light: isLightMode }" @click.stop>
       <view class="split-header">
         <text class="split-title">设置分化计划</text>
         <text class="close-icon" @click="onClose">×</text>
       </view>
+      <view class="mode-tabs">
+        <view class="mode-tab" :class="{ 'mode-tab-active': localMode === 'cycle' }" @click="switchMode('cycle')">
+          <text class="mode-tab-text" :class="{ 'mode-tab-text-active': localMode === 'cycle' }">按天数</text>
+        </view>
+        <view class="mode-tab" :class="{ 'mode-tab-active': localMode === 'week' }" @click="switchMode('week')">
+          <text class="mode-tab-text" :class="{ 'mode-tab-text-active': localMode === 'week' }">按周</text>
+        </view>
+      </view>
       <view class="split-body">
-        <view v-for="(day, idx) in localPlan" :key="idx" class="day-row">
-          <view class="day-info">
-            <text class="day-label">第{{ idx + 1 }}天</text>
-          </view>
-          <view class="day-control">
-            <view class="day-toggle" :class="{ 'day-toggle-active': day.enabled }" @click="toggleDay(idx)">
-              <text class="toggle-text" :class="{ 'toggle-text-active': day.enabled }">{{ day.enabled ? '训练' : '休息' }}</text>
+        <view v-if="localMode === 'cycle'">
+          <view v-for="(day, idx) in localPlan" :key="idx" class="day-row">
+            <view class="day-info">
+              <text class="day-label">第{{ idx + 1 }}天</text>
+            </view>
+            <view class="day-control">
+              <view class="day-toggle" :class="{ 'day-toggle-active': day.enabled }" @click="toggleDay(idx)">
+                <text class="toggle-text" :class="{ 'toggle-text-active': day.enabled }">{{ day.enabled ? '训练' : '休息' }}</text>
+              </view>
+            </view>
+            <view class="day-template" v-if="day.enabled">
+              <picker :range="templateNames" @change="onTplChange($event, idx)">
+                <view class="tpl-picker">
+                  <text class="tpl-picker-text">{{ day.template || '选择模板' }}</text>
+                  <text class="tpl-arrow">▾</text>
+                </view>
+              </picker>
+            </view>
+            <view class="day-remove" @click="removeDay(idx)" v-if="localPlan.length > 1">
+              <text class="remove-icon">×</text>
             </view>
           </view>
-          <view class="day-template" v-if="day.enabled">
-            <picker :range="templateNames" @change="onTplChange($event, idx)">
-              <view class="tpl-picker">
-                <text class="tpl-picker-text">{{ day.template || '选择模板' }}</text>
-                <text class="tpl-arrow">▾</text>
-              </view>
-            </picker>
-          </view>
-          <view class="day-remove" @click="removeDay(idx)" v-if="localPlan.length > 1">
-            <text class="remove-icon">×</text>
+          <view class="add-day-row" @click="addDay">
+            <text class="add-day-text">+ 添加一天</text>
           </view>
         </view>
-        <view class="add-day-row" @click="addDay">
-          <text class="add-day-text">+ 添加一天</text>
+        <view v-else>
+          <view v-for="(day, idx) in localWeekPlan" :key="idx" class="day-row">
+            <view class="day-info">
+              <text class="day-label">{{ weekDayNames[idx] }}</text>
+            </view>
+            <view class="day-control">
+              <view class="day-toggle" :class="{ 'day-toggle-active': day.enabled }" @click="toggleWeekDay(idx)">
+                <text class="toggle-text" :class="{ 'toggle-text-active': day.enabled }">{{ day.enabled ? '训练' : '休息' }}</text>
+              </view>
+            </view>
+            <view class="day-template" v-if="day.enabled">
+              <picker :range="templateNames" @change="onWeekTplChange($event, idx)">
+                <view class="tpl-picker">
+                  <text class="tpl-picker-text">{{ day.template || '选择模板' }}</text>
+                  <text class="tpl-arrow">▾</text>
+                </view>
+              </picker>
+            </view>
+          </view>
         </view>
       </view>
       <view class="split-footer">
@@ -45,6 +75,8 @@
 </template>
 
 <script>
+  import { useDaySettingsStore } from '@/stores/daySettings.js'
+
   export default {
     name: 'TrainingSplitPlan',
     props: {
@@ -88,15 +120,38 @@
           },
         ],
       },
+      mode: {
+        type: String,
+        default: 'cycle'
+      },
+      weekPlan: {
+        type: Array,
+        default: () => [
+          { template: null, enabled: false },
+          { template: null, enabled: false },
+          { template: null, enabled: false },
+          { template: null, enabled: false },
+          { template: null, enabled: false },
+          { template: null, enabled: false },
+          { template: null, enabled: false },
+        ],
+      },
     },
     data() {
       return {
         localPlan: [],
+        localMode: 'cycle',
+        localWeekPlan: [],
+        weekDayNames: ['周一', '周二', '周三', '周四', '周五', '周六', '周日'],
       }
     },
     computed: {
       templateNames() {
         return this.templates.map(t => t.name)
+      },
+      isLightMode() {
+        const daySettingsStore = useDaySettingsStore()
+        return !daySettingsStore.isDarkMode
       },
     },
     watch: {
@@ -107,17 +162,43 @@
           this.localPlan = JSON.parse(JSON.stringify(val))
         },
       },
+      mode: {
+        immediate: true,
+        handler(val) {
+          this.localMode = val || 'cycle'
+        },
+      },
+      weekPlan: {
+        immediate: true,
+        deep: true,
+        handler(val) {
+          this.localWeekPlan = JSON.parse(JSON.stringify(val))
+        },
+      },
     },
     methods: {
+      switchMode(mode) {
+        this.localMode = mode
+      },
       toggleDay(idx) {
         this.localPlan[idx].enabled = !this.localPlan[idx].enabled
         if (!this.localPlan[idx].enabled) {
           this.localPlan[idx].template = null
         }
       },
+      toggleWeekDay(idx) {
+        this.localWeekPlan[idx].enabled = !this.localWeekPlan[idx].enabled
+        if (!this.localWeekPlan[idx].enabled) {
+          this.localWeekPlan[idx].template = null
+        }
+      },
       onTplChange(e, idx) {
         const tplIdx = e.detail.value
         this.localPlan[idx].template = this.templateNames[tplIdx]
+      },
+      onWeekTplChange(e, idx) {
+        const tplIdx = e.detail.value
+        this.localWeekPlan[idx].template = this.templateNames[tplIdx]
       },
       addDay() {
         this.localPlan.push({
@@ -132,7 +213,11 @@
         this.$emit('close')
       },
       onSave() {
-        this.$emit('save', JSON.parse(JSON.stringify(this.localPlan)))
+        this.$emit('save', {
+          mode: this.localMode,
+          cycleDays: this.localPlan,
+          weekPlan: this.localWeekPlan,
+        })
       },
     },
   }
@@ -204,6 +289,50 @@
 
   .split-panel.light .split-header {
     border-bottom-color: #e0e0e0;
+  }
+
+  .mode-tabs {
+    display: flex;
+    padding: 8px 16px;
+    gap: 8px;
+    border-bottom: 1px solid #333;
+  }
+
+  .split-panel.light .mode-tabs {
+    border-bottom-color: #e0e0e0;
+  }
+
+  .mode-tab {
+    flex: 1;
+    height: 36px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 8px;
+    background-color: #2a2a2a;
+    transition: all 0.2s;
+  }
+
+  .split-panel.light .mode-tab {
+    background-color: #e8e8e8;
+  }
+
+  .mode-tab-active {
+    background-color: rgba(55, 155, 255, 0.2);
+  }
+
+  .split-panel.light .mode-tab-active {
+    background-color: rgba(55, 155, 255, 0.15);
+  }
+
+  .mode-tab-text {
+    font-size: 13px;
+    color: #888;
+  }
+
+  .mode-tab-text-active {
+    color: #379bff;
+    font-weight: 500;
   }
 
   .split-title {

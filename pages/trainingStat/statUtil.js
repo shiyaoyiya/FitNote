@@ -252,7 +252,7 @@ function computeSubcategoryTrendsForPeriod(year, month, periodType, actionStore,
 
               const actionEntries = entries[actionName]
               if (actionEntries && Array.isArray(actionEntries)) {
-                bucketStats[subId].sets += actionEntries.length
+                bucketStats[subId].sets += actionEntries.filter(e => !e.isPlaceholder).length
               } else {
                 const totalWeight = actionWeights[actionName] || 0
                 if (totalWeight > 0) {
@@ -328,7 +328,7 @@ export function computeStats({ year, month, periodType, actionStore, dayDataCach
 
         const actionEntries = entries[actionName]
         if (actionEntries && Array.isArray(actionEntries)) {
-          totalSets += actionEntries.length
+          totalSets += actionEntries.filter(e => !e.isPlaceholder).length
         } else if ((actionWeights[actionName] || 0) > 0) {
           totalSets += 1
         }
@@ -394,7 +394,7 @@ export function computeStats({ year, month, periodType, actionStore, dayDataCach
 
           const actionEntries = entries[actionName]
           if (actionEntries && Array.isArray(actionEntries)) {
-            subSets += actionEntries.length
+            subSets += actionEntries.filter(e => !e.isPlaceholder).length
           } else if ((actionWeights[actionName] || 0) > 0) {
             subSets += 1
           }
@@ -467,7 +467,7 @@ function collectWeeklyVolume(year, month, periodType, actionStore, dayDataCacheS
 
           const actionEntries = entries[actionName]
           if (actionEntries && Array.isArray(actionEntries)) {
-            weeklyVolume[weekStart][subId] += actionEntries.length
+            weeklyVolume[weekStart][subId] += actionEntries.filter(e => !e.isPlaceholder).length
           } else if ((actionWeights[actionName] || 0) > 0) {
             weeklyVolume[weekStart][subId] += 1
           }
@@ -522,7 +522,7 @@ function collectAllWeeklyVolume(actionStore, dayDataCacheStore) {
 
           const actionEntries = entries[actionName];
           if (actionEntries && Array.isArray(actionEntries)) {
-            weeklyVolume[weekStart][subId] += actionEntries.length;
+            weeklyVolume[weekStart][subId] += actionEntries.filter(e => !e.isPlaceholder).length;
           } else if ((actionWeights[actionName] || 0) > 0) {
             weeklyVolume[weekStart][subId] += 1;
           }

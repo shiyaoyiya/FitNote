@@ -181,7 +181,8 @@
       getHistoryDataForGroup() {
         if (!this.latestRecord || !this.latestRecord.entry) return null
         const historyEntries = normalizeEntries(this.latestRecord.entry)
-        const groupIndex = this.entries.length + 1
+        const validCount = this.entries.filter(e => !isPlaceholderEntry(e)).length
+        const groupIndex = validCount + 1
         if (groupIndex > historyEntries.length) return null
         const entry = historyEntries[groupIndex - 1]
         if (!entry || !entry.stages || !entry.stages[0]) return null
@@ -209,10 +210,9 @@
           if (!history) return
           const stage = this.extraStages[this.focusedStageIndex]
           if (!stage) { this.showBubble = false; this.focusedStageIndex = -1; return }
+          this.entryType = history.type || ENTRY_TYPE.NORMAL
           if (this.focusedField === 'reps' && !stage.reps) stage.reps = String(history.reps)
           if (this.focusedField === 'weight' && !stage.weight) stage.weight = String(history.weight)
-          if (this.focusedField === 'reps' && !stage.weight) stage.weight = String(history.weight)
-          if (this.focusedField === 'weight' && !stage.reps) stage.reps = String(history.reps)
           this.showBubble = false
           this.focusedStageIndex = -1
           return
@@ -249,20 +249,25 @@
         if (currentVal) return
         const history = this.getHistoryDataForExtraStage(stageIndex)
         if (!history) return
-        const typeLabel = this.entryType === 'decreasing' ? '递减' : '暂停'
+        const typeLabel = history.type === 'decreasing' ? '递减' : '暂停'
         this.bubbleContent = `上次${typeLabel}${stageIndex + 1}：${history.reps}×${history.weight}kg，点击填入`
         this.showBubble = true
       },
       getHistoryDataForExtraStage(stageIndex) {
         if (!this.latestRecord || !this.latestRecord.entry) return null
         const historyEntries = normalizeEntries(this.latestRecord.entry)
-        const groupIndex = this.entries.length
+        const validCount = this.entries.filter(e => !isPlaceholderEntry(e)).length
+        const groupIndex = validCount + 1
         if (groupIndex > historyEntries.length) return null
         const entry = historyEntries[groupIndex - 1]
         if (!entry || !entry.stages) return null
         const stage = entry.stages[stageIndex + 1]
         if (!stage || (stage.reps <= 0 && stage.weight <= 0)) return null
-        return { reps: stage.reps, weight: stage.weight }
+        return { 
+          reps: stage.reps, 
+          weight: stage.weight,
+          type: entry.type || 'normal'
+        }
       },
 
       addExtraStage() {

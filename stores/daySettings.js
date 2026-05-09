@@ -23,6 +23,15 @@ export const useDaySettingsStore = defineStore('daySettings', {
         { template: null, enabled: false },
         { template: null, enabled: false },
       ],
+      weekPlan: [
+        { template: null, enabled: false },
+        { template: null, enabled: false },
+        { template: null, enabled: false },
+        { template: null, enabled: false },
+        { template: null, enabled: false },
+        { template: null, enabled: false },
+        { template: null, enabled: false },
+      ],
       startOffset: 0,
       lastActiveDate: '',
     },
@@ -41,31 +50,23 @@ export const useDaySettingsStore = defineStore('daySettings', {
           if (data.lightTimerDuration) this.lightTimerDuration = data.lightTimerDuration
           if (data.hasOwnProperty('todayTrainBtnVisible')) this.todayTrainBtnVisible = !!data.todayTrainBtnVisible
           if (data.splitPlan) {
-            // 兼容旧格式：如果有 weeklyPlan 但没有 cycleDays，转换为新格式
-            if (data.splitPlan.weeklyPlan && !data.splitPlan.cycleDays) {
-              const cycleDays = []
-              for (let i = 1; i <= 7; i++) {
-                const day = data.splitPlan.weeklyPlan[i]
-                cycleDays.push({
-                  template: day ? day.template : null,
-                  enabled: day ? !!day.enabled : false,
-                })
-              }
-              this.splitPlan = {
-                enabled: !!data.splitPlan.enabled,
-                mode: 'cycle',
-                cycleDays,
-                startOffset: 0,
-                lastActiveDate: '',
-              }
-            } else {
-              this.splitPlan = {
-                enabled: !!data.splitPlan.enabled,
-                mode: data.splitPlan.mode || 'cycle',
-                cycleDays: data.splitPlan.cycleDays || this.splitPlan.cycleDays,
-                startOffset: data.splitPlan.startOffset || 0,
-                lastActiveDate: data.splitPlan.lastActiveDate || '',
-              }
+            const cycleDays = data.splitPlan.cycleDays || []
+            const weekPlan = data.splitPlan.weekPlan || [
+              { template: null, enabled: false },
+              { template: null, enabled: false },
+              { template: null, enabled: false },
+              { template: null, enabled: false },
+              { template: null, enabled: false },
+              { template: null, enabled: false },
+              { template: null, enabled: false },
+            ]
+            this.splitPlan = {
+              enabled: !!data.splitPlan.enabled,
+              mode: data.splitPlan.mode || 'cycle',
+              cycleDays,
+              weekPlan,
+              startOffset: data.splitPlan.startOffset || 0,
+              lastActiveDate: data.splitPlan.lastActiveDate || '',
             }
           }
         }
@@ -127,9 +128,42 @@ export const useDaySettingsStore = defineStore('daySettings', {
       this.save()
     },
 
-    saveSplitPlan(cycleDays) {
-      this.splitPlan.cycleDays = cycleDays
+    saveSplitPlan(planData) {
+      if (typeof planData === 'object' && planData.mode) {
+        this.splitPlan.mode = planData.mode
+        this.splitPlan.cycleDays = planData.cycleDays
+        this.splitPlan.weekPlan = planData.weekPlan
+      } else {
+        this.splitPlan.mode = 'cycle'
+        this.splitPlan.cycleDays = planData
+      }
       this.save()
+    },
+
+    /**
+     * 获取指定日期的周计划
+     * @param {string} dateStr - 格式 'YYYY-MM-DD'
+     * @returns {object} { template, enabled } 或 null
+     */
+    getWeekDayPlan(dateStr) {
+      if (this.splitPlan.mode !== 'week') return null
+      const date = new Date(dateStr.replace(/\./g, '/').replace(/-/g, '/'))
+      const weekday = date.getDay()
+      const dayIndex = weekday === 0 ? 6 : weekday - 1
+      return this.splitPlan.weekPlan[dayIndex] || null
+    },
+
+    /**
+     * 获取今天的周计划模板名
+     * @param {string} dateStr - 格式 'YYYY-MM-DD'
+     * @returns {string|null}
+     */
+    getTodayWeekTemplate(dateStr) {
+      const plan = this.getWeekDayPlan(dateStr)
+      if (plan && plan.enabled && plan.template) {
+        return plan.template
+      }
+      return null
     },
 
     /**

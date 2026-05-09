@@ -11,21 +11,24 @@
         <text :class="['mode-text', { active: displayMode === '1rm' }]" @click.stop="switchMode('1rm')">1RM</text>
       </view>
     </view>
-    <!-- 折叠内容 -->
     <view v-if="expanded" class="chart-body">
-    <!-- 时间范围筛选按钮 -->
-    <view class="range-btns">
-      <view v-for="r in ranges" :key="r.value" class="range-btn" :class="{ active: activeRange === r.value }"
-        @click="onRangeClick(r.value)">{{ r.label }}</view>
-    </view>
-    <!-- Canvas 画布：v-if 延迟到测量完宽度再创建，确保 canvas 在正确的尺寸下初始化 -->
-    <canvas v-if="canvasReady" :canvas-id="canvasId" :id="canvasId" class="chart-canvas" :width="canvasWidth"
-      :height="canvasHeight" :style="{ width: canvasWidth + 'px', height: canvasHeight + 'px' }"
-      @touchstart="onTouchStart" @touchmove="onTouchMove" @touchend="onTouchEnd" />
-    <!-- 无数据提示 -->
-    <view v-if="!filteredData || filteredData.length === 0" class="no-data-overlay">
-      <text>暂无数据</text>
-    </view>
+      <view class="range-btns">
+        <view v-for="r in ranges" :key="r.value" class="range-btn" :class="{ active: activeRange === r.value }"
+          @click="onRangeClick(r.value)">{{ r.label }}</view>
+      </view>
+      <canvas
+        v-if="canvasReady"
+        :id="canvasId"
+        :canvas-id="canvasId"
+        class="chart-canvas"
+        :style="{ width: canvasWidth + 'px', height: canvasHeight + 'px' }"
+        @touchstart="onTouchStart"
+        @touchmove="onTouchMove"
+        @touchend="onTouchEnd"
+      />
+      <view v-if="!filteredData || filteredData.length === 0" class="no-data-overlay">
+        <text>暂无数据</text>
+      </view>
     </view>
   </view>
 </template>
@@ -36,8 +39,10 @@
     watch,
     onMounted,
     nextTick,
-    computed
+    computed,
+    getCurrentInstance
   } from 'vue'
+  import { getSystemInfo, measureTextWidth } from '@/utils/canvasHelper.js'
 
   const props = defineProps({
     data: {
@@ -60,6 +65,8 @@
 
   const emit = defineEmits(['range-change'])
 
+  const instance = getCurrentInstance()
+
   const ranges = [{
       label: '1月',
       value: 1
@@ -81,20 +88,15 @@
   const activeRange = ref(3)
   const displayMode = ref('volume')
 
-  // 用系统信息初始化宽度，避免 canvas 以 350px 创建
-  const defaultWidth = (() => {
-    try {
-      return uni.getSystemInfoSync().windowWidth
-    } catch (e) {
-      return 350
-    }
-  })()
-  const canvasWidth = ref(defaultWidth)
+  const canvasWidth = ref(350)
   const canvasHeight = ref(220)
-  // canvas 是否已准备好：测量完父容器宽度后才创建 canvas
   const canvasReady = ref(false)
 
-  // 折叠/展开状态（持久化到 localStorage）
+  let canvasNode = null
+  let ctx = null
+  let pixelRatio = 1
+  let isMiniProgram = false
+
   const storageKey = computed(() => 'chart_expanded_' + (props.canvasId || 'progressChart'))
   const expanded = ref(true)
   try {
@@ -104,7 +106,9 @@
 
   function toggleExpanded() {
     expanded.value = !expanded.value
-    try { uni.setStorageSync(storageKey.value, expanded.value) } catch (e) {}
+    try {
+      uni.setStorageSync(storageKey.value, expanded.value)
+    } catch (e) {}
   }
 
   const padding = {
@@ -114,12 +118,11 @@
     left: 50
   }
 
-  // 拖拽标线状态
   const crosshairActive = ref(false)
   const crosshairIndex = ref(-1)
 
   function onTouchStart(e) {
-    const touch = e.touches[0] || e.changedTouches[0]
+    const touch = e.touches ? e.touches[0] : (e.changedTouches ? e.changedTouches[0] : null)
     if (!touch) return
     crosshairActive.value = true
     updateCrosshair(touch)
@@ -127,7 +130,7 @@
 
   function onTouchMove(e) {
     if (!crosshairActive.value) return
-    const touch = e.touches[0] || e.changedTouches[0]
+    const touch = e.touches ? e.touches[0] : (e.changedTouches ? e.changedTouches[0] : null)
     if (!touch) return
     updateCrosshair(touch)
   }
@@ -144,7 +147,7 @@
     const plotLeft = padding.left
     const plotRight = w - padding.right
     const plotW = plotRight - plotLeft
-    const x = touch.x - plotLeft
+    const x = (touch.clientX || touch.x || 0) - plotLeft
     const idx = nearestIndex(x, plotW, items.length)
     if (idx !== crosshairIndex.value) {
       crosshairIndex.value = idx
@@ -203,22 +206,21 @@
   }
 
   function drawChartInternal(w, h) {
+    if (!ctx) return
+
     const items = displayData.value
-    const ctx = uni.createCanvasContext(props.canvasId)
     const isLight = props.isLightMode
 
-    // 清空画布 - 根据主题模式设置背景色
     ctx.setFillStyle(isLight ? '#f5f5f5' : '#121212')
     ctx.fillRect(0, 0, w, h)
 
     if (!items || items.length === 0) {
-      ctx.draw()
+      ctx.draw && ctx.draw()
       return
     }
 
     const yLabel = 'kg'
 
-    // 识别 PR 点
     let runningMax = -Infinity
     const prIndices = []
     items.forEach((item, i) => {
@@ -235,7 +237,6 @@
     const plotW = plotRight - plotLeft
     const plotH = plotBottom - plotTop
 
-    // Y 轴范围：yMin 用最小值，yMax 用最大值，上下各留 15% 余量
     const yVals = items.map(d => d.yVal)
     let yMin = Math.min(...yVals)
     let yMax = Math.max(...yVals)
@@ -258,7 +259,6 @@
       return plotBottom - ((val - yMin) / (yMax - yMin)) * plotH
     }
 
-    // 网格线 - 根据主题模式设置颜色
     ctx.setStrokeStyle(isLight ? '#e0e0e0' : '#2a2a2a')
     ctx.setLineWidth(0.5)
     const gridCount = 4
@@ -270,7 +270,6 @@
       ctx.stroke()
     }
 
-    // Y 轴标签 - 根据主题模式设置颜色
     ctx.setFontSize(10)
     ctx.setFillStyle(isLight ? '#666666' : '#888888')
     ctx.setTextAlign('right')
@@ -280,7 +279,6 @@
       ctx.fillText(Math.round(val) + yLabel, plotLeft - 6, gy + 4)
     }
 
-    // X 轴标签 - 根据主题模式设置颜色
     ctx.setTextAlign('center')
     ctx.setFillStyle(isLight ? '#666666' : '#888888')
     const maxLabels = 6
@@ -290,7 +288,6 @@
       const label = `${d.getMonth() + 1}/${d.getDate()}`
       ctx.fillText(label, xAt(i), plotBottom + 18)
     }
-    // 确保最后一个点也有标签
     if ((items.length - 1) % step !== 0) {
       const last = items[items.length - 1]
       const d = new Date(last.date)
@@ -298,7 +295,6 @@
       ctx.fillText(label, xAt(items.length - 1), plotBottom + 18)
     }
 
-    // 渐变填充区域
     if (items.length > 1) {
       ctx.beginPath()
       ctx.moveTo(xAt(0), plotBottom)
@@ -311,7 +307,6 @@
       ctx.fill()
     }
 
-    // 折线
     ctx.setStrokeStyle('#379bff')
     ctx.setLineWidth(2)
     ctx.setLineJoin('round')
@@ -328,7 +323,6 @@
     }
     ctx.stroke()
 
-    // 绘制普通数据点
     for (let i = 0; i < items.length; i++) {
       if (prIndices.includes(i)) continue
       const x = xAt(i)
@@ -339,14 +333,12 @@
       ctx.fill()
     }
 
-    // 绘制 PR 点（金色星标）
     ctx.setFontSize(10)
     ctx.setTextAlign('center')
     for (const idx of prIndices) {
       const x = xAt(idx)
       const y = yAt(items[idx].yVal)
 
-      // 金色圆环
       ctx.beginPath()
       ctx.arc(x, y, 6, 0, Math.PI * 2)
       ctx.setStrokeStyle('#FFD700')
@@ -357,12 +349,10 @@
       ctx.setFillStyle('#FFD700')
       ctx.fill()
 
-      // PR 标签
       ctx.setFillStyle('#FFD700')
       ctx.fillText('PR ' + items[idx].yVal + yLabel, x, y - 12)
     }
 
-    // 边框线 - 根据主题模式设置颜色
     ctx.setStrokeStyle(isLight ? '#e0e0e0' : '#333333')
     ctx.setLineWidth(1)
     ctx.beginPath()
@@ -371,13 +361,11 @@
     ctx.lineTo(plotRight, plotBottom)
     ctx.stroke()
 
-    // 拖拽标线
     if (crosshairActive.value && items.length > 0) {
       const ci = Math.max(0, Math.min(items.length - 1, crosshairIndex.value))
       const cx = xAt(ci)
       const cy = yAt(items[ci].yVal)
 
-      // 虚线竖线 - 根据主题模式设置颜色
       ctx.save()
       ctx.setLineWidth(1)
       ctx.setStrokeStyle(isLight ? 'rgba(0,0,0,0.3)' : 'rgba(255,255,255,0.5)')
@@ -388,7 +376,6 @@
       ctx.stroke()
       ctx.restore()
 
-      // 数据点高亮
       ctx.beginPath()
       ctx.arc(cx, cy, 5, 0, Math.PI * 2)
       ctx.setFillStyle(isLight ? '#ffffff' : '#ffffff')
@@ -398,12 +385,11 @@
       ctx.setFillStyle('#379bff')
       ctx.fill()
 
-      // 标签
       const d = new Date(items[ci].date)
       const label = items[ci].yVal + 'kg ' + (d.getMonth() + 1) + '/' + d.getDate()
       ctx.setFontSize(11)
       ctx.setTextAlign('center')
-      const tw = ctx.measureText(label).width
+      let tw = measureTextWidth(ctx, label)
       const lx = Math.max(plotLeft + tw / 2 + 8, Math.min(plotRight - tw / 2 - 8, cx))
       const ly = plotTop + 4
       const bw = tw + 16
@@ -426,31 +412,79 @@
       ctx.fillText(label, lx, ly + 16)
     }
 
-    ctx.draw()
+    ctx.draw && ctx.draw()
   }
 
   function drawChart() {
-    if (!canvasReady.value) return
-    // canvas 已经在正确的尺寸下创建，直接用 canvasWidth 绘制
+    if (!canvasReady.value || !ctx) return
     drawChartInternal(canvasWidth.value, canvasHeight.value)
   }
 
-  /** 首次测量父容器宽度，然后创建 canvas */
-  function initChart() {
-    uni.createSelectorQuery()
-      .select('.chart-wrapper')
-      .boundingClientRect((rect) => {
-        if (rect && Math.round(rect.width) > 0) {
-          canvasWidth.value = Math.round(rect.width)
-        }
-        // 测量完成，创建 canvas（v-if 生效）
-        canvasReady.value = true
-        // 等 canvas 渲染完成再绘制
-        nextTick(() => {
-          setTimeout(() => drawChartInternal(canvasWidth.value, canvasHeight.value), 50)
+  function detectPlatform() {
+    const isWx = typeof wx !== 'undefined' && wx.canIUse
+    const hasCreateCanvasContext = typeof uni.createCanvasContext === 'function'
+    isMiniProgram = isWx && hasCreateCanvasContext
+    console.log('Platform detection - isMiniProgram:', isMiniProgram)
+  }
+
+  function initCanvas() {
+    detectPlatform()
+
+    if (isMiniProgram) {
+      ctx = uni.createCanvasContext(props.canvasId, instance)
+      canvasReady.value = true
+      setTimeout(() => drawChartInternal(canvasWidth.value, canvasHeight.value), 100)
+    } else {
+      const canvas = document.getElementById(props.canvasId)
+      if (!canvas) {
+        console.warn('Canvas element not found:', props.canvasId)
+        return
+      }
+
+      canvasNode = canvas
+      pixelRatio = window.devicePixelRatio || 1
+
+      canvas.width = canvasWidth.value * pixelRatio
+      canvas.height = canvasHeight.value * pixelRatio
+
+      ctx = canvas.getContext('2d')
+      if (ctx && pixelRatio !== 1) {
+        ctx.scale(pixelRatio, pixelRatio)
+      }
+
+      canvasReady.value = true
+      setTimeout(() => drawChartInternal(canvasWidth.value, canvasHeight.value), 100)
+    }
+  }
+
+  async function initChart() {
+    try {
+      const sysInfo = await getSystemInfo()
+      pixelRatio = sysInfo.pixelRatio || 1
+
+      const defaultWidth = sysInfo.windowWidth || 350
+
+      uni.createSelectorQuery()
+        .select('.chart-wrapper')
+        .boundingClientRect((rect) => {
+          if (rect && Math.round(rect.width) > 0) {
+            canvasWidth.value = Math.round(rect.width)
+          } else {
+            canvasWidth.value = defaultWidth
+          }
+
+          nextTick(() => {
+            initCanvas()
+          })
         })
+        .exec()
+    } catch (e) {
+      console.error('initChart error:', e)
+      canvasWidth.value = 350
+      nextTick(() => {
+        initCanvas()
       })
-      .exec()
+    }
   }
 
   watch(() => props.data, () => {
@@ -461,9 +495,8 @@
 
   watch(expanded, (val) => {
     if (val) {
-      // v-if 重建了 canvas，等待渲染完成后重绘
       nextTick(() => {
-        setTimeout(() => drawChartInternal(canvasWidth.value, canvasHeight.value), 50)
+        setTimeout(() => drawChartInternal(canvasWidth.value, canvasHeight.value), 100)
       })
     }
   })
@@ -541,7 +574,7 @@
   }
 
   .mode-text.active {
-    color: #379bff;
+    color: var(--theme-primary);
     font-weight: bold;
   }
 
@@ -573,7 +606,7 @@
   }
 
   .range-btn.active {
-    background: #379bff;
+    background: var(--theme-primary);
     color: #fff;
   }
 
