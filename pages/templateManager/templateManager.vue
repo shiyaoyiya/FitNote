@@ -1,5 +1,5 @@
 <template>
-  <view class="container dark">
+  <view class="container" :class="{ dark: daySettingsStore.isDarkMode, light: !daySettingsStore.isDarkMode }">
 
     <view v-if="loading" class="loading-container">
       <view class="loading-spinner"></view>
@@ -123,12 +123,16 @@
   import {
     useActionStore
   } from '@/stores/action'
+  import {
+    useDaySettingsStore
+  } from '@/stores/daySettings.js'
 
   const DAYDATA_PREFIX = 'fitness_daydata_'
 
   export default {
     data() {
       return {
+        daySettingsStore: useDaySettingsStore(),
         loading: true,
         rowHeight: 0,
         showList: true,
@@ -268,6 +272,7 @@
 
     mounted() {
       this._isMounted = true
+      this.daySettingsStore.load()
       const sys = uni.getSystemInfoSync()
       this.rowHeight = (sys.windowWidth / 750) * 180
       this.$nextTick(() => {
@@ -598,6 +603,11 @@
     color: #f7f7f7;
   }
 
+  .container.light {
+    background-color: #f5f5f5;
+    color: #333333;
+  }
+
   .mid-scroll {
     position: relative;
     flex: 1;
@@ -720,6 +730,11 @@
     transition: transform 0.2s ease;
   }
 
+  .container.light .action-card {
+    background: #ffffff;
+    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.1);
+  }
+
   .card-color-bar {
     width: 12rpx;
     flex-shrink: 0;
@@ -746,11 +761,23 @@
     color: #999;
   }
 
+  .container.light .card-name {
+    color: #333333;
+  }
+
+  .container.light .card-count {
+    color: #666666;
+  }
+
   .card-arrow {
     font-size: 36rpx;
     color: #555;
     padding: 28rpx 24rpx;
     flex-shrink: 0;
+  }
+
+  .container.light .card-arrow {
+    color: #999999;
   }
 
   /* 拖拽高亮（与 templateDetail.vue 一致） */
@@ -786,6 +813,10 @@
     color: #666;
   }
 
+  .container.light .empty-text {
+    color: #999999;
+  }
+
   /* 底部新建按钮 */
   .bottom-bar {
     position: fixed;
@@ -795,6 +826,10 @@
     padding: 20rpx 30rpx 40rpx;
     background: linear-gradient(transparent, #121212 40rpx);
     z-index: 10;
+  }
+
+  .container.light .bottom-bar {
+    background: linear-gradient(transparent, #f5f5f5 40rpx);
   }
 
   .btn-create {
@@ -855,6 +890,22 @@
     display: flex;
     flex-direction: column;
     animation: slideUp 0.3s ease-out;
+  }
+
+  .container.light .popup-panel {
+    background: #ffffff;
+  }
+
+  .container.light .panel-header {
+    border-bottom-color: #e0e0e0;
+  }
+
+  .container.light .panel-title {
+    color: #333333;
+  }
+
+  .container.light .close-btn {
+    color: #666666;
   }
 
   @keyframes slideUp {
@@ -930,6 +981,10 @@
     margin-bottom: 12rpx;
   }
 
+  .container.light .form-label {
+    color: #666666;
+  }
+
   .form-input {
     width: 100%;
     height: 72rpx;
@@ -945,6 +1000,16 @@
     color: #666;
   }
 
+  .container.light .form-input {
+    background: #ffffff;
+    border: 1rpx solid #e0e0e0;
+    color: #333333;
+  }
+
+  .container.light .form-input::placeholder {
+    color: #999999;
+  }
+
   .search-bar {
     margin-bottom: 20rpx;
   }
@@ -958,9 +1023,18 @@
     padding: 0 24rpx;
   }
 
+  .container.light .search-bar-inner {
+    background: #ffffff;
+    border: 1rpx solid #e0e0e0;
+  }
+
   .search-icon {
     font-size: 24rpx;
     margin-right: 12rpx;
+  }
+
+  .container.light .search-icon {
+    color: #999999;
   }
 
   .search-input {
@@ -971,6 +1045,14 @@
 
   .search-input::placeholder {
     color: #666;
+  }
+
+  .container.light .search-input {
+    color: #333333;
+  }
+
+  .container.light .search-input::placeholder {
+    color: #999999;
   }
 
   .clear-icon {
@@ -1000,6 +1082,17 @@
   .category-tab.active {
     background: #379bff;
     color: #fff;
+  }
+
+  .container.light .category-tab {
+    background: #ffffff;
+    color: #666666;
+    border: 1rpx solid #e0e0e0;
+  }
+
+  .container.light .category-tab.active {
+    background: #379bff;
+    color: #ffffff;
   }
 
   .category-name {
@@ -1045,6 +1138,18 @@
     opacity: 0.7;
   }
 
+  .container.light .action-item {
+    background: #ffffff;
+    color: #333333;
+    border: 1rpx solid #e0e0e0;
+  }
+
+  .container.light .action-item.selected {
+    background: rgba(55, 155, 255, 0.1);
+    border-color: #379bff;
+    color: #379bff;
+  }
+
   .action-name {
     font-size: 26rpx;
   }
@@ -1068,6 +1173,11 @@
     color: #999;
     border-top: 1rpx solid #333;
     margin-bottom: 16rpx;
+  }
+
+  .container.light .selected-count {
+    border-top-color: #e0e0e0;
+    color: #666666;
   }
 
   .color-section {

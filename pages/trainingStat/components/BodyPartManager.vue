@@ -301,6 +301,14 @@
     flex-direction: column;
   }
 
+  .container.light .manager-overlay {
+    background-color: rgba(0, 0, 0, 0.3);
+  }
+
+  .container.dark .manager-overlay {
+    background-color: rgba(0, 0, 0, 0.45);
+  }
+
   .manager-header {
     display: flex;
     align-items: center;
@@ -357,10 +365,21 @@
     width: 100%;
     display: flex;
     align-items: center;
-    background-color: #2a2a2a;
+    background-color: #ffffff;
     border-radius: 10px;
     padding: 8px 14px;
     position: relative;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  }
+
+  .container.light .sort-card {
+    background-color: #ffffff;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  }
+
+  .container.dark .sort-card {
+    background-color: #2a2a2a;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
   }
 
   .sort-card.is-hidden {
@@ -369,17 +388,33 @@
 
   .drag-handle {
     font-size: 18px;
-    color: #888;
+    color: #999999;
     margin-right: 12px;
     flex-shrink: 0;
+  }
+
+  .container.light .drag-handle {
+    color: #999999;
+  }
+
+  .container.dark .drag-handle {
+    color: #888888;
   }
 
   .sort-card-name {
     flex: 1;
     font-size: 15px;
-    color: #f7f7f7;
+    color: #333333;
     font-weight: 500;
     pointer-events: none;
+  }
+
+  .container.light .sort-card-name {
+    color: #333333;
+  }
+
+  .container.dark .sort-card-name {
+    color: #f7f7f7;
   }
 
   .card-actions {

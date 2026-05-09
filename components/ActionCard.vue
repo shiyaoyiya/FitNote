@@ -23,14 +23,14 @@
 
     <!-- 组类型选择 + 展开 -->
     <view class="type-selector">
-      <view class="type-btn" :class="{ active: entryType === 'normal' }" @click="selectType('normal')">
-        <text>正常组</text>
+      <view class="type-btn" :class="{ 'type-btn-active': entryType === 'normal' }" @click="selectType('normal')">
+        <text :class="{ 'type-text-active': entryType === 'normal' }">正常组</text>
       </view>
-      <view class="type-btn" :class="{ active: entryType === 'decreasing' }" @click="selectType('decreasing')">
-        <text>递减组</text>
+      <view class="type-btn" :class="{ 'type-btn-active': entryType === 'decreasing' }" @click="selectType('decreasing')">
+        <text :class="{ 'type-text-active': entryType === 'decreasing' }">递减组</text>
       </view>
-      <view class="type-btn" :class="{ active: entryType === 'paused' }" @click="selectType('paused')">
-        <text>暂停组</text>
+      <view class="type-btn" :class="{ 'type-btn-active': entryType === 'paused' }" @click="selectType('paused')">
+        <text :class="{ 'type-text-active': entryType === 'paused' }">暂停组</text>
       </view>
       <text class="expand-icon" @click="expanded = !expanded">{{ expanded ? '▲' : '▼' }}</text>
     </view>
@@ -56,10 +56,17 @@
     <view v-show="expanded" class="expanded-area">
       <!-- 明细列表 -->
       <view v-if="entries.length > 0" class="action-entries">
-        <view v-for="(item, eidx) in entries" :key="eidx" class="entry-row">
+        <view v-for="(item, eidx) in entries" :key="eidx" class="entry-row"
+          :class="{ 'entry-placeholder': isPlaceholderEntry(item) }">
           <text class="entry-index">第{{ eidx + 1 }}组：</text>
-          <text class="entry-text" @touchstart.stop="handleEntryTouchStart(eidx)" @touchmove.stop="handleEntryTouchMove"
+          <text v-if="isPlaceholderEntry(item)" class="entry-placeholder-text"
+            @touchstart.stop="handleEntryTouchStart(eidx)" @touchmove.stop="handleEntryTouchMove"
             @touchend.stop="handleEntryTouchEnd" @click.stop="$emit('edit-entry', eidx)">
+            待填写
+          </text>
+          <text v-else class="entry-text" @touchstart.stop="handleEntryTouchStart(eidx)"
+            @touchmove.stop="handleEntryTouchMove" @touchend.stop="handleEntryTouchEnd"
+            @click.stop="$emit('edit-entry', eidx)">
             {{ getEntryDisplayText(item) }}
           </text>
         </view>
@@ -80,7 +87,8 @@
     ENTRY_TYPE,
     getEntryDisplayText,
     getTotalWeight,
-    normalizeEntries
+    normalizeEntries,
+    isPlaceholderEntry
   } from '@/utils/dayHelper.js'
 
   export default {
@@ -135,10 +143,10 @@
       this.loadExpandedState()
     },
     methods: {
-      ENTRY_TYPE,
       getEntryDisplayText,
       getTotalWeight,
       normalizeEntries,
+      isPlaceholderEntry,
 
       loadExpandedState() {
         try {
@@ -388,11 +396,11 @@
 <style scoped>
   .action-card-content {
     position: relative;
-    background-color: #242424;
+    background-color: var(--bg-card);
     border-radius: 15px;
     padding: 5px;
-    border: 1rpx solid #333;
-    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.2);
+    border: 1rpx solid var(--border-color);
+    box-shadow: 0 4rpx 12rpx var(--shadow-color);
     margin-bottom: 10px;
   }
 
@@ -421,12 +429,13 @@
   }
 
   .tag {
-    background-color: #242424;
+    background-color: var(--tag-bg);
     padding: 6px 12px;
     border-radius: 15px;
-    border: 1rpx solid #333;
-    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.2);
+    border: 1rpx solid var(--border-color);
+    box-shadow: 0 4rpx 12rpx var(--shadow-color);
     flex-shrink: 0;
+    color: var(--text-primary);
   }
 
   .header-right {
@@ -447,7 +456,7 @@
   .expand-icon {
     margin-left: auto;
     font-size: 12px;
-    color: #888;
+    color: var(--text-secondary);
     padding: 6px 15px;
     flex-shrink: 0;
   }
@@ -455,17 +464,18 @@
   .type-btn {
     padding: 3px 10px;
     border-radius: 6px;
-    background: #1a1a1a;
-    border: 1rpx solid #444;
+    background: var(--bg-btn);
+    border: 1rpx solid var(--border-color);
     font-size: 11px;
+    color: var(--text-secondary);
   }
 
-  .type-btn.active {
+  .type-btn-active {
     background: rgba(55, 155, 255, 0.15);
     border-color: #379bff;
   }
 
-  .type-btn.active text {
+  .type-text-active {
     color: #379bff;
   }
 
@@ -483,13 +493,14 @@
     padding: 2px 6px;
     border: none;
     border-radius: 6px;
-    background-color: #121212;
+    background-color: var(--bg-input);
     font-size: 13px;
+    color: var(--text-primary);
   }
 
   .input-mult {
     font-size: 14px;
-    color: #666;
+    color: var(--text-muted);
   }
 
   /* 递减/暂停阶段 */
@@ -506,7 +517,7 @@
 
   .stage-label {
     font-size: 11px;
-    color: #888;
+    color: var(--text-secondary);
     min-width: 40px;
   }
 
@@ -525,8 +536,8 @@
   .extra-confirm-btn {
     height: 34px;
     line-height: 34px;
-    background-color: #121212;
-    color: #f5f5f5;
+    background-color: var(--bg-btn);
+    color: var(--text-btn);
     border-radius: 6px;
     font-size: 14px;
     min-width: 40px;
@@ -539,8 +550,8 @@
   .confirm-btn {
     height: 34px;
     line-height: 34px;
-    background-color: #121212;
-    color: #f5f5f5;
+    background-color: var(--bg-btn);
+    color: var(--text-btn);
     border-radius: 6px;
     font-size: 14px;
     width: 40px;
@@ -566,26 +577,36 @@
   .entry-index {
     max-width: 60px;
     font-size: 12px;
-    color: #aaaaaa;
+    color: var(--text-secondary);
     margin-left: 10px;
   }
 
   .entry-text {
-    color: #f5f5f5;
+    color: var(--text-primary);
     font-size: 13px;
+  }
+
+  .entry-placeholder-text {
+    color: var(--text-placeholder);
+    font-size: 13px;
+    font-style: italic;
+  }
+
+  .entry-placeholder {
+    opacity: 0.6;
   }
 
   .action-diff {
     margin-left: 10px;
     margin-bottom: 5px;
     font-size: 12px;
-    color: #aaaaaa;
+    color: var(--text-secondary);
     display: flex;
   }
 
   .total-weight {
     font-size: 12px;
-    color: #999;
+    color: var(--text-muted);
     margin-right: 10px;
   }
 
@@ -598,6 +619,6 @@
   }
 
   .diff-neutral {
-    color: #757575;
+    color: var(--text-muted);
   }
 </style>

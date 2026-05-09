@@ -1364,6 +1364,163 @@ export function chooseBackupPath() {
     resolve(dir)
   })
 }
+// ========== CSV 导出 ==========
+
+function escapeCSV(val) {
+  const str = String(val == null ? '' : val)
+  if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+    return '"' + str.replace(/"/g, '""') + '"'
+  }
+  return str
+}
+
+/**
+ * 导出指定日期范围的训练数据为 CSV
+ * @param {string[]} dates - 要导出的日期数组 ['2025-01-01', ...]
+ * @param {Object} dayDataCacheStore - dayDataCache store 实例
+ * @returns {Promise<string>} CSV 内容字符串
+ */
+export function exportToCSV(dates, dayDataCacheStore) {
+  const rows = []
+  rows.push(['日期', '模板', '动作', '组数', '总容量(kg)', '总次数'].join(','))
+
+  const sortedDates = dates.slice().sort()
+  for (const dateStr of sortedDates) {
+    const dayData = dayDataCacheStore.getDayData(dateStr)
+    if (!dayData || !dayData.templates) continue
+
+    for (const tplName in dayData.templates) {
+      const tpl = dayData.templates[tplName]
+      if (!tpl) continue
+
+      // 有氧记录
+      if (tpl.isAerobic || (tpl.totalWeight > 0 && (!tpl.actionWeights || Object.keys(tpl.actionWeights).length === 0))) {
+        rows.push([
+          escapeCSV(dateStr),
+          escapeCSV(tplName),
+          escapeCSV('（有氧）'),
+          '-',
+          tpl.totalWeight || 0,
+          '-',
+        ].join(','))
+        continue
+      }
+
+      if (!tpl.actionWeights || Object.keys(tpl.actionWeights).length === 0) continue
+
+      for (const actionName in tpl.actionWeights) {
+        const weight = tpl.actionWeights[actionName] || 0
+        if (weight <= 0) continue
+
+        // 获取该动作的组数和次数
+        const entries = (dayData.entries && dayData.entries[actionName]) || []
+        const sets = entries.length
+        const totalReps = entries.reduce((sum, e) => sum + (e.reps || 0), 0)
+
+        rows.push([
+          escapeCSV(dateStr),
+          escapeCSV(tplName),
+          escapeCSV(actionName),
+          sets,
+          weight,
+          totalReps,
+        ].join(','))
+      }
+    }
+  }
+
+  return rows.join('\n')
+}
+
+/**
+ * 将 CSV 内容写入文件并打开
+ * @param {string} csvContent - CSV 字符串
+ * @param {string} [fileName] - 文件名，默认按时间生成
+ * @returns {Promise<string>} 文件路径
+ */
+export function writeCSVFile(csvContent, fileName) {
+  return new Promise((resolve, reject) => {
+    const now = new Date()
+    const y = now.getFullYear()
+    const mo = String(now.getMonth() + 1).padStart(2, '0')
+    const d = String(now.getDate()).padStart(2, '0')
+    const h = String(now.getHours()).padStart(2, '0')
+    const mi = String(now.getMinutes()).padStart(2, '0')
+    const s = String(now.getSeconds()).padStart(2, '0')
+    const name = fileName || `FitNote训练记录-${y}${mo}${d}-${h}${mi}${s}.csv`
+
+    // BOM 头让 Excel 正确识别 UTF-8 中文
+    const bom = '﻿'
+    const data = bom + csvContent
+
+    if (isH5()) {
+      try {
+        downloadForH5(data, name)
+        resolve(name)
+      } catch (e) {
+        reject(e)
+      }
+      return
+    }
+
+    if (isApp() && typeof plus !== 'undefined') {
+      plus.io.requestFileSystem(plus.io.PRIVATE_DOC, function (fs) {
+        fs.root.getFile(name, { create: true }, function (fileEntry) {
+          fileEntry.createWriter(function (writer) {
+            writer.onwrite = function () {
+              // 打开文件
+              plus.io.resolveLocalFileSystemURL(fileEntry.fullPath, function (entry) {
+                plus.runtime.openFile(entry.fullPath, {}, function () {
+                  resolve(entry.fullPath)
+                }, function (err) {
+                  resolve(entry.fullPath) // 写入成功即使打开失败也算成功
+                })
+              }, function () {
+                resolve(fileEntry.fullPath)
+              })
+            }
+            writer.onerror = function (e) {
+              reject(new Error('写入CSV失败'))
+            }
+            writer.write(data)
+          }, function (e) {
+            reject(new Error('创建CSV写入器失败'))
+          })
+        }, function (e) {
+          reject(new Error('创建CSV文件失败'))
+        })
+      }, function (e) {
+        reject(new Error('请求文件系统失败'))
+      })
+      return
+    }
+
+    // 小程序环境
+    if (typeof uni.getFileSystemManager === 'function') {
+      const fs = uni.getFileSystemManager()
+      const dir = getDefaultDir()
+      const filePath = dir ? `${dir}/${name}` : name
+      fs.writeFile({
+        filePath,
+        data,
+        encoding: 'utf8',
+        success() {
+          uni.openDocument({
+            filePath,
+            fileType: 'csv',
+            success() { resolve(filePath) },
+            fail() { resolve(filePath) },
+          })
+        },
+        fail(err) { reject(err) },
+      })
+      return
+    }
+
+    reject(new Error('当前环境不支持CSV导出'))
+  })
+}
+
 export {
   clearAllData, // 确保导出
   mergeArraysUnique, // 确保导出

@@ -1,5 +1,5 @@
 <template>
-  <view class="calendar-month" :class="{ sliding: isSliding }">
+  <view class="calendar-month" :class="{ sliding: isSliding, light: isLightMode }">
     <view class="calendar-header">
       <text class="month-title" @click="handleGoToYearPage">{{ year }}/{{ month + 1 }}</text>
       <view class="more-btn-wrap">
@@ -101,6 +101,10 @@
       trainBtnVisible: {
         type: Boolean,
         default: true
+      },
+      isLightMode: {
+        type: Boolean,
+        default: false
       }
     },
     emits: ['date-click', 'date-longpress', 'go-to-year-page', 'open-anniv-popup', 'toggle-train-btn', 'open-more-menu'],
@@ -134,6 +138,11 @@
     opacity: 0.7;
   }
 
+  .calendar-month.light {
+    background-color: #f5f5f5;
+    color: #333333;
+  }
+
   .calendar-header {
     display: flex;
     justify-content: space-between;
@@ -142,10 +151,18 @@
     margin-bottom: 5px;
   }
 
+  .calendar-month.light .calendar-header {
+    border-bottom: 1px solid #e0e0e0;
+  }
+
   .month-title {
     font-size: 34px;
     font-weight: bold;
     color: inherit;
+  }
+
+  .calendar-month.light .month-title {
+    color: #333333;
   }
 
   .icon-add-wrap {
@@ -178,6 +195,10 @@
     color: #666666;
   }
 
+  .calendar-month.light .weekday {
+    color: #666666;
+  }
+
   .calendar-grid {
     display: flex;
     flex-wrap: wrap;
@@ -207,6 +228,10 @@
     font-weight: bold;
   }
 
+  .calendar-month.light .cell-text {
+    color: #333333;
+  }
+
   .template-name {
     font-size: 9px;
     margin: 0 4px;
@@ -220,11 +245,24 @@
     color: #fff;
   }
 
+  .calendar-month.light .calendar-cell.today {
+    background-color: #379bff;
+  }
+
+  .calendar-month.light .calendar-cell.today .cell-text {
+    color: #ffffff;
+  }
+
   .weight-text {
     font-size: 10px;
     margin-bottom: -4px;
     text-align: center;
     width: 100%;
+    color: #aaa;
+  }
+
+  .calendar-month.light .weight-text {
+    color: #999999;
   }
 
   .more-btn-wrap {
@@ -242,9 +280,23 @@
     border-radius: 50%;
   }
 
+  .calendar-month.light .more-btn {
+    background: rgba(128, 128, 128, 0.15);
+  }
+
   .more-dots {
     font-size: 20px;
     color: #379bff;
     line-height: 1;
+  }
+
+  .template-name {
+    font-size: 9px;
+    margin: 0 4px;
+    color: #aaa;
+  }
+
+  .calendar-month.light .template-name {
+    color: #999999;
   }
 </style>

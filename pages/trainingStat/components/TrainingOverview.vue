@@ -7,27 +7,27 @@
     <view class="stats-row">
       <view
         class="stat-item"
-        :class="{ active: dimension === 'days' }"
+        :class="{ 'stat-item-active': dimension === 'days' }"
         @click="dimension !== 'days' && $emit('update:dimension', 'days')"
       >
-        <text class="stat-value">{{ stats.totalDays }}</text>
-        <text class="stat-label">训练天数</text>
+        <text class="stat-value" :class="{ 'stat-value-active': dimension === 'days' }">{{ stats.totalDays }}</text>
+        <text class="stat-label" :class="{ 'stat-label-active': dimension === 'days' }">训练天数</text>
       </view>
       <view
         class="stat-item"
-        :class="{ active: dimension === 'sets' }"
+        :class="{ 'stat-item-active': dimension === 'sets' }"
         @click="dimension !== 'sets' && $emit('update:dimension', 'sets')"
       >
-        <text class="stat-value">{{ stats.totalSets }}</text>
-        <text class="stat-label">训练组数</text>
+        <text class="stat-value" :class="{ 'stat-value-active': dimension === 'sets' }">{{ stats.totalSets }}</text>
+        <text class="stat-label" :class="{ 'stat-label-active': dimension === 'sets' }">训练组数</text>
       </view>
       <view
         class="stat-item"
-        :class="{ active: dimension === 'volume' }"
+        :class="{ 'stat-item-active': dimension === 'volume' }"
         @click="dimension !== 'volume' && $emit('update:dimension', 'volume')"
       >
-        <text class="stat-value">{{ stats.totalVolume }}</text>
-        <text class="stat-label">训练容量</text>
+        <text class="stat-value" :class="{ 'stat-value-active': dimension === 'volume' }">{{ stats.totalVolume }}</text>
+        <text class="stat-label" :class="{ 'stat-label-active': dimension === 'volume' }">训练容量</text>
       </view>
     </view>
   </view>
@@ -116,11 +116,11 @@ const periodText = computed(() => {
   color: var(--text-secondary, #999999);
 }
 
-.stat-item.active .stat-value {
+.stat-value-active {
   color: #379bff;
 }
 
-.stat-item.active .stat-label {
+.stat-label-active {
   color: #379bff;
   font-weight: 600;
 }

@@ -1,5 +1,5 @@
 <template>
-  <view class="year-container dark">
+  <view class="year-container" :class="{ dark: daySettingsStore.isDarkMode, light: !daySettingsStore.isDarkMode }">
     <!-- 外部垂直滚动容器 -->
     <scroll-view class="year-scroll-container" scroll-y="true" :scroll-with-animation="true"
       @scrolltolower="onScrollToLower" @scroll="onScroll">
@@ -74,10 +74,14 @@
   import {
     useDayDataCacheStore
   } from '@/stores/dayDataCache.js';
+  import {
+    useDaySettingsStore
+  } from '@/stores/daySettings.js';
 
   export default {
     data() {
       return {
+        daySettingsStore: useDaySettingsStore(),
         currentYear: new Date().getFullYear(),
         yearList: [], // 存储多个年份的数据 [{ year, months }]
         todayYear: new Date().getFullYear(),
@@ -92,6 +96,8 @@
     },
     onLoad(options) {
       console.log('年页面开始加载');
+
+      this.daySettingsStore.load()
 
       uni.showLoading({
         title: '加载中...',
@@ -558,5 +564,37 @@
     .day-text-sm {
       color: rgba(0, 0, 0, 0.6);
     }
+
+    .year-section {
+      border-bottom-color: #e0e0e0;
+    }
+  }
+
+  .year-container.light {
+    background: #f5f5f5;
+  }
+
+  .year-container.light .year-title {
+    color: #333333;
+  }
+
+  .year-container.light .month-text {
+    color: rgba(0, 0, 0, 0.7);
+  }
+
+  .year-container.light .weekday-sm {
+    color: rgba(0, 0, 0, 0.4);
+  }
+
+  .year-container.light .day-text-sm {
+    color: rgba(0, 0, 0, 0.6);
+  }
+
+  .year-container.light .year-section {
+    border-bottom-color: #e0e0e0;
+  }
+
+  .year-container.light .month-block {
+    background: rgba(0, 0, 0, 0.03);
   }
 </style>

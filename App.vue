@@ -1,25 +1,69 @@
 <script>
-  // 1. 导入模板store（新增）
   import {
     useTemplateStore
   } from './stores/template.js'
-  // 导入backup.js中的函数
+  import {
+    useDaySettingsStore
+  } from './stores/daySettings.js'
   import {
     getBackupConfig,
     saveBackupConfig
   } from './utils/backup.js'
+  import {
+    updateNavBar
+  } from './utils/theme.js'
+
+  const FIRST_LAUNCH_KEY = 'first_launch_done'
+
+  const GUIDE_CONTENT = [
+    { icon: '📅', title: '日历浏览', desc: '首页展示月历，点击日期可查看/记录当日训练。左滑右滑切换月份，长按日期可清空该日记录' },
+    { icon: '🏋️', title: '今日训练', desc: '点击"开始训练"按钮进入训练页面，从预设模板中选择，记录每个动作的重量和次数，自动计算与上次训练的对比' },
+    { icon: '💪', title: '训练模板', desc: '在"训练模板"页面管理个人模板，支持创建、编辑、删除，添加/移除动作' },
+    { icon: '📊', title: '训练统计', desc: '查看周/月训练总量，各肌群训练频次分析' },
+    { icon: '📝', title: '纪念日', desc: '记录重要日期，首页底部展示已过去的天数' },
+    { icon: '⏱️', title: '计时休息', desc: '记录训练组间休息时长，自动计时功能，支持自定义时长' },
+  ]
 
   export default {
+    components: {},
+    data() {
+      return {
+        showGuide: false,
+        guideChecked: false,
+        themeClass: 'dark',
+      }
+    },
     onLaunch() {
       console.log('App Launch')
-      // 2. 应用启动时加载模板数据（新增核心代码）
       const templateStore = useTemplateStore()
       templateStore.load()
 
-      this.setupActivityResultListener()
-    },
+      const daySettingsStore = useDaySettingsStore()
+      daySettingsStore.load()
+      this.themeClass = daySettingsStore.isDarkMode ? 'dark' : 'light'
+      updateNavBar()
 
+      this.checkFirstLaunch()
+
+      this.setupActivityResultListener()
+
+      uni.$on('themeChanged', () => {
+        updateNavBar()
+      })
+    },
     methods: {
+      checkFirstLaunch() {
+        const launched = uni.getStorageSync(FIRST_LAUNCH_KEY)
+        if (!launched) {
+          this.showGuide = true
+        }
+      },
+      closeGuide() {
+        if (this.guideChecked) {
+          uni.setStorageSync(FIRST_LAUNCH_KEY, true)
+        }
+        this.showGuide = false
+      },
       setupActivityResultListener() {
         // #ifdef APP-PLUS
         console.log('设置ActivityResult监听器...')
@@ -421,12 +465,50 @@
 
     onShow: function() {
       console.log('App Show')
+      const daySettingsStore = useDaySettingsStore()
+      daySettingsStore.load()
+      const newClass = daySettingsStore.isDarkMode ? 'dark' : 'light'
+      if (this.themeClass !== newClass) {
+        this.themeClass = newClass
+      }
+      updateNavBar()
     },
     onHide: function() {
       console.log('App Hide')
     },
   }
 </script>
+
+<template>
+  <view class="app-root" :class="themeClass">
+    <slot></slot>
+
+    <view v-if="showGuide" class="guide-overlay">
+      <view class="guide-panel">
+        <view class="guide-header">
+          <text class="guide-title">欢迎使用 FitNote</text>
+          <text class="guide-subtitle">以下是主要功能介绍</text>
+        </view>
+        <scroll-view class="guide-body" scroll-y="true">
+          <view v-for="(item, idx) in GUIDE_CONTENT" :key="idx" class="guide-item">
+            <text class="guide-icon">{{ item.icon }}</text>
+            <view class="guide-content">
+              <text class="guide-item-title">{{ item.title }}</text>
+              <text class="guide-item-desc">{{ item.desc }}</text>
+            </view>
+          </view>
+        </scroll-view>
+        <view class="guide-footer">
+          <view class="guide-checkbox-row">
+            <checkbox :checked="guideChecked" @change="guideChecked = !guideChecked" class="guide-checkbox" />
+            <text class="guide-checkbox-label">下次不再提醒</text>
+          </view>
+          <button class="guide-confirm-btn" @click="closeGuide">开始使用</button>
+        </view>
+      </view>
+    </view>
+  </view>
+</template>
 
 <style>
   /* 全局根容器配置 */
@@ -441,15 +523,169 @@
   .container {
     display: flex;
     flex-direction: column;
-    /* 使用 vh 在某些手机浏览器会有工具栏遮挡问题，改为 100% 配合 page 设置 */
     height: 100vh;
     background-color: #f8f9fa;
     box-sizing: border-box;
     overflow: hidden;
-    /* 必须禁止，否则会产生双滚动条 */
   }
 
   .container {
     background-color: #121212;
+  }
+
+  .guide-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 99999;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: rgba(0, 0, 0, 0.6);
+  }
+  .guide-panel {
+    width: 85vw;
+    max-height: 75vh;
+    background-color: #1e1e1e;
+    border-radius: 16px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .app-root.light .guide-panel {
+    background-color: #ffffff;
+  }
+
+  .guide-header {
+    padding: 18px 16px;
+    text-align: center;
+    border-bottom: 1px solid #333;
+  }
+
+  .app-root.light .guide-header {
+    border-bottom: 1px solid #e0e0e0;
+  }
+
+  .guide-title {
+    font-size: 20px;
+    font-weight: bold;
+    color: #fff;
+  }
+
+  .app-root.light .guide-title {
+    color: #333333;
+  }
+
+  .guide-subtitle {
+    font-size: 13px;
+    color: #888;
+    margin-top: 4px;
+  }
+
+  .app-root.light .guide-subtitle {
+    color: #666666;
+  }
+
+  .guide-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px 16px;
+  }
+
+  .guide-item {
+    display: flex;
+    align-items: flex-start;
+    padding: 12px 0;
+    border-bottom: 1px solid #2a2a2a;
+  }
+
+  .app-root.light .guide-item {
+    border-bottom: 1px solid #f0f0f0;
+  }
+
+  .guide-item:last-child {
+    border-bottom: none;
+  }
+
+  .guide-icon {
+    font-size: 24px;
+    margin-right: 12px;
+    flex-shrink: 0;
+  }
+
+  .guide-content {
+    flex: 1;
+  }
+
+  .guide-item-title {
+    font-size: 15px;
+    font-weight: bold;
+    color: #fff;
+    margin-bottom: 4px;
+  }
+
+  .app-root.light .guide-item-title {
+    color: #333333;
+  }
+
+  .guide-item-desc {
+    font-size: 13px;
+    color: #aaa;
+    line-height: 1.5;
+  }
+
+  .app-root.light .guide-item-desc {
+    color: #666666;
+  }
+
+  .guide-footer {
+    padding: 12px 16px 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .guide-checkbox-row {
+    display: flex;
+    align-items: center;
+  }
+
+  .guide-checkbox {
+    width: 20px;
+    height: 20px;
+    margin-right: 8px;
+    accent-color: #379bff;
+  }
+
+  .guide-checkbox-label {
+    font-size: 14px;
+    color: #aaa;
+  }
+
+  .app-root.light .guide-checkbox-label {
+    color: #666666;
+  }
+
+  .guide-confirm-btn {
+    width: 100%;
+    height: 48px;
+    background: linear-gradient(135deg, #379bff, #2d82d6);
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: bold;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+  }
+
+  .guide-confirm-btn:active {
+    opacity: 0.9;
+    transform: scale(0.98);
   }
 </style>

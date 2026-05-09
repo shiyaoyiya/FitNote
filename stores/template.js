@@ -79,6 +79,7 @@ export const useTemplateStore = defineStore('template', {
         id: String(Date.now()) + Math.random().toString(36).slice(2),
         name,
         actions: [],
+        actionSets: {},
         color: '',
         customColors: []
       })
@@ -133,8 +134,17 @@ export const useTemplateStore = defineStore('template', {
       const tpl = this.templates.find(t => t.name === templateName)
       return {
         actions: tpl?.actions.slice() || [],
+        actionSets: { ...(tpl?.actionSets || {}) },
         color: tpl?.color || '',
         customColors: tpl?.customColors?.slice() || []
+      }
+    },
+
+    setActionSets(templateName, actionSets) {
+      const tpl = this.templates.find(t => t.name === templateName)
+      if (tpl) {
+        tpl.actionSets = { ...actionSets }
+        this.save()
       }
     },
 

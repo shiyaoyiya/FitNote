@@ -139,6 +139,14 @@ function selectSub(sub) {
   left: 0;
   width: 100%;
   height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+}
+
+.container.light .overlay-bg {
+  background-color: rgba(0, 0, 0, 0.5);
+}
+
+.container.dark .overlay-bg {
   background-color: rgba(0, 0, 0, 0.6);
 }
 
@@ -164,6 +172,10 @@ function selectSub(sub) {
   to { transform: translateY(0); }
 }
 
+.container.light .selector-panel {
+  background-color: #ffffff;
+}
+
 .container.dark .selector-panel {
   background-color: #1e1e1e;
 }
@@ -173,8 +185,12 @@ function selectSub(sub) {
   align-items: center;
   justify-content: space-between;
   padding: 16px 16px;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid #e0e0e0;
   flex-shrink: 0;
+}
+
+.container.light .selector-header {
+  border-bottom: 1px solid #e0e0e0;
 }
 
 .container.dark .selector-header {
@@ -210,6 +226,10 @@ function selectSub(sub) {
   padding: 8px 0;
 }
 
+.container.light .category-col {
+  background-color: #f8f8f8;
+}
+
 .container.dark .category-col {
   background-color: #2a2a2a;
 }
@@ -223,6 +243,10 @@ function selectSub(sub) {
 .category-item.active {
   color: #379bff;
   font-weight: bold;
+  background-color: #ffffff;
+}
+
+.container.light .category-item.active {
   background-color: #ffffff;
 }
 
@@ -254,8 +278,12 @@ function selectSub(sub) {
 }
 
 .category-all {
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid #e0e0e0;
   margin-bottom: 4px;
+}
+
+.container.light .category-all {
+  border-bottom: 1px solid #e0e0e0;
 }
 
 .container.dark .category-all {

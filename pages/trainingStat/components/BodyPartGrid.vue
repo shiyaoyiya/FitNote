@@ -1,11 +1,15 @@
 <template>
   <view class="grid-container">
+    <!-- 部位对比卡片 -->
     <view class="section-title-row">
       <text class="section-title">部位对比</text>
-      <text class="manage-btn" @click="$emit('manage')" 345>管理部位</text>
+      <text class="manage-btn" @click="$emit('manage')">管理部位</text>
     </view>
     <view class="grid">
-      <view v-for="part in visibleParts" :key="part.id" class="card">
+      <view v-for="part in visibleParts" :key="part.id" class="card"
+        :class="{ 'card-selected': selectedPart === part.id }"
+        @click="onPartClick(part.id)"
+      >
         <view class="card-header-row">
           <text class="part-name">{{ part.name }}</text>
           <text v-if="showBadge(part.id)" class="status-badge"
@@ -21,187 +25,189 @@
 </template>
 
 <script setup>
-  import {
-    computed
-  } from 'vue'
+import { computed, ref } from 'vue'
 
-  const DIMENSION_LABELS = {
-    days: '天',
-    sets: '组',
-    volume: 'kg',
+const DIMENSION_LABELS = {
+  days: '天',
+  sets: '组',
+  volume: 'kg',
+}
+
+const BODY_PARTS_MAP = {
+  chest: '胸部',
+  upper_traps: '上斜方',
+  erector_spinae: '竖脊肌',
+  back: '背部',
+  front_delt: '前束',
+  side_delt: '中束',
+  rear_delt: '后束',
+  biceps: '二头',
+  triceps: '三头',
+  legs: '腿部',
+  calves: '小腿',
+  glutes: '臀部',
+  abs: '腹部',
+}
+
+const props = defineProps({
+  bodyPartData: {
+    type: Array,
+    default: () => [],
+  },
+  dimension: {
+    type: String,
+    default: 'days',
+  },
+  bodyPartOrder: {
+    type: Array,
+    default: () => [],
+  },
+  bodyPartVisibility: {
+    type: Object,
+    default: () => ({}),
+  },
+  badgeStatus: {
+    type: Object,
+    default: () => ({}),
+  },
+})
+
+const emit = defineEmits(['manage', 'select:bodyPart'])
+
+const selectedPart = ref(null)
+
+function onPartClick(id) {
+  selectedPart.value = selectedPart.value === id ? null : id
+  emit('select:bodyPart', id)
+}
+
+const visibleParts = computed(() => {
+  const order = props.bodyPartOrder
+  if (order.length === 0) {
+    return Object.entries(BODY_PARTS_MAP).map(([id, name]) => ({ id, name }))
   }
+  return order
+    .filter(id => props.bodyPartVisibility[id] !== false)
+    .map(id => ({ id, name: BODY_PARTS_MAP[id] || id }))
+})
 
-  const BODY_PARTS_MAP = {
-    chest: '胸部',
-    upper_traps: '上斜方',
-    erector_spinae: '竖脊肌',
-    back: '背部',
-    front_delt: '前束',
-    side_delt: '中束',
-    rear_delt: '后束',
-    biceps: '二头',
-    triceps: '三头',
-    legs: '腿部',
-    calves: '小腿',
-    glutes: '臀部',
-    abs: '腹部',
-  }
+function getValue(id) {
+  const item = props.bodyPartData.find(d => d.id === id)
+  return item ? item[props.dimension] ?? 0 : 0
+}
 
-  const props = defineProps({
-    bodyPartData: {
-      type: Array,
-      default: () => [],
-    },
-    dimension: {
-      type: String,
-      default: 'days',
-    },
-    bodyPartOrder: {
-      type: Array,
-      default: () => [],
-    },
-    bodyPartVisibility: {
-      type: Object,
-      default: () => ({}),
-    },
-    badgeStatus: {
-      type: Object,
-      default: () => ({}),
-    },
-  })
+const BADGE_LABELS = { low: '偏低', normal: '正常', high: '偏高' }
 
-  defineEmits(['manage'])
+function showBadge(id) {
+  return props.dimension === 'sets' && props.badgeStatus[id] && getValue(id) > 0
+}
 
-  const visibleParts = computed(() => {
-    const order = props.bodyPartOrder
-    if (order.length === 0) {
-      return Object.entries(BODY_PARTS_MAP).map(([id, name]) => ({
-        id,
-        name
-      }))
-    }
-    return order
-      .filter(id => props.bodyPartVisibility[id] !== false)
-      .map(id => ({
-        id,
-        name: BODY_PARTS_MAP[id] || id
-      }))
-  })
-
-  function getValue(id) {
-    const item = props.bodyPartData.find(d => d.id === id)
-    return item ? item[props.dimension] ?? 0 : 0
-  }
-
-  const BADGE_LABELS = {
-    low: '偏低',
-    normal: '正常',
-    high: '偏高',
-  }
-
-  function showBadge(id) {
-    return props.dimension === 'sets' && props.badgeStatus[id] && getValue(id) > 0
-  }
-
-  function getBadgeClass(id) {
-    const status = props.badgeStatus[id]
-    return status ? 'badge-' + status : ''
-  }
+function getBadgeClass(id) {
+  const status = props.badgeStatus[id]
+  return status ? 'badge-' + status : ''
+}
 </script>
 
 <style scoped>
-  .grid-container {
-    width: 100%;
-  }
+.grid-container {
+  width: 100%;
+}
 
-  .section-title-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 12px;
-    padding: 0 4px;
-  }
+.section-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  padding: 0 4px;
+}
 
-  .section-title {
-    font-size: 16px;
-    font-weight: bold;
-    color: var(--section-title, #1a1a1a);
-  }
+.section-title {
+  font-size: 16px;
+  font-weight: bold;
+  color: var(--section-title, #1a1a1a);
+}
 
-  .manage-btn {
-    font-size: 13px;
-    color: #379bff;
-    padding: 4px 8px;
-  }
+.manage-btn {
+  font-size: 13px;
+  color: #379bff;
+  padding: 4px 8px;
+}
 
-  .manage-btn:active {
-    opacity: 0.7;
-  }
+.manage-btn:active {
+  opacity: 0.7;
+}
 
-  .grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-  }
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
 
-  .card {
-    border-radius: 12px;
-    padding: 14px;
-    background-color: var(--card-bg, #ffffff);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-  }
+.card {
+  border-radius: 12px;
+  padding: 14px;
+  background-color: var(--card-bg, #ffffff);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  cursor: pointer;
+  transition: border-color 0.2s;
+  border: 2px solid transparent;
+}
 
-  .card-header-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 6px;
-  }
+.container.light .card {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
 
-  .part-name {
-    font-size: 14px;
-    font-weight: bold;
-    color: var(--text-primary, #333333);
-  }
+.container.dark .card {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
 
-  .status-badge {
-    font-size: 11px;
-    padding: 2px 8px;
-    border-radius: 10px;
-    color: #ffffff;
-    font-weight: 500;
-    flex-shrink: 0;
-    white-space: nowrap;
-    margin-left: auto;
-  }
+.card.card-selected {
+  border-color: #379bff;
+}
 
-  .badge-low {
-    background-color: #ff4757;
-  }
+.card-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
 
-  .badge-normal {
-    background-color: #2ed573;
-  }
+.part-name {
+  font-size: 14px;
+  font-weight: bold;
+  color: var(--text-primary, #333333);
+}
 
-  .badge-high {
-    background-color: #ffa502;
-  }
+.status-badge {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  color: #ffffff;
+  font-weight: 500;
+  flex-shrink: 0;
+  white-space: nowrap;
+  margin-left: auto;
+}
 
-  .part-value {
-    display: flex;
-    align-items: baseline;
-    gap: 2px;
-  }
+.badge-low { background-color: #ff4757; }
+.badge-normal { background-color: #2ed573; }
+.badge-high { background-color: #ffa502; }
 
-  .value-number {
-    font-size: 22px;
-    color: #379bff;
-    font-weight: bold;
-    line-height: 1.2;
-  }
+.part-value {
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+}
 
-  .value-unit {
-    font-size: 12px;
-    color: var(--text-secondary, #999999);
-  }
+.value-number {
+  font-size: 22px;
+  color: #379bff;
+  font-weight: bold;
+  line-height: 1.2;
+}
+
+.value-unit {
+  font-size: 12px;
+  color: var(--text-secondary, #999999);
+}
 </style>

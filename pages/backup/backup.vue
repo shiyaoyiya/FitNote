@@ -1,5 +1,5 @@
 <template>
-  <view class="container dark">
+  <view class="container" :class="{ dark: daySettingsStore.isDarkMode, light: !daySettingsStore.isDarkMode }">
     <view class="status-card card">
       <view class="path-header">
         <view class="title-group">
@@ -56,10 +56,14 @@
   import {
     useDayDataCacheStore
   } from '@/stores/dayDataCache.js'
+  import {
+    useDaySettingsStore
+  } from '@/stores/daySettings.js'
 
   export default {
     data() {
       return {
+        daySettingsStore: useDaySettingsStore(),
         backupPath: '',
         lastBackupTime: '',
         isBackingUp: false,
@@ -72,6 +76,7 @@
     },
 
     onLoad() {
+      this.daySettingsStore.load()
       try {
         // 读取上次备份时间
         const lastTime = uni.getStorageSync('last_backup_time');
@@ -420,6 +425,11 @@
     background-color: #121212;
   }
 
+  .container.light {
+    background-color: #f5f5f5;
+    color: #333333;
+  }
+
   /* 卡片样式优化 */
   .card {
     background: #ffffff;
@@ -571,6 +581,10 @@
 
   .container.dark .hint-text {
     color: #48484a;
+  }
+
+  .container.light .hint-text {
+    color: #999999;
   }
 
   /* 底部操作 */

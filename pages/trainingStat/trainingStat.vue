@@ -1,5 +1,5 @@
 <template>
-  <scroll-view class="container dark" scroll-y>
+  <scroll-view class="container" :class="{ dark: daySettingsStore.isDarkMode, light: !daySettingsStore.isDarkMode }" scroll-y>
     <view class="content-area">
       <view class="filter-header-row">
         <view class="period-toggle">
@@ -49,6 +49,7 @@
         :bodyPartVisibility="bodyPartVisibility"
         :badgeStatus="badgeStatus"
         @manage="showBodyPartManager = true"
+        @select:bodyPart="onBodyPartSelect"
       />
     </view>
   </scroll-view>
@@ -70,6 +71,7 @@ import BodyPartGrid from './components/BodyPartGrid.vue'
 import BodyPartManager from './components/BodyPartManager.vue'
 import { useActionStore } from '@/stores/action.js'
 import { useDayDataCacheStore } from '@/stores/dayDataCache.js'
+import { useDaySettingsStore } from '@/stores/daySettings.js'
 import { computeStats, isCategoryId, CATEGORY_NAMES, MERGED_CATEGORIES, collectAllWeeklyVolume } from './statUtil.js'
 import { rebuildVolumeHistory, getStatus } from './volumeHistory.js'
 
@@ -86,6 +88,7 @@ const DEFAULT_BODY_PARTS = [
 
 const actionStore = useActionStore()
 const dayDataCacheStore = useDayDataCacheStore()
+const daySettingsStore = useDaySettingsStore()
 
 const now = new Date()
 const currentYear = ref(now.getFullYear())
@@ -372,6 +375,15 @@ watch([currentYear, currentMonth], ([newYear, newMonth], [oldYear, oldMonth]) =>
 .container.light {
   background-color: #f5f5f5;
   color: #333333;
+  --card-bg: #ffffff;
+  --text-primary: #333333;
+  --text-secondary: #666666;
+  --section-title: #333333;
+  --chip-bg: #e0e0e0;
+  --chip-text: #333333;
+  --chart-text: #666666;
+  --chart-label: #999999;
+  --empty-text: #999999;
 }
 
 .container.dark {

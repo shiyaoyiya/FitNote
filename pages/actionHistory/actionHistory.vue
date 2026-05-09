@@ -1,10 +1,13 @@
 <template>
-  <view class="container dark">
+  <view class="container" :class="{ dark: daySettingsStore.isDarkMode, light: !daySettingsStore.isDarkMode }">
     <!-- 顶部改名输入框 -->
     <view class="header-fixed">
       <span class="text">重命名：</span>
       <input v-model="actionName" @blur="onNameBlur(actionName)" class="action-name-input" />
     </view>
+    <!-- 进步折线图（固定在顶部，不随列表滚动） -->
+    <ProgressChart :data="chartData" :title="actionName + ' 重量趋势'" canvas-id="actionProgressCanvas"
+      :is-light-mode="!daySettingsStore.isDarkMode" @range-change="onChartRangeChange" />
     <scroll-view class="history-list" scroll-y @scrolltolower="loadMore" :lower-threshold="100">
       <view v-for="(item, idx) in historyItems" :key="idx" class="history-row">
         <!-- 左侧：上面是 entriesText，下面是 "总重(±增减)" -->
@@ -53,22 +56,36 @@
   import {
     useActionStore
   } from '@/stores/action.js'
+  import {
+    useDaySettingsStore
+  } from '@/stores/daySettings.js'
+  import ProgressChart from '@/components/ProgressChart.vue'
+  import {
+    normalizeEntry
+  } from '@/utils/dayHelper.js'
   export default {
+    components: {
+      ProgressChart
+    },
     data() {
       return {
+        daySettingsStore: useDaySettingsStore(),
         actionName: '',
         originalName: '',
         historyItems: [],
         actionEntries: [],
         allHist: [],
         allEnts: [],
+        allRecs: [],
         displayCount: 10,
         loadingMore: false,
         DAYDATA_PREFIX: 'fitness_daydata_',
+        chartData: [],
       }
     },
 
     onLoad(options) {
+      this.daySettingsStore.load()
       if (options.action) {
         this.actionName = decodeURIComponent(options.action);
         this.originalName = this.actionName;
@@ -161,8 +178,10 @@
 
         this.allHist = hist
         this.allEnts = ents
+        this.allRecs = recs
         this.displayCount = 10
         this.updateDisplayData()
+        this.buildChartData()
       },
 
       /** 更新显示数据 */
@@ -184,6 +203,42 @@
           this.loadingMore = false
         }, 200)
       },
+
+      /** 构建图表数据：每天该动作总容量和最大重量 */
+      buildChartData() {
+        const data = []
+        for (const rec of this.allRecs) {
+          let maxWeight = 0
+          let maxRepsAtMaxWeight = 0
+          let totalVolume = 0
+          for (const entry of rec.details) {
+            const normalized = normalizeEntry(entry)
+            const stages = normalized ? normalized.stages : []
+            for (const stage of stages) {
+              const w = Number(stage.weight) || 0
+              const r = Number(stage.reps) || 0
+              totalVolume += w * r
+              if (w > maxWeight) {
+                maxWeight = w
+                maxRepsAtMaxWeight = r
+              }
+            }
+          }
+          data.push({
+            date: rec.dateStr,
+            maxWeight,
+            maxReps: maxRepsAtMaxWeight,
+            maxVolume: totalVolume,
+          })
+        }
+        // 按日期升序排列
+        data.sort((a, b) => a.date.localeCompare(b.date))
+        this.chartData = data
+      },
+
+      onChartRangeChange(range) {
+        // 图表组件内部自行处理筛选，这里可按需扩展
+      },
     },
   }
 </script>
@@ -200,6 +255,10 @@
     height: 44px;
   }
 
+  .container.light .header-fixed {
+    border-bottom-color: #e0e0e0;
+  }
+
   .container.dark .header-fixed {
     border-color: #555;
     color: #f7f7f7;
@@ -212,6 +271,10 @@
     margin-top: 5px;
     margin-left: 10px;
     color: #888;
+  }
+
+  .container.light .text {
+    color: #888888;
   }
 
   .container.dark .text {
@@ -253,8 +316,7 @@
     flex: 1;
     height: 0;
     overflow-y: auto;
-    width: 90vw;
-    margin: 0 20px;
+    width: 100vw;
   }
 
   .history-list::-webkit-scrollbar {
@@ -268,7 +330,7 @@
     flex-direction: row;
     justify-content: space-between;
     align-items: flex-start;
-    padding: 10px 0;
+    padding: 10px 10px;
     border-bottom: 1px solid #e0e0e0;
   }
 

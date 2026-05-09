@@ -103,6 +103,7 @@ function normalizeAction(raw) {
     subcategories,
     categoryName: getCategoryName(categories[0]),
     createdAt,
+    isUnilateral: raw.isUnilateral || false,
   }
 }
 
@@ -176,6 +177,7 @@ export const useActionStore = defineStore('action', {
         subcategories: {},
         categoryName: getCategoryName(catIds[0]),
         createdAt: new Date().toISOString(),
+        isUnilateral: false,
       })
       this.save()
     },
@@ -193,7 +195,7 @@ export const useActionStore = defineStore('action', {
       this.save()
     },
 
-    updateAction(id, { name, categories, subcategories }) {
+    updateAction(id, { name, categories, subcategories, isUnilateral }) {
       const action = this.actions.find(a => a.id === id)
       if (!action) return
       if (name && name !== action.name) {
@@ -209,6 +211,9 @@ export const useActionStore = defineStore('action', {
       }
       if (subcategories) {
         action.subcategories = subcategories
+      }
+      if (typeof isUnilateral === 'boolean') {
+        action.isUnilateral = isUnilateral
       }
       this.save()
     },
@@ -271,6 +276,7 @@ export const useActionStore = defineStore('action', {
         subcategories: {},
         categoryName: getCategoryName(detectCategoryByName(name)),
         createdAt: new Date().toISOString(),
+        isUnilateral: false,
       }))
       this.save()
     },

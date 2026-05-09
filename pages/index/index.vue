@@ -1,179 +1,45 @@
 <template>
-  <view class="container dark">
+  <view class="container" :class="{ dark: daySettingsStore.isDarkMode, light: !daySettingsStore.isDarkMode }">
     <!-- 顶部：年月 -->
     <view class="calendar-container" @touchstart="onTouchStart" @touchend="onTouchEnd">
       <view class="calendar-slide-container" :style="{ transform: `translateX(${slideOffset}px)` }">
-        <view class="calendar-month" :class="{ sliding: isSliding }" v-show="currentMonthView === 0">
-          <view class="calendar-header">
-            <text class="month-title" @click="goToYearPage">{{ curYear }}/{{ curMonth + 1 }}</text>
-            <view class="icon-add-wrap" @click="openAnnivPopup(null)">
-              <text class="icon-plus">＋</text>
-            </view>
-          </view>
-          <view class="weekday-row">
-            <text class="weekday">日</text>
-            <text class="weekday">一</text>
-            <text class="weekday">二</text>
-            <text class="weekday">三</text>
-            <text class="weekday">四</text>
-            <text class="weekday">五</text>
-            <text class="weekday">六</text>
-          </view>
+        <!-- 当前月 -->
+        <CalendarMonth v-show="currentMonthView === 0" :year="curYear" :month="curMonth" :month-days="monthDays"
+          :is-sliding="isSliding" :get-template-color="getTemplateColor" :get-total-weight="getTotalWeight"
+          :is-aerobic-day="isAerobicDay" :get-template-name="getTemplateName" :get-contrast-color="getContrastColor"
+          :get-cell-style="getCellStyle" :train-btn-visible="todayTrainBtnVisible" :is-light-mode="!daySettingsStore.isDarkMode" @date-click="handleDateClick"
+          @date-longpress="onDateLongPress" @go-to-year-page="goToYearPage" @open-anniv-popup="openAnnivPopup"
+          @toggle-train-btn="onToggleTrainBtn" @open-more-menu="openMoreMenu" />
 
-          <!-- ===== 修改后的“日网格”部分 ===== -->
-          <view class="calendar-grid">
-            <view v-for="date in monthDays" :key="date.key" class="calendar-cell" :class="{
-              today: date.isToday && !getTemplateColor(date.full),           /* 如果今天且无模板，用“today”类 */
-              'today-has-template': date.isToday && getTemplateColor(date.full) /* 今天有模板时用另一类 */
-            }" :style="getCellStyle(date.full)" @click="!date.isEmpty && handleDateClick(date.full)"
-              @longpress="!date.isEmpty && onDateLongPress(date.full)">
-              <view class="cell-content">
-                <!-- 如果是空位，什么都不渲染 -->
-                <template v-if="date.isEmpty">
-                  <!-- 占位空格 -->
-                </template>
+        <!-- 上个月 -->
+        <CalendarMonth v-show="currentMonthView === -1" :year="getPrevMonthYear()" :month="getPrevMonth()"
+          :month-days="prevMonthDays" :is-sliding="isSliding" :get-template-color="getTemplateColor"
+          :get-total-weight="getTotalWeight" :is-aerobic-day="isAerobicDay" :get-template-name="getTemplateName"
+          :get-contrast-color="getContrastColor" :get-cell-style="getCellStyle"
+          :train-btn-visible="todayTrainBtnVisible" :is-light-mode="!daySettingsStore.isDarkMode" @date-click="handleDateClick" @date-longpress="onDateLongPress"
+          @go-to-year-page="goToYearPage" @open-anniv-popup="openAnnivPopup" @toggle-train-btn="onToggleTrainBtn"
+          @open-more-menu="openMoreMenu" />
 
-                <!-- 非空格、有模板时优先显示模板背景与边框 -->
-                <template v-else-if="getTemplateColor(date.full)">
-                  <!-- 横向累计重量 -->
-                  <text v-if="getTotalWeight(date.full) > 0" class="weight-text"
-                    :style="{ color: getContrastColor(getTemplateColor(date.full)) }">
-                    {{ getTotalWeight(date.full) }}{{ isAerobicDay(date.full) ? 'min' : '' }}
-                  </text>
-
-                  <!-- 日期数字 -->
-                  <text class="cell-text" :style="{ color: getContrastColor(getTemplateColor(date.full)) }">
-                    {{ date.day }}
-                  </text>
-                  <!-- 模板名 -->
-                  <text class="template-name" :style="{ color: getContrastColor(getTemplateColor(date.full)) }">
-                    {{ getTemplateName(date.full) }}
-                  </text>
-                </template>
-
-                <!-- 非空格、无模板时正常渲染 -->
-                <template v-else>
-                  <text v-if="getTotalWeight(date.full) > 0" class="weight-text"
-                    :style="{ color: getContrastColor(getTemplateColor(date.full)) }">
-                    {{ getTotalWeight(date.full) }}{{ isAerobicDay(date.full) ? 'min' : '' }}
-                  </text>
-
-                  <text class="cell-text">{{ date.day }}</text>
-                  <text v-if="getTemplateName(date.full)" class="template-name">
-                    {{ getTemplateName(date.full) }}
-                  </text>
-                </template>
-              </view>
-            </view>
-          </view>
-        </view>
-
-        <view class="calendar-month" :class="{ sliding: isSliding }" v-show="currentMonthView === -1">
-          <view class="calendar-header">
-            <text class="month-title" @click="goToYearPage">{{ getPrevMonthYear() }}/{{ getPrevMonth() + 1 }}</text>
-            <view class="icon-add-wrap" @click="openAnnivPopup(null)">
-              <text class="icon-plus">＋</text>
-            </view>
-          </view>
-          <view class="weekday-row">
-            <text class="weekday">日</text>
-            <text class="weekday">一</text>
-            <text class="weekday">二</text>
-            <text class="weekday">三</text>
-            <text class="weekday">四</text>
-            <text class="weekday">五</text>
-            <text class="weekday">六</text>
-          </view>
-          <view class="calendar-grid">
-            <view v-for="date in prevMonthDays" :key="date.key" class="calendar-cell" :class="{
-              today: date.isToday && !getTemplateColor(date.full),
-              'today-has-template': date.isToday && getTemplateColor(date.full)
-            }" :style="getCellStyle(date.full)" @click="!date.isEmpty && handleDateClick(date.full)"
-              @longpress="!date.isEmpty && onDateLongPress(date.full)">
-              <view class="cell-content">
-                <template v-if="date.isEmpty">
-                </template>
-                <template v-else-if="getTemplateColor(date.full)">
-                  <text v-if="getTotalWeight(date.full) > 0" class="weight-text"
-                    :style="{ color: getContrastColor(getTemplateColor(date.full)) }">
-                    {{ getTotalWeight(date.full) }}{{ isAerobicDay(date.full) ? 'min' : '' }}
-                  </text>
-                  <text class="cell-text" :style="{ color: getContrastColor(getTemplateColor(date.full)) }">
-                    {{ date.day }}
-                  </text>
-                  <text class="template-name" :style="{ color: getContrastColor(getTemplateColor(date.full)) }">
-                    {{ getTemplateName(date.full) }}
-                  </text>
-                </template>
-                <template v-else>
-                  <text v-if="getTotalWeight(date.full) > 0" class="weight-text"
-                    :style="{ color: getContrastColor(getTemplateColor(date.full)) }">
-                    {{ getTotalWeight(date.full) }}{{ isAerobicDay(date.full) ? 'min' : '' }}
-                  </text>
-                  <text class="cell-text">{{ date.day }}</text>
-                  <text v-if="getTemplateName(date.full)" class="template-name">
-                    {{ getTemplateName(date.full) }}
-                  </text>
-                </template>
-              </view>
-            </view>
-          </view>
-        </view>
-
-        <view class="calendar-month" :class="{ sliding: isSliding }" v-show="currentMonthView === 1">
-          <view class="calendar-header">
-            <text class="month-title" @click="goToYearPage">{{ getNextMonthYear() }}/{{ getNextMonth() + 1 }}</text>
-            <view class="icon-add-wrap" @click="openAnnivPopup(null)">
-              <text class="icon-plus">＋</text>
-            </view>
-          </view>
-          <view class="weekday-row">
-            <text class="weekday">日</text>
-            <text class="weekday">一</text>
-            <text class="weekday">二</text>
-            <text class="weekday">三</text>
-            <text class="weekday">四</text>
-            <text class="weekday">五</text>
-            <text class="weekday">六</text>
-          </view>
-          <view class="calendar-grid">
-            <view v-for="date in nextMonthDays" :key="date.key" class="calendar-cell" :class="{
-              today: date.isToday && !getTemplateColor(date.full),
-              'today-has-template': date.isToday && getTemplateColor(date.full)
-            }" :style="getCellStyle(date.full)" @click="!date.isEmpty && handleDateClick(date.full)"
-              @longpress="!date.isEmpty && onDateLongPress(date.full)">
-              <view class="cell-content">
-                <template v-if="date.isEmpty">
-                </template>
-                <template v-else-if="getTemplateColor(date.full)">
-                  <text v-if="getTotalWeight(date.full) > 0" class="weight-text"
-                    :style="{ color: getContrastColor(getTemplateColor(date.full)) }">
-                    {{ getTotalWeight(date.full) }}{{ isAerobicDay(date.full) ? 'min' : '' }}
-                  </text>
-                  <text class="cell-text" :style="{ color: getContrastColor(getTemplateColor(date.full)) }">
-                    {{ date.day }}
-                  </text>
-                  <text class="template-name" :style="{ color: getContrastColor(getTemplateColor(date.full)) }">
-                    {{ getTemplateName(date.full) }}
-                  </text>
-                </template>
-                <template v-else>
-                  <text v-if="getTotalWeight(date.full) > 0" class="weight-text"
-                    :style="{ color: getContrastColor(getTemplateColor(date.full)) }">
-                    {{ getTotalWeight(date.full) }}{{ isAerobicDay(date.full) ? 'min' : '' }}
-                  </text>
-                  <text class="cell-text">{{ date.day }}</text>
-                  <text v-if="getTemplateName(date.full)" class="template-name">
-                    {{ getTemplateName(date.full) }}
-                  </text>
-                </template>
-              </view>
-            </view>
-          </view>
-        </view>
+        <!-- 下个月 -->
+        <CalendarMonth v-show="currentMonthView === 1" :year="getNextMonthYear()" :month="getNextMonth()"
+          :month-days="nextMonthDays" :is-sliding="isSliding" :get-template-color="getTemplateColor"
+          :get-total-weight="getTotalWeight" :is-aerobic-day="isAerobicDay" :get-template-name="getTemplateName"
+          :get-contrast-color="getContrastColor" :get-cell-style="getCellStyle"
+          :train-btn-visible="todayTrainBtnVisible" :is-light-mode="!daySettingsStore.isDarkMode" @date-click="handleDateClick" @date-longpress="onDateLongPress"
+          @go-to-year-page="goToYearPage" @open-anniv-popup="openAnnivPopup" @toggle-train-btn="onToggleTrainBtn"
+          @open-more-menu="openMoreMenu" />
       </view>
     </view>
 
+
+    <!-- 今日训练快捷按钮 -->
+    <view v-if="todayTrainBtnVisible" class="today-train-btn" @click="onTodayBtnClick" @longpress="onTodayBtnLongPress">
+      <text class="today-train-text">{{ todayBtnText }}</text>
+    </view>
+
+    <!-- 分化计划设置弹窗 -->
+    <TrainingSplitPlan v-if="showSplitPlan" :templates="templates" :cycle-days="splitPlan.cycleDays"
+      @close="onCloseSplitPlan" @save="onSaveSplitPlan" />
 
     <!-- 底部：重量显示 + 模板/动作 按钮 -->
     <view class="tab-bar-fixed">
@@ -184,7 +50,7 @@
         <text class="tab-label">训练统计</text>
       </view>
 
-      <view class="tab-item" @click="goToBackup">
+      <view class="tab-item" @click="goToBackup" @longpress="onExportCSV">
         <view class="tab-icon">
           <view class="icon-base icon-backup"></view>
         </view>
@@ -222,6 +88,47 @@
       <view class="safe-area-inset"></view>
     </view>
 
+    <!-- 更多菜单弹窗 -->
+    <view v-if="showMoreMenu" class="popup-overlay" @click.self="showMoreMenu = false">
+      <view class="overlay-bg" @click="showMoreMenu = false"></view>
+      <view class="menu-panel fade-in" @click.stop>
+        <view class="menu-item" @click="onMenuReadGuide">
+          <text class="menu-icon">📖</text>
+          <text class="menu-text">阅读说明</text>
+        </view>
+        <view class="menu-item" @click="onMenuAddAnniv">
+          <text class="menu-icon">📝</text>
+          <text class="menu-text">添加纪念日</text>
+        </view>
+        <view class="menu-item" @click="onMenuToggleTrainBtn">
+          <text class="menu-icon">{{ todayTrainBtnVisible ? '👁' : '🙈' }}</text>
+          <text class="menu-text">{{ todayTrainBtnVisible ? '隐藏快捷训练按钮' : '显示快捷训练按钮' }}</text>
+        </view>
+        <view class="menu-item" @click="onToggleTheme">
+          <text class="menu-icon">{{ daySettingsStore.isDarkMode ? '☀️' : '🌙' }}</text>
+          <text class="menu-text">{{ daySettingsStore.isDarkMode ? '切换浅色模式' : '切换深色模式' }}</text>
+        </view>
+      </view>
+    </view>
+    <!-- 阅读说明弹窗 -->
+    <view v-if="showGuidePanel" class="popup-overlay">
+      <view class="overlay-bg" @click="showGuidePanel = false"></view>
+      <view class="guide-panel fade-in">
+        <view class="guide-header">
+          <text class="guide-title">FitNote 功能说明</text>
+          <text class="close-icon" @click="showGuidePanel = false">×</text>
+        </view>
+        <scroll-view class="guide-body" scroll-y="true" show-scrollbar="false">
+          <view v-for="(item, idx) in GUIDE_CONTENT" :key="idx" class="guide-item">
+            <text class="guide-icon">{{ item.icon }}</text>
+            <view class="guide-content">
+              <text class="guide-item-title">{{ item.title }}</text>
+              <text class="guide-item-desc">{{ item.desc }}</text>
+            </view>
+          </view>
+        </scroll-view>
+      </view>
+    </view>
     <!-- 纪念日输入弹窗 -->
     <view v-if="showAnnivPopup" class="popup-overlay" @click.self="showAnnivPopup = false">
       <view class="overlay-bg" @click="showAnnivPopup = false"></view>
@@ -312,16 +219,64 @@
   import {
     useDayDataCacheStore
   } from '@/stores/dayDataCache.js'
+  import {
+    useDaySettingsStore
+  } from '@/stores/daySettings.js'
+  import {
+    analyzeTrainingPattern
+  } from '@/utils/trainingAnalyzer.js'
+  import {
+    exportToCSV,
+    writeCSVFile
+  } from '@/utils/backup.js'
+  import CalendarMonth from '@/components/CalendarMonth.vue'
+  import TrainingSplitPlan from '@/components/TrainingSplitPlan.vue'
+
+  const GUIDE_CONTENT = [{
+      icon: '📅',
+      title: '日历浏览',
+      desc: '首页展示月历，点击日期可查看/记录当日训练。左滑右滑切换月份，长按日期可清空该日记录'
+    },
+    {
+      icon: '🏋️',
+      title: '今日训练',
+      desc: '点击"开始训练"按钮/日历格子进入训练页面，可从预设模板中选择，记录每个动作的重量和次数，自动计算与上次训练的对比'
+    },
+    {
+      icon: '💪',
+      title: '训练模板',
+      desc: '在"训练模板"页面管理个人模板，支持创建、编辑、删除，添加/移除动作'
+    },
+    {
+      icon: '📊',
+      title: '训练统计',
+      desc: '查看周/月训练总量，各肌群训练频次分析'
+    },
+    {
+      icon: '📝',
+      title: '纪念日',
+      desc: '记录重要日期，首页底部展示已过去的天数'
+    },
+    {
+      // icon: '⏱️',
+      // title: '计时休息',
+      desc: '长按排序、侧滑删除是绝大部分页面的交互方式'
+    },
+  ]
 
   export default {
+    components: {
+      CalendarMonth,
+      TrainingSplitPlan
+    },
     data() {
       return {
-        // ========== 日历相关 ==========
         curYear: 0,
         curMonth: 0,
         monthDays: [],
         monthKey: 0,
         DAYDATA_PREFIX: 'fitness_daydata_',
+        todayTrainBtnVisible: true,
 
         presetColors: [{
             name: '清水蓝',
@@ -369,20 +324,20 @@
           },
         ],
 
-        // ========== 重量统计 ==========
         thisWeekTotal: 0,
         lastWeekTotal: 0,
         diffText: '0kg',
         diffClass: 'diff-neutral',
 
-        // ========== 纪念日 ==========
         annivs: [],
+        showMoreMenu: false,
+        showGuidePanel: false,
+        GUIDE_CONTENT,
         showAnnivPopup: false,
         annivTitleInput: '',
         annivDateInput: '',
         editingIndex: null,
 
-        // ========== 有氧/休息 ==========
         showAerobicDetail: false,
         aerobicDetail: {
           date: '',
@@ -398,19 +353,20 @@
           color: ''
         },
         showRestColorPicker: false,
-        // 新增滑动相关数据
-        canSlide: true, // 是否可以滑动切换
-        isAnimating: false, // 是否正在执行切换动画
-        slideOffset: 0, // 滑动偏移量
-        isSliding: false, // 是否正在滑动
-        slideDirection: 0, // 滑动方向：-1左滑，1右滑，0无
+        canSlide: true,
+        isAnimating: false,
+        slideOffset: 0,
+        isSliding: false,
+        slideDirection: 0,
         touchStartX: 0,
         touchStartY: 0,
-        slideThreshold: 50, // 滑动阈值
+        slideThreshold: 50,
         currentMonthView: 0,
         prevMonthDays: [],
         nextMonthDays: [],
-        dayDataCache: {}
+        dayDataCache: {},
+        daySettingsStore: null,
+        showSplitPlan: false,
       }
     },
     computed: {
@@ -419,7 +375,41 @@
       },
       templates() {
         return this.templateStore.templates
-      }
+      },
+      splitPlan() {
+        if (!this.daySettingsStore) return {
+          enabled: false,
+          cycleDays: []
+        }
+        return this.daySettingsStore.splitPlan
+      },
+      todayBtnText() {
+        const plan = this.splitPlan
+        if (plan && plan.enabled && plan.cycleDays && plan.cycleDays.length > 0) {
+          const todayStr = this.formatDate(new Date())
+          const idx = this.daySettingsStore.getCycleIndex(todayStr, this.dayDataCacheStore)
+          const dayPlan = plan.cycleDays[idx]
+          if (dayPlan && dayPlan.enabled && dayPlan.template) {
+            return `第${idx + 1}天：${dayPlan.template}`
+          }
+          if (dayPlan && !dayPlan.enabled) {
+            return `第${idx + 1}天：休息`
+          }
+        }
+        return '开始训练'
+      },
+      todayHasTemplate() {
+        const plan = this.splitPlan
+        if (plan && plan.enabled && plan.cycleDays && plan.cycleDays.length > 0) {
+          const todayStr = this.formatDate(new Date())
+          const idx = this.daySettingsStore.getCycleIndex(todayStr, this.dayDataCacheStore)
+          const dayPlan = plan.cycleDays[idx]
+          if (dayPlan && dayPlan.enabled && dayPlan.template) {
+            return true
+          }
+        }
+        return false
+      },
     },
     created() {
       this.actionStore = useActionStore()
@@ -428,6 +418,9 @@
       this.templateStore.load()
       this.dayDataCacheStore = useDayDataCacheStore()
       this.dayDataCacheStore.loadIndex()
+      this.daySettingsStore = useDaySettingsStore()
+      this.daySettingsStore.load()
+      this.todayTrainBtnVisible = this.daySettingsStore.todayTrainBtnVisible
     },
     onShow() {
       const selectedYear = uni.getStorageSync('selectedYear');
@@ -443,6 +436,7 @@
 
       this.actionStore.load()
       this.templateStore.load()
+      this.daySettingsStore.load()
 
       this.resetSlideStateForSwitch();
       this.dayDataCache = {};
@@ -457,9 +451,6 @@
       this.loadAnnivs()
     },
     onLoad(options) {
-      this.tplStore = useTemplateStore()
-      this.tplStore.load()
-
       const now = new Date()
       this.curYear = (options && options.year) ? Number(options.year) : now.getFullYear()
       this.curMonth = (options && (typeof options.month !== 'undefined')) ? Number(options.month) : now.getMonth()
@@ -479,9 +470,6 @@
       if (typeof this.curYear === 'undefined' || this.curYear === 0) {
         this.initCalendar()
       }
-      this.tplStore = useTemplateStore()
-      this.tplStore.load()
-      this.templates = this.tplStore.templates
       this.$nextTick(() => {
         setTimeout(() => {
           this.canSlide = true;
@@ -506,7 +494,6 @@
         });
         this.showRestDetail = false;
       },
-      // 判断某天是否是休息日
       isRestDay(fullDate) {
         const raw = this.getDayData(fullDate);
         return raw.isRestDay === true;
@@ -525,9 +512,7 @@
           url: '/pages/templateManager/templateManager'
         });
       },
-      // 新增：点击"年/月"标题，跳转到年份页面
       goToYearPage() {
-        // 直接跳转，不需要 loading
         uni.navigateTo({
           url: `/pages/year/year?year=${this.curYear}&month=${this.curMonth}`,
           fail: (err) => {
@@ -539,20 +524,13 @@
           }
         });
       },
-      // 生成对比色字体
       getContrastColor(hex) {
-        // 如果是对象且有 value 字段，取出真正的字符串
         if (hex && typeof hex === 'object' && 'value' in hex) {
           hex = hex.value;
         }
 
-        // 强制转换成字符串，并去掉前导 '#'
         let str = String(hex).replace(/^#/, '').trim();
 
-        // 只接受 3 位或 6 位合法十六进制
-        // if (!/^[0-9A-Fa-f]{3}$/.test(str) && !/^[0-9A-Fa-f]{6}$/.test(str)) {
-        //   return '#000000';
-        // }
         if (str.length === 3) {
           str = str[0] + str[0] + str[1] + str[1] + str[2] + str[2];
         }
@@ -562,19 +540,16 @@
         const brightness = (r * 299 + g * 587 + b * 114) / 1000;
         return brightness > 128 ? '#000000' : '#FFFFFF';
       },
-      // ========== 新增方法：获取某天的“最后一个模板名称”（如果存在） ==========
       getTemplateName(fullDate) {
         const dayData = this.getDayData(fullDate);
         if (dayData.templates && typeof dayData.templates === 'object') {
           const tplNames = Object.keys(dayData.templates);
           if (tplNames.length > 0) {
-            // 取“最后写入”的那个模板名称
             return tplNames[tplNames.length - 1];
           }
         }
         return null;
       },
-      // —— 新增：获取某天总重量 —— 
       getTotalWeight(fullDate) {
         const dayData = this.getDayData(fullDate);
         if (
@@ -592,7 +567,7 @@
           }
         }
         return sum;
-      }, // ================= 日历相关 =================
+      },
       initCalendar() {
         const today = new Date();
         this.curYear = today.getFullYear();
@@ -717,7 +692,7 @@
         );
       },
       onTouchStart(e) {
-        if (!this.canSlide || this.isAnimating) return; // 如果不可滑动或正在动画中，直接返回
+        if (!this.canSlide || this.isAnimating) return;
 
         this.touchStartX = e.changedTouches[0].clientX;
         this.touchStartY = e.changedTouches[0].clientY;
@@ -726,14 +701,13 @@
       },
 
       onTouchEnd(e) {
-        if (!this.canSlide || this.isAnimating) return; // 双重检查
+        if (!this.canSlide || this.isAnimating) return;
 
         const endX = e.changedTouches[0].clientX;
         const endY = e.changedTouches[0].clientY;
         const dx = endX - this.touchStartX;
         const dy = endY - this.touchStartY;
 
-        // 只处理水平滑动
         if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 50) {
           this.handleSwipe(dx);
         }
@@ -814,7 +788,6 @@
         });
       },
 
-      // 仅重置动画相关状态，不改变 canSlide
       resetSlideStateForSwitch() {
         this.slideOffset = 0;
         this.isSliding = false;
@@ -830,7 +803,6 @@
         this.canSlide = false;
       },
 
-      // 修复月份切换方法
       prevMonth() {
         if (this.isAnimating && this.slideDirection !== 1) return;
 
@@ -841,19 +813,16 @@
           m = 11;
         }
 
-        // 不在这里显示loading，在切换完成后统一处理
         this.curYear = y;
         this.curMonth = m;
         this.monthKey += 1;
 
-        // 构建新的月份数据
         this.buildMonthDays(y, m, () => {
-          // 月份切换完成后的回调
           setTimeout(() => {
             this.slideOffset = 0;
             this.isSliding = false;
             this.slideDirection = 0;
-            this.isAnimating = false; // 动画结束
+            this.isAnimating = false;
           }, 300);
         });
       },
@@ -897,7 +866,6 @@
         }
         const tplNames = dayData.templates ? Object.keys(dayData.templates) : [];
 
-        // 如果只有一个模板，且无具体动作（actionWeights 为空），视作有氧
         if (tplNames.length === 1) {
           const tpl = dayData.templates[tplNames[0]];
           const isAerobic = tpl && tpl.totalWeight > 0 &&
@@ -910,7 +878,6 @@
             return;
           }
         }
-        // 否则正常跳转到 day 页面
         uni.navigateTo({
           url: `/pages/index/day?date=${full}`
         });
@@ -944,7 +911,6 @@
         return Object.keys(data).length > 0;
       },
 
-      // 计算本周/上周重量
       getWeekRange(date) {
         const day = date.getDay();
         const offsetToMonday = day === 0 ? -6 : 1 - day;
@@ -955,12 +921,11 @@
         return [this.formatDate(monday), this.formatDate(sunday)];
       },
       calcTotalInRange(start, end, forceRefresh = false) {
-        const s = new Date(start);
-        const e = new Date(end);
+        const s = new Date(start.replace(/\./g, '/').replace(/-/g, '/'));
+        const e = new Date(end.replace(/\./g, '/').replace(/-/g, '/'));
         const year = s.getFullYear();
         const weekNumber = this.getWeekNumberForRange(s, e);
 
-        // 尝试从缓存获取
         if (!forceRefresh) {
           const cached = this.dayDataCacheStore.getWeekStats(year, weekNumber);
           if (cached !== null) {
@@ -986,12 +951,10 @@
           }
         }
 
-        // 缓存结果
         this.dayDataCacheStore.setWeekStats(year, weekNumber, sum);
         return sum;
       },
 
-      // 获取日期范围内的周数（简化版，假设范围在一周内）
       getWeekNumberForRange(start, end) {
         const d = new Date(start);
         d.setHours(0, 0, 0, 0);
@@ -1036,26 +999,23 @@
         })
       },
 
-      // ================= 纪念日管理 =================
       updateAnnivDaysFor(dateStr) {
         if (!dateStr) return '0 天';
         let dateText = dateStr.trim();
         if (dateText.includes('年') && dateText.includes('月') && dateText.includes('日')) {
-          // “2020年08月15日”之类 ➞ “2020/08/15”
           dateText = dateText.replace('年', '/').replace('月', '/').replace('日', '');
         }
-        const parsedDate = new Date(dateText.replace(/-/g, '/'));
+        dateText = dateText.replace(/\./g, '/').replace(/-/g, '/');
+        const parsedDate = new Date(dateText);
         if (isNaN(parsedDate.getTime())) {
           return '0 天';
         }
-        // 计算天数差
         const today = new Date();
         const diffTime = today.setHours(0, 0, 0, 0) - parsedDate.setHours(0, 0, 0, 0);
         const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
         return `${diffDays+1} 天`;
       },
 
-      // 加载本地存储中的多条纪念日
       loadAnnivs() {
         const raw = uni.getStorageSync('annivs') || '[]';
         try {
@@ -1063,16 +1023,13 @@
         } catch (e) {
           this.annivs = [];
         }
-        // 为每条计算 daysText
         this.annivs.forEach((it) => {
           it.daysText = this.updateAnnivDaysFor(it.date);
         });
       },
-      // 保存到本地
       saveAnnivs() {
         uni.setStorageSync('annivs', JSON.stringify(this.annivs));
       },
-      // 打开弹窗：index 为 null 时“新增”，否则为“编辑”第几条
       openAnnivPopup(index) {
         if (index === null) {
           this.editingIndex = null;
@@ -1086,7 +1043,6 @@
         }
         this.showAnnivPopup = true;
       },
-      // 点击“确认”后新增/编辑
       saveAnniv() {
         const title = this.annivTitleInput.trim();
         const date = this.annivDateInput;
@@ -1097,18 +1053,15 @@
           });
           return;
         }
-        // 使用原方法计算天数文本
         const daysText = this.updateAnnivDaysFor(date);
 
         if (this.editingIndex === null) {
-          // 新增一条
           this.annivs.push({
             title,
             date,
             daysText
           });
         } else {
-          // 编辑已有一条
           this.annivs[this.editingIndex] = {
             title,
             date,
@@ -1118,7 +1071,6 @@
         this.saveAnnivs();
         this.showAnnivPopup = false;
       },
-      // 删除某一条
       removeAnniv(idx) {
         uni.showModal({
           title: '确认删除',
@@ -1131,14 +1083,11 @@
           }
         });
       },
-      // 长按纪念日卡片时调用
       onAnnivLongPress(idx) {
-        // 1. 先短震动反馈
         uni.vibrateShort({
-          type: 'light' // 轻微震动；也可以用 'medium' 或 'heavy'，视机型支持情况而定
+          type: 'light'
         });
 
-        // 2. 弹出确认框，再删除
         uni.showModal({
           title: '确认删除',
           content: `确定要删除「${this.annivs[idx].title}」吗？`,
@@ -1150,8 +1099,6 @@
           }
         });
       },
-      // ========== 新增：跳转到“动作历史”页面 ==========
-      // ==== 新增：根据日期拿模板颜色 ====
       getDayData(fullDate) {
         if (!fullDate) return {};
         if (this.dayDataCache[fullDate]) {
@@ -1164,29 +1111,24 @@
       getTemplateColor(fullDate) {
         const dayData = this.getDayData(fullDate);
 
-        // 1. 休息日颜色
         if (dayData.isRestDay && dayData.color) {
           return dayData.color;
         }
 
-        // 2. 全局颜色
         if (dayData.color) {
           return dayData.color;
         }
 
-        // 3. 模板颜色（从日期数据中获取）
         if (dayData.templates) {
           const tplNames = Object.keys(dayData.templates);
           if (tplNames.length) {
             const lastTplName = tplNames[tplNames.length - 1];
             const tplData = dayData.templates[lastTplName];
 
-            // 优先使用日期数据中保存的模板颜色
             if (tplData && tplData.color) {
               return tplData.color;
             }
 
-            // 如果日期数据中没有颜色，尝试从全局模板中查找
             const globalTpl = this.templates.find(t => t.name === lastTplName);
             if (globalTpl && globalTpl.color) {
               return globalTpl.color;
@@ -1194,19 +1136,16 @@
           }
         }
 
-        // 4. 默认颜色
         if (dayData.templates && Object.keys(dayData.templates).length > 0) {
           return this.presetColors[0]?.value || '#93d5dc';
         }
 
         return '';
       },
-      // ==== 新增：根据日期决定这个格子的 style ====
       getCellStyle(fullDate) {
         const todayStr = this.formatDate(new Date());
         const templateColor = fullDate ? this.getTemplateColor(fullDate) : '';
 
-        // 1. 如果是"今天"且存在模板色，用模板色做背景并加边框
         if (fullDate === todayStr && templateColor) {
           return {
             backgroundColor: templateColor,
@@ -1214,28 +1153,24 @@
           };
         }
 
-        // 2. 如果是"今天"且**无**模板，则用原来的渐变高亮
         if (fullDate === todayStr) {
           return {
             backgroundColor: '#287eff'
           };
         }
 
-        // 3. 如果非今天，但有模板色，就用模板色
         if (templateColor) {
           return {
             backgroundColor: templateColor
           };
         }
 
-        // 4. 其它情况不设背景
         return {};
       },
       openAerobicDetail() {
         const raw = uni.getStorageSync(this.DAYDATA_PREFIX + this.date) || {};
         const tplNames = Object.keys(raw.templates || {});
         if (tplNames.length === 1 && Object.keys(raw.templates[tplNames[0]].actionWeights).length === 0) {
-          // 只有有氧
           this.aerobicDetail.name = tplNames[0];
           this.aerobicDetail.time = raw.templates[tplNames[0]].totalWeight;
           this.showAerobicDetail = true;
@@ -1245,7 +1180,6 @@
         this.showAerobicDetail = false;
         this.showAerobicColorPicker = false;
       },
-      // 选中后：
       selectAerobicColor(color) {
         const key = this.DAYDATA_PREFIX + this.aerobicDetail.date;
         const dayData = this.getDayData(this.aerobicDetail.date) || {};
@@ -1271,9 +1205,146 @@
         const names = Object.keys(templates);
         if (names.length !== 1) return false;
         const tpl = templates[names[0]];
-        // 只要 actionWeights 为空或专门标记 isAerobic，都当作有氧
         const noActions = tpl.actionWeights && Object.keys(tpl.actionWeights).length === 0;
         return tpl.isAerobic === true || noActions;
+      },
+
+      /* ========== 今日训练快捷按钮 ========== */
+      onTodayBtnClick() {
+        const now = new Date()
+        const todayStr = this.formatDate(now)
+        const plan = this.splitPlan
+
+        if (plan && plan.enabled && plan.cycleDays && plan.cycleDays.length > 0) {
+          const idx = this.daySettingsStore.getCycleIndex(todayStr, this.dayDataCacheStore)
+          const dayPlan = plan.cycleDays[idx]
+          if (dayPlan && dayPlan.enabled && dayPlan.template) {
+            this.daySettingsStore.advanceCycleOffset(todayStr)
+            uni.navigateTo({
+              url: `/pages/index/day?date=${todayStr}&tpl=${encodeURIComponent(dayPlan.template)}`
+            })
+            return
+          }
+          if (dayPlan && !dayPlan.enabled) {
+            this.daySettingsStore.advanceCycleOffset(todayStr)
+            uni.showToast({
+              title: '今天是休息日',
+              icon: 'none'
+            })
+            return
+          }
+        }
+
+        uni.navigateTo({
+          url: `/pages/index/day?date=${todayStr}`
+        })
+      },
+      onTodayBtnLongPress() {
+        uni.vibrateShort({
+          type: 'light'
+        })
+        this.showSplitPlan = true
+      },
+      onCloseSplitPlan() {
+        this.showSplitPlan = false
+      },
+      onSaveSplitPlan(cycleDays) {
+        this.daySettingsStore.splitPlan.enabled = true
+        this.daySettingsStore.saveSplitPlan(cycleDays)
+        this.showSplitPlan = false
+        uni.showToast({
+          title: '分化计划已保存',
+          icon: 'success'
+        })
+      },
+      onToggleTrainBtn() {
+        this.daySettingsStore.toggleTodayTrainBtn()
+        this.todayTrainBtnVisible = this.daySettingsStore.todayTrainBtnVisible
+        uni.showToast({
+          title: this.todayTrainBtnVisible ? '已显示快捷训练按钮' : '已隐藏快捷训练按钮',
+          icon: 'none'
+        })
+      },
+      openMoreMenu() {
+        this.showMoreMenu = true
+      },
+      onMenuReadGuide() {
+        this.showMoreMenu = false
+        this.showGuidePanel = true
+      },
+      onMenuAddAnniv() {
+        this.showMoreMenu = false
+        this.openAnnivPopup(null)
+      },
+      onMenuToggleTrainBtn() {
+        this.showMoreMenu = false
+        this.onToggleTrainBtn()
+      },
+      onToggleTheme() {
+        this.daySettingsStore.toggleTheme()
+        this.showMoreMenu = false
+        uni.showToast({
+          title: this.daySettingsStore.isDarkMode ? '已切换为深色模式' : '已切换为浅色模式',
+          icon: 'none'
+        })
+        uni.$emit('themeChanged', this.daySettingsStore.isDarkMode ? 'dark' : 'light')
+      },
+
+      /* ========== 智能推荐 ========== */
+      refreshRecommendation() {
+        // 推荐功能已移除
+      },
+
+      /* ========== CSV 导出 ========== */
+      onExportCSV() {
+        uni.vibrateShort({
+          type: 'light'
+        })
+        uni.showModal({
+          title: '导出训练记录',
+          content: '将导出最近90天的训练记录为CSV文件，可在Excel中打开。',
+          success: (res) => {
+            if (res.confirm) {
+              this.doExportCSV()
+            }
+          }
+        })
+      },
+      async doExportCSV() {
+        uni.showLoading({
+          title: '导出中...'
+        })
+        try {
+          const dates = this.dayDataCacheStore.getDates()
+          const cutoff = new Date()
+          cutoff.setDate(cutoff.getDate() - 90)
+          const cutoffStr = this.formatDate(cutoff)
+          const recentDates = dates.filter(d => d >= cutoffStr)
+
+          if (recentDates.length === 0) {
+            uni.hideLoading()
+            uni.showToast({
+              title: '暂无训练数据',
+              icon: 'none'
+            })
+            return
+          }
+
+          const csvContent = exportToCSV(recentDates, this.dayDataCacheStore)
+          await writeCSVFile(csvContent)
+          uni.hideLoading()
+          uni.showToast({
+            title: '导出成功',
+            icon: 'success'
+          })
+        } catch (e) {
+          uni.hideLoading()
+          console.error('CSV导出失败:', e)
+          uni.showToast({
+            title: '导出失败: ' + (e.message || ''),
+            icon: 'none'
+          })
+        }
       },
     },
   };
@@ -1305,53 +1376,26 @@
     background-color: #121212;
   }
 
-  .calendar-header {
+  .today-train-btn {
+    margin: 10px 16px 6px;
+    padding: 14px 20px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #379bff, #2d82d6);
+    box-shadow: 0 4px 16px rgba(55, 155, 255, 0.3);
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    padding: 10px 20px;
-    margin-bottom: 5px;
-  }
-
-  .month-title {
-    font-size: 34px;
-    font-weight: bold;
-    color: inherit;
-  }
-
-  .icon-add-wrap {
-    width: 36px;
-    height: 36px;
-    display: flex;
     justify-content: center;
-    align-items: center;
-    background: rgba(128, 128, 128, 0.1);
-    border-radius: 50%;
   }
 
-  .icon-plus {
-    font-size: 22px;
-    color: #379bff;
-    font-weight: 300;
-    /* 线条细一点才有高级感 */
+  .today-train-btn:active {
+    transform: scale(0.97);
+    opacity: 0.9;
   }
 
-  .weekday-row {
-    display: flex;
-    justify-content: space-between;
-    padding: 0 2px;
-    margin-bottom: 10px;
-  }
-
-  .weekday {
-    width: calc(100% / 7);
-    text-align: center;
-    font-size: 14px;
-    color: #666666;
-  }
-
-  .container.dark .weekday {
-    color: #bbbbbb;
+  .today-train-text {
+    font-size: 16px;
+    font-weight: bold;
+    color: #fff;
   }
 
   .calendar-slide-container {
@@ -1413,28 +1457,33 @@
     color: #fff;
   }
 
-  /* 底部固定导航栏 */
+  .weekday {
+    width: calc(100% / 7);
+    text-align: center;
+    font-size: 14px;
+    color: #666666;
+  }
+
+  .container.dark .weekday {
+    color: #bbbbbb;
+  }
+
   .tab-bar-fixed {
     position: fixed;
     bottom: 0;
     left: 0;
     right: 0;
     height: 75px;
-    /* 稍微压低一点高度 */
     display: flex;
     justify-content: space-around;
     align-items: center;
     background: rgba(255, 255, 255, 0.85);
-    /* 提高透明度 */
     backdrop-filter: blur(25px);
-    /* 加强毛玻璃 */
     border-top: 1px solid rgba(0, 0, 0, 0.05);
     padding-bottom: env(safe-area-inset-bottom);
-    /* 适配苹果底部横条 */
     z-index: 999;
   }
 
-  /* 深色模式下的导航栏 */
   .container.dark .tab-bar-fixed {
     background: rgba(20, 20, 20, 0.8);
     border-top: 1px solid rgba(255, 255, 255, 0.05);
@@ -1452,17 +1501,13 @@
     height: 25px;
     display: inline-block;
     vertical-align: middle;
-    /* 核心：将 SVG 设为遮罩 */
     -webkit-mask-size: 100% 100%;
     mask-size: 100% 100%;
-    /* 在这里控制颜色 */
     background-color: #191919;
   }
 
-  /* 适配深色模式（假设你的外层 class 是 darkMode） */
   .container.dark .icon-base {
     background-color: #f2f2f2;
-    /* 深色模式下变白色 */
   }
 
   .icon-muscle {
@@ -1493,7 +1538,6 @@
   .icon-sun {
     -webkit-mask-image: url('/static/ty.svg');
     mask-image: url('/static/ty.svg');
-    /* 太阳用金黄色 */
   }
 
   .tab-label {
@@ -1502,14 +1546,12 @@
     color: #888;
   }
 
-  /* 激活态反馈 */
   .tab-item:active .tab-icon {
     transform: scale(0.9);
   }
 
   .anniv-list-container {
     padding: 10px 16px;
-    /* 解决无法滑动的关键：给底部留出 Tabbar 的高度 */
     padding-bottom: 110px;
   }
 
@@ -1578,16 +1620,12 @@
     top: 0;
     left: 0;
     width: 100vw;
-    /* 明确宽度 */
     height: 100vh;
-    /* 明确高度 */
     z-index: 9999;
-    /* 调至最高 */
     display: flex;
     justify-content: center;
     align-items: center;
     pointer-events: auto;
-    /* 确保捕获点击 */
   }
 
   .overlay-bg {
@@ -1597,20 +1635,163 @@
     width: 100%;
     height: 100%;
     background-color: rgba(0, 0, 0, 0.7) !important;
-    /* 强制变黑 */
+  }
+
+  /* 更多菜单弹窗 */
+  .menu-panel {
+    position: relative;
+    width: 90vw;
+    max-width: 360px;
+    background-color: #1e1e1e;
+    border-radius: 16px;
+    overflow: hidden;
+    z-index: 1;
+  }
+
+  .container.light .menu-panel {
+    background-color: #ffffff;
+  }
+
+  .menu-item {
+    display: flex;
+    align-items: center;
+    padding: 14px 18px;
+    border-bottom: 1px solid #333;
+  }
+
+  .container.light .menu-item {
+    border-bottom: 1px solid #e0e0e0;
+  }
+
+  .menu-item:last-child {
+    border-bottom: none;
+  }
+
+  .menu-item:active {
+    background-color: #2a2a2a;
+  }
+
+  .container.light .menu-item:active {
+    background-color: #f0f0f0;
+  }
+
+  .menu-icon {
+    font-size: 20px;
+    margin-right: 12px;
+  }
+
+  .menu-text {
+    font-size: 15px;
+    color: #fff;
+  }
+
+  .container.light .menu-text {
+    color: #333333;
+  }
+
+  /* 阅读说明弹窗 */
+  .guide-panel {
+    position: relative;
+    width: 90vw;
+    max-height: 80vh;
+    background-color: #1e1e1e;
+    border-radius: 16px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    z-index: 1;
+  }
+
+  .container.light .guide-panel {
+    background-color: #ffffff;
+  }
+
+  .guide-header {
+    padding: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #333;
+  }
+
+  .container.light .guide-header {
+    border-bottom: 1px solid #e0e0e0;
+  }
+
+  .guide-title {
+    font-size: 16px;
+    font-weight: bold;
+    color: #fff;
+  }
+
+  .container.light .guide-title {
+    color: #333333;
+  }
+
+  .guide-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px 12px;
+    max-height: 65vh;
+    box-sizing: border-box;
+  }
+
+  .guide-item {
+    display: flex;
+    align-items: flex-start;
+    padding: 10px 0;
+    border-bottom: 1px solid #2a2a2a;
+  }
+
+  .container.light .guide-item {
+    border-bottom: 1px solid #f0f0f0;
+  }
+
+  .guide-item:last-child {
+    border-bottom: none;
+  }
+
+  .guide-icon {
+    font-size: 22px;
+    margin-right: 12px;
+    flex-shrink: 0;
+  }
+
+  .guide-content {
+    flex: 1;
+  }
+
+  .guide-item-title {
+    font-size: 14px;
+    font-weight: bold;
+    color: #fff;
+    margin-bottom: 2px;
+    display: block;
+  }
+
+  .container.light .guide-item-title {
+    color: #333333;
+  }
+
+  .guide-item-desc {
+    font-size: 12px;
+    color: #aaa;
+    line-height: 1.4;
+  }
+
+  .container.light .guide-item-desc {
+    color: #666666;
   }
 
   .popup-panel {
     position: relative;
     width: 85vw;
     max-width: 320px;
-    /* 移除这里的 !important，确保 flex 布局生效 */
     background-color: #fff;
     border-radius: 16px;
     display: flex;
     flex-direction: column;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-    /* 增加投影确认它是否出来了 */
   }
 
   .container.dark .popup-panel {
@@ -1644,10 +1825,8 @@
   .panel-body {
     padding: 12px;
     display: flex !important;
-    /* 必须是 flex */
     flex-direction: column;
     min-height: 200px;
-    /* 给个保底高度 */
   }
 
   .btn-add {
@@ -2003,9 +2182,7 @@
     align-items: center;
     background-color: #ffffff;
     border-radius: 14px;
-    /* 圆角稍微收小一点 */
     margin-bottom: 10px;
-    /* 只有底部间距，避免叠加过大 */
     padding: 14px 16px;
     position: relative;
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
@@ -2020,7 +2197,6 @@
     border: 1px solid #2c2c2e;
   }
 
-  /* 左侧彩色小圆点 (图二精髓) */
   .anniv-dot {
     width: 8px;
     height: 8px;
@@ -2058,12 +2234,6 @@
     margin-top: 2px;
   }
 
-  /* 去掉原来的红色/蓝色侧边条，改用圆点更精致 */
-  .anniv-item::before {
-    display: none;
-  }
-
-  /* 底部占位 */
   .safe-area-inset {
     height: 20px;
   }

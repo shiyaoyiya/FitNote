@@ -12,6 +12,8 @@ export const useDayDataCacheStore = defineStore('dayDataCache', {
     cache: new Map(),
     // 日期索引：Set<dateStr>，记录所有有数据的日期
     dateIndex: new Set(),
+    // 排序后的日期索引（降序），避免每次查询都排序
+    sortedDates: [],
     // 索引是否已加载
     indexLoaded: false,
     // 已预加载的年月范围
@@ -58,6 +60,34 @@ export const useDayDataCacheStore = defineStore('dayDataCache', {
       return dayData || {}
     },
 
+    // 批量查询多个动作的最近一次训练记录
+    batchGetLatestRecords(actNames, todayDateStr) {
+      const results = {}
+      const remaining = new Set(actNames)
+      for (const dateStr of this.sortedDates) {
+        if (dateStr === todayDateStr) continue
+        if (remaining.size === 0) break
+        let data
+        if (this.cache.has(dateStr)) {
+          data = this.cache.get(dateStr)
+        } else {
+          try { data = uni.getStorageSync(DAYDATA_PREFIX + dateStr) } catch (e) { continue }
+        }
+        if (!data || !data.entries) continue
+        for (const actName of remaining) {
+          if (data.entries[actName] && data.entries[actName].length > 0) {
+            results[actName] = {
+              date: dateStr,
+              total: data.actions?.[actName] || 0,
+              entry: data.entries[actName],
+            }
+            remaining.delete(actName)
+          }
+        }
+      }
+      return results
+    },
+
     // 保存单个日期的数据（同时更新缓存和 storage）
     saveDayData(dateStr, dayData) {
       this.cache.set(dateStr, dayData)
@@ -74,6 +104,8 @@ export const useDayDataCacheStore = defineStore('dayDataCache', {
           this.saveIndex()
         }
       }
+      // 保持 sortedDates 同步
+      this.sortedDates = Array.from(this.dateIndex).sort((a, b) => b.localeCompare(a))
       // 清除相关的周统计缓存
       this.clearRelatedWeekStatsCache(dateStr)
       // 清除相关月份缓存（确保月份视图能显示最新数据）
@@ -133,51 +165,13 @@ export const useDayDataCacheStore = defineStore('dayDataCache', {
 
     // 快速判断某天是否有数据
     hasData(dateStr) {
-      // 先检查索引
-      if (!this.dateIndex.has(dateStr)) {
-        return false
-      }
-      // 索引中有，但需要检查实际数据是否有效
-      // 检查缓存
+      if (!this.dateIndex.has(dateStr)) return false
       if (this.cache.has(dateStr)) {
         const data = this.cache.get(dateStr)
-        // 检查是否有实际的活动数据（非休息日且有模板）
-        if (data && !data.isRestDay && data.templates && typeof data.templates === 'object') {
-          const templateKeys = Object.keys(data.templates)
-          if (templateKeys.length > 0) {
-            // 检查模板是否有实际内容
-            for (const tplName of templateKeys) {
-              const tpl = data.templates[tplName]
-              if (tpl && typeof tpl === 'object' && Object.keys(tpl).length > 0) {
-                return true
-              }
-            }
-          }
-        }
-        // 即使有数据但不是活动日，也返回false
-        return false
+        return !data.isRestDay && Object.keys(data.templates || {}).length > 0
       }
-      // 索引中有但缓存没有，需要从storage读取
-      const key = DAYDATA_PREFIX + dateStr
-      try {
-        const data = uni.getStorageSync(key)
-        if (data && !data.isRestDay && data.templates && typeof data.templates === 'object') {
-          const templateKeys = Object.keys(data.templates)
-          if (templateKeys.length > 0) {
-            for (const tplName of templateKeys) {
-              const tpl = data.templates[tplName]
-              if (tpl && typeof tpl === 'object' && Object.keys(tpl).length > 0) {
-                // 找到有效数据，更新缓存
-                this.cache.set(dateStr, data)
-                return true
-              }
-            }
-          }
-        }
-        return false
-      } catch (e) {
-        return false
-      }
+      // 不在缓存中但 index 有 → 可能有数据，返回 true
+      return true
     },
 
     // 获取所有有数据的日期
@@ -188,6 +182,7 @@ export const useDayDataCacheStore = defineStore('dayDataCache', {
     // 设置日期索引
     setIndex(dates) {
       this.dateIndex = new Set(dates)
+      this.sortedDates = dates.slice().sort((a, b) => b.localeCompare(a))
       this.indexLoaded = true
     },
 

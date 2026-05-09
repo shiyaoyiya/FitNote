@@ -1,5 +1,5 @@
 <template>
-  <view class="container dark">
+  <view class="container" :class="{ dark: daySettingsStore.isDarkMode, light: !daySettingsStore.isDarkMode }">
     <view class="header-fixed">
       <view class="input-wrapper">
         <text class="pen-icon">重命名：️️</text>
@@ -24,8 +24,16 @@
             </view>
             <view class="action-card" :style="{ transform: 'translateX(' + (slideOffset[idx] || 0) + 'px)' }"
               @touchstart="onTouchStart($event, idx)" @touchmove="onTouchMove($event, idx)"
-              @touchend="onTouchEnd($event, idx)" @longpress="onDragTrigger(idx)" @tap="goHistory(idx)">
-              <text class="tag-label">{{ act }}</text>
+              @touchend="onTouchEnd($event, idx)" @longpress="onDragTrigger(idx)">
+              <view class="action-info" @click.stop="openEditPopup(idx)">
+                <text class="action-name">{{ act }}</text>
+              </view>
+              <view class="set-count-btn" @click.stop="openSetSelector(idx)">
+                <text class="set-count-text">{{ getSetCount(idx) }}组</text>
+              </view>
+              <view class="action-history-area" @click.stop="goToHistory(idx)">
+                <text class="arrow-icon">›</text>
+              </view>
             </view>
           </view>
         </movable-view>
@@ -46,16 +54,56 @@
       </view>
     </view>
 
+    <view v-if="showSetSelectorPopup" class="popup-overlay" @click.self="closeSetSelector">
+      <view class="overlay-bg" @click="closeSetSelector"></view>
+      <view class="set-selector-panel slide-up" @click.stop>
+        <view class="panel-header">
+          <text class="panel-title">设置组数</text>
+          <text class="close-btn" @click="closeSetSelector">×</text>
+        </view>
+        <view class="panel-body set-selector-body">
+          <view class="current-action-name">{{ chosenActions[setSelectorIdx] }}</view>
+          <view class="quick-set-options">
+            <view class="quick-set-btn" @click="quickSetChange(-1)">
+              <text>-1</text>
+            </view>
+            <view class="set-display">
+              <text class="set-number">{{ setSelectorValue }}</text>
+              <text class="set-unit">组</text>
+            </view>
+            <view class="quick-set-btn" @click="quickSetChange(1)">
+              <text>+1</text>
+            </view>
+          </view>
+          <view class="preset-sets">
+            <view v-for="n in [2,3, 4, 5]" :key="n" class="preset-set-btn" :class="{ selected: setSelectorValue === n }"
+              @click="setSelectorValue = n">
+              <text>{{ n }}</text>
+            </view>
+          </view>
+          <view class="custom-set-row">
+            <text class="custom-set-label">自定义：</text>
+            <input type="number" v-model.number="setSelectorValue" class="custom-set-input" min="1" max="20" />
+            <text class="custom-set-unit">组</text>
+          </view>
+        </view>
+        <view class="panel-footer btn-row">
+          <text class="btn-return" @click="closeSetSelector">取消</text>
+          <text class="btn-confirm" @click="confirmSetChange">确认</text>
+        </view>
+      </view>
+    </view>
+
     <view v-if="showAddActionPopup" class="popup-overlay" @click.self="closeAddActionPopup">
       <view class="overlay-bg" @click="closeAddActionPopup"></view>
-      <view class="modal-panel action-picker-panel fade-in" @click.stop>
+      <view class="action-picker-panel slide-up" @click.stop>
 
-        <view class="modal-header action-picker-header">
-          <text class="modal-title">选择动作</text>
-          <text class="close-icon" @click="closeAddActionPopup">×</text>
+        <view class="panel-header action-picker-header">
+          <text class="panel-title">选择动作</text>
+          <text class="close-btn" @click="closeAddActionPopup">×</text>
         </view>
 
-        <view class="modal-body action-picker-body">
+        <view class="panel-body action-picker-body">
           <view class="search-bar-container">
             <view class="search-bar-inner">
               <text class="search-icon">🔍</text>
@@ -83,7 +131,7 @@
           </scroll-view>
         </view>
 
-        <view class="modal-footer action-picker-footer no-border">
+        <view class="panel-footer action-picker-footer">
           <button class="confirm-add-btn" @click="addSelectedAction">确认添加</button>
         </view>
       </view>
@@ -100,10 +148,10 @@
         <scroll-view class="cp-body" scroll-y="true">
           <view class="color-grid">
             <view class="color-item" @click="clearColor">
-              <view class="color-circle empty-icon">
+              <view class="color-circle empty-icon empty-icon-dark">
                 <text class="slash">×</text>
               </view>
-              <text class="color-name">清空</text>
+              <text class="color-name color-name-dark">清空</text>
             </view>
 
             <!-- 关键修改1：添加触摸事件和长按事件 -->
@@ -113,7 +161,7 @@
               <view class="color-circle" :style="{ backgroundColor: cObj.value }">
                 <view v-if="currentColor === cObj.value" class="selected-check">✓</view>
               </view>
-              <text class="color-name">{{ cObj.name }}</text>
+              <text class="color-name color-name-dark">{{ cObj.name }}</text>
             </view>
 
             <view class="color-item placeholder"></view>
@@ -165,6 +213,60 @@
         </view>
       </view>
     </view>
+
+    <view v-if="showEditPopup" class="popup-overlay" @click.self="closeEditPopup">
+      <view class="overlay-bg" @click="closeEditPopup"></view>
+      <view class="popup-panel slide-up" @click.stop>
+        <view class="panel-header">
+          <text class="panel-title">编辑动作</text>
+          <text class="close-btn" @click="closeEditPopup">×</text>
+        </view>
+        <view class="panel-body">
+          <view class="form-group">
+            <text class="form-label">动作名称</text>
+            <input v-model="editFormName" placeholder="输入动作名称" class="form-input" maxlength="20" />
+          </view>
+          <view class="form-group">
+            <text class="form-label">身体部位（可多选）</text>
+            <view class="category-selector">
+              <view v-for="cat in categoryOptions" :key="cat.id" class="category-option"
+                :class="{ selected: editFormCategories.includes(cat.id) }" @click="toggleEditFormCategory(cat.id)">
+                <text class="category-option-check">{{ editFormCategories.includes(cat.id) ? '✓' : '' }}</text>
+                <text>{{ cat.name }}</text>
+              </view>
+            </view>
+          </view>
+          <view class="form-group">
+            <view class="checkbox-row" @click="editFormIsUnilateral = !editFormIsUnilateral">
+              <view class="checkbox-box" :class="{ checked: editFormIsUnilateral }">
+                <text class="checkbox-check" v-if="editFormIsUnilateral">✓</text>
+              </view>
+              <view class="checkbox-content">
+                <text class="checkbox-label">单侧动作</text>
+                <text class="checkbox-hint">（如哑铃单臂弯举，容量自动×2）</text>
+              </view>
+            </view>
+          </view>
+          <view class="form-group" v-for="cat in categoryOptions" :key="'edit_sub_'+cat.id">
+            <view v-if="editFormCategories.includes(cat.id) && getEditSubcategories(cat.id).length > 0"
+              class="subcategory-section-form">
+              <text class="form-label subcategory-form-label">{{ cat.name }} - 细分部位</text>
+              <view class="subcategory-selector">
+                <view v-for="sub in getEditSubcategories(cat.id)" :key="sub.id" class="subcategory-option"
+                  :class="{ selected: isEditSubcategorySelected(cat.id, sub.id) }"
+                  @click="toggleEditSubcategory(cat.id, sub.id)">
+                  <text>{{ sub.name }}</text>
+                </view>
+              </view>
+            </view>
+          </view>
+        </view>
+        <view class="panel-footer btn-row">
+          <text class="btn-return" @click="closeEditPopup">取消</text>
+          <text class="btn-confirm" @click="confirmEdit">保存</text>
+        </view>
+      </view>
+    </view>
   </view>
 </template>
 
@@ -175,10 +277,14 @@
   import {
     useActionStore
   } from '@/stores/action.js'
+  import {
+    useDaySettingsStore
+  } from '@/stores/daySettings.js'
 
   export default {
     data() {
       return {
+        daySettingsStore: useDaySettingsStore(),
         rowHeight: 80,
         listKey: 0,
         _isMounted: false,
@@ -197,8 +303,12 @@
         templateName: '',
         originalName: '',
         chosenActions: [],
+        chosenActionSets: {},
         currentColor: '',
         showAddActionPopup: false,
+        showSetSelectorPopup: false,
+        setSelectorIdx: -1,
+        setSelectorValue: 4,
         availableActions: [],
         selectedActionIdx: null,
         showColorPopup: false,
@@ -258,7 +368,14 @@
         searchTerm: '',
         allActions: [],
         lastVibrateTime: 0,
-        isNavigating: false
+        isNavigating: false,
+        showEditPopup: false,
+        editingAction: null,
+        editingActionIndex: -1,
+        editFormName: '',
+        editFormCategories: [],
+        editFormSubcategories: {},
+        editFormIsUnilateral: false
       }
     },
     computed: {
@@ -281,6 +398,9 @@
           ...(customColors || []),
           ...this.presetColors
         ]
+      },
+      categoryOptions() {
+        return this.actStore.categories
       }
     },
     onLoad(options) {
@@ -295,9 +415,9 @@
       this.tplStore = useTemplateStore();
       this.tplStore.load();
 
-      const actStore = useActionStore();
-      actStore.load();
-      this.availableActions = actStore.actionNames;
+      this.actStore = useActionStore();
+      this.actStore.load();
+      this.availableActions = this.actStore.actionNames;
 
       this.loadTemplateDetail();
     },
@@ -307,6 +427,9 @@
       const backup = uni.getStorageSync('temp_template_actions_backup')
       if (backup && backup.templateName === this.templateName) {
         this.chosenActions = [...backup.actions]
+        this.chosenActionSets = {
+          ...(backup.actionSets || {})
+        }
         uni.removeStorageSync('temp_template_actions_backup')
         this.$nextTick(() => {
           this.initPositions()
@@ -320,6 +443,9 @@
         uni.setStorageSync('temp_template_actions_last_state', {
           templateName: this.templateName,
           actions: this.chosenActions,
+          actionSets: {
+            ...this.chosenActionSets
+          },
           timestamp: Date.now()
         });
       }
@@ -338,6 +464,7 @@
     },
     mounted() {
       this._isMounted = true;
+      this.daySettingsStore.load();
 
       const sys = uni.getSystemInfoSync();
       this.rowHeight = (sys.windowWidth / 750) * 130;
@@ -504,6 +631,9 @@
           template.actionWeights = template.actionWeights || {};
           template.actionOrder = template.actionOrder || [...this.chosenActions];
           template.actions = [...this.chosenActions];
+          template.actionSets = {
+            ...this.chosenActionSets
+          };
           this.tplStore.save();
         }
       },
@@ -552,16 +682,6 @@
       },
       onTouchEnd(e, idx) {
         if (this.isDragMode) return;
-
-        const touchDuration = Date.now() - this.startTime;
-
-        if (this.isClick && touchDuration < 300 && this.slideOffset[idx] === 0) {
-          setTimeout(() => {
-            if (!this.isDragMode) {
-              this.goHistory(idx);
-            }
-          }, 50);
-        }
 
         if (this.slideOffset[idx] < -50) {
           this.$set(this.slideOffset, idx, -80);
@@ -616,6 +736,9 @@
 
             if (now - stateTime < 30000) {
               this.$set(this, 'chosenActions', [...lastState.actions]);
+              this.chosenActionSets = {
+                ...(lastState.actionSets || {})
+              };
               this.$nextTick(() => this.initPositions());
               return;
             }
@@ -626,11 +749,21 @@
         const newActions = Array.isArray(detail?.actions) ? detail.actions : [];
 
         this.$set(this, 'chosenActions', [...newActions]);
+        this.chosenActionSets = {
+          ...(detail?.actionSets || {})
+        };
         this.currentColor = (detail && detail.color) || '';
 
         this.$nextTick(() => {
           this.initPositions();
           this.slideOffset = new Array(this.chosenActions.length).fill(0);
+        });
+      },
+      goToHistory(idx) {
+        if (this.isDragMode) return;
+        const actName = this.chosenActions[idx];
+        uni.navigateTo({
+          url: `/pages/actionHistory/actionHistory?action=${encodeURIComponent(actName)}`
         });
       },
       goHistory(idx) {
@@ -665,6 +798,9 @@
         const template = this.tplStore.templates.find(t => t.name === this.templateName);
         if (template) {
           template.actions = [...this.chosenActions];
+          template.actionSets = {
+            ...this.chosenActionSets
+          };
           this.tplStore.save();
         }
       },
@@ -751,7 +887,9 @@
         }
 
         this.chosenActions.push(act);
+        this.chosenActionSets[act] = 4;
         this.tplStore.addAction(this.templateName, act);
+        this.saveToStore();
         this.loadTemplateDetail(true);
         this.showAddActionPopup = false;
 
@@ -922,6 +1060,140 @@
         const b = parseInt(c.slice(4, 6), 16)
         const yiq = (r * 299 + g * 587 + b * 114) / 1000
         return yiq >= 128 ? '#000000' : '#FFFFFF'
+      },
+      openEditPopup(idx) {
+        if (this.isDragMode) return;
+        if (!this.chosenActions || !this.chosenActions[idx]) return;
+
+        const actName = this.chosenActions[idx];
+        const actStore = useActionStore();
+        const action = actStore.getActionByName(actName);
+
+        if (!action) {
+          uni.showToast({
+            title: '未找到该动作',
+            icon: 'none'
+          });
+          return;
+        }
+
+        this.editingActionIndex = idx;
+        this.editingAction = action;
+        this.editFormName = action.name;
+        this.editFormCategories = [...action.categories];
+        this.editFormSubcategories = JSON.parse(JSON.stringify(action.subcategories || {}));
+        this.editFormIsUnilateral = action.isUnilateral || false;
+        this.showEditPopup = true;
+      },
+      closeEditPopup() {
+        this.showEditPopup = false;
+        this.editingAction = null;
+        this.editingActionIndex = -1;
+        this.editFormName = '';
+        this.editFormCategories = [];
+        this.editFormSubcategories = {};
+        this.editFormIsUnilateral = false;
+      },
+      toggleEditFormCategory(catId) {
+        const idx = this.editFormCategories.indexOf(catId);
+        if (idx === -1) {
+          this.editFormCategories.push(catId);
+        } else {
+          this.editFormCategories.splice(idx, 1);
+          this.$delete(this.editFormSubcategories, catId);
+        }
+      },
+      getEditSubcategories(categoryId) {
+        return this.actStore.getSubcategories(categoryId);
+      },
+      isEditSubcategorySelected(catId, subId) {
+        return this.editFormSubcategories[catId] && this.editFormSubcategories[catId].includes(subId);
+      },
+      toggleEditSubcategory(catId, subId) {
+        if (!this.editFormSubcategories[catId]) {
+          this.$set(this.editFormSubcategories, catId, []);
+        }
+        const subs = this.editFormSubcategories[catId];
+        const idx = subs.indexOf(subId);
+        if (idx === -1) {
+          subs.push(subId);
+        } else {
+          subs.splice(idx, 1);
+        }
+      },
+      getSetCount(idx) {
+        const actName = this.chosenActions[idx];
+        return this.chosenActionSets[actName] || 4;
+      },
+      openSetSelector(idx) {
+        if (this.isDragMode) return;
+        this.setSelectorIdx = idx;
+        const actName = this.chosenActions[idx];
+        this.setSelectorValue = this.chosenActionSets[actName] || 4;
+        this.showSetSelectorPopup = true;
+      },
+      closeSetSelector() {
+        this.showSetSelectorPopup = false;
+        this.setSelectorIdx = -1;
+      },
+      quickSetChange(delta) {
+        const newVal = this.setSelectorValue + delta;
+        if (newVal >= 1 && newVal <= 20) {
+          this.setSelectorValue = newVal;
+        }
+      },
+      confirmSetChange() {
+        if (this.setSelectorIdx === -1) return;
+        const actName = this.chosenActions[this.setSelectorIdx];
+        this.chosenActionSets[actName] = this.setSelectorValue;
+        this.saveToStore();
+        this.closeSetSelector();
+        uni.showToast({
+          title: `已设置为 ${this.setSelectorValue} 组`,
+          icon: 'success'
+        });
+      },
+      confirmEdit() {
+        const name = this.editFormName.trim();
+        if (!name) {
+          uni.showToast({
+            title: '请输入动作名称',
+            icon: 'none'
+          });
+          return;
+        }
+
+        if (this.editFormCategories.length === 0) {
+          uni.showToast({
+            title: '请至少选择一个身体部位',
+            icon: 'none'
+          });
+          return;
+        }
+
+        if (!this.editingAction) return;
+
+        const actStore = useActionStore();
+        actStore.updateAction(this.editingAction.id, {
+          name: name,
+          categories: this.editFormCategories,
+          subcategories: {
+            ...this.editFormSubcategories
+          },
+          isUnilateral: this.editFormIsUnilateral,
+        });
+
+        if (this.editingActionIndex !== -1 && name !== this.chosenActions[this.editingActionIndex]) {
+          this.chosenActions[this.editingActionIndex] = name;
+          this.saveToStore();
+        }
+
+        uni.showToast({
+          title: '已更新',
+          icon: 'success'
+        });
+
+        this.closeEditPopup();
       }
     }
   }
@@ -941,6 +1213,11 @@
   .container.dark {
     background-color: #121212;
     color: #f7f7f7;
+  }
+
+  .container.light {
+    background-color: #f5f5f5;
+    color: #333333;
   }
 
   /* 顶部固定 输入框 */
@@ -1109,7 +1386,7 @@
     z-index: 1000;
     display: flex;
     justify-content: center;
-    align-items: center;
+    align-items: flex-end;
   }
 
   .overlay-bg {
@@ -1118,56 +1395,49 @@
     bottom: 0;
     left: 0;
     right: 0;
-    /* background-color: rgba(0, 0, 0, 0.3); */
+    background-color: rgba(0, 0, 0, 0.6);
   }
 
-  /* ========== 移植版选择动作弹窗 CSS ========== */
+  /* ========== 选择动作弹窗 CSS（与编辑弹窗一致）========== */
   .action-picker-panel {
-    width: 85vw !important;
-    height: 70vh !important;
-    border-radius: 24px !important;
-    background-color: #f5f5f5;
+    width: 100%;
+    max-width: 100%;
+    height: 50vh;
+    border-radius: 16px 16px 0 0;
+    background-color: #1e1e1e;
+    box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.3);
+    position: relative;
+    z-index: 1;
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
   }
 
-  .container.dark .action-picker-panel {
-    background-color: #1e1e1e;
-    border: 1rpx solid #444;
+  .container.light .action-picker-panel {
+    background-color: #ffffff;
   }
 
   .action-picker-header {
-    position: relative;
     display: flex;
     justify-content: space-between;
-    padding: 16px 20px 10px !important;
-    border: none !important;
+    align-items: center;
+    padding: 16px 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    flex-shrink: 0;
   }
 
-  .action-picker-header::after {
-    content: '';
-    position: absolute;
-    left: 50%;
-    bottom: 0;
-    transform: translateX(-50%);
-    width: 72vw;
-    height: 1px;
-    background-color: #eee;
-  }
-
-  .container.dark .action-picker-header::after {
-    background-color: #555;
+  .container.light .action-picker-header {
+    border-bottom-color: #eee;
   }
 
   .action-picker-body {
-    padding: 0 20px !important;
+    padding: 20px;
     flex: 1;
     display: flex;
     flex-direction: column;
     overflow: hidden;
     min-height: 0;
+    max-height: calc(50vh - 120px);
   }
 
   /* 搜索栏样式 */
@@ -1282,17 +1552,22 @@
 
   /* 底部按钮 */
   .action-picker-footer {
-    padding: 10px 20px 12px !important;
-    border: none !important;
+    padding: 16px 20px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    flex-shrink: 0;
+  }
+
+  .container.light .action-picker-footer {
+    border-top-color: #eee;
   }
 
   .confirm-add-btn {
-    width: 100% !important;
-    height: 50px !important;
-    line-height: 50px !important;
-    background: linear-gradient(135deg, #379bff, #2d82d6) !important;
-    border-radius: 15px !important;
-    color: #fff !important;
+    width: 100%;
+    height: 50px;
+    line-height: 50px;
+    background: linear-gradient(135deg, #379bff, #2d82d6);
+    border-radius: 15px;
+    color: #fff;
     font-weight: bold;
     font-size: 16px;
     border: none;
@@ -1357,8 +1632,18 @@
     overflow: hidden;
   }
 
-  .container.dark .cp-footer {
-    background-color: #1e1e1e !important;
+  .container.light .color-picker-card {
+    background-color: #ffffff;
+    box-shadow: 0 10rpx 40rpx rgba(0, 0, 0, 0.15);
+  }
+
+  .container.light .cp-footer {
+    background-color: #ffffff !important;
+  }
+
+  .container.light .btn-custom-add {
+    background: rgba(55, 155, 255, 0.1);
+    color: #379bff;
   }
 
   /* 头部样式 */
@@ -1454,11 +1739,6 @@
     transform: scale(0.9);
   }
 
-  .color-item.active .color-circle {
-    box-shadow: 0 0 0 4rpx #2e2e2e, 0 0 0 8rpx #379bff;
-    /* 这里的 #2e2e2e 应该和你弹窗的背景色一致 */
-  }
-
   .color-name {
     font-size: 22rpx;
     color: #666;
@@ -1469,7 +1749,7 @@
     text-overflow: ellipsis;
   }
 
-  .container.dark .color-name {
+  .color-name-dark {
     color: #bbb;
   }
 
@@ -1479,7 +1759,7 @@
     border: 2rpx dashed #ccc;
   }
 
-  .container.dark .empty-icon {
+  .empty-icon-dark {
     background: #333;
     border-color: #555;
   }
@@ -1580,6 +1860,18 @@
     background-color: #555;
   }
 
+  .container.light .custom-header::after {
+    background-color: #e0e0e0;
+  }
+
+  .container.light .custom-title {
+    color: #333333;
+  }
+
+  .container.light .close-icon-new {
+    color: #666666;
+  }
+
   .custom-title {
     color: #fff;
     font-size: 34rpx;
@@ -1608,6 +1900,10 @@
     margin-left: 10rpx;
   }
 
+  .container.light .input-label {
+    color: #666666;
+  }
+
   .modern-input {
     width: 100%;
     height: 90rpx;
@@ -1618,6 +1914,12 @@
     font-size: 28rpx;
     box-sizing: border-box;
     border: 1rpx solid #333;
+  }
+
+  .container.light .modern-input {
+    background: #ffffff;
+    border: 1rpx solid #e0e0e0;
+    color: #333333;
   }
 
   /* Hex 输入行与预览 */
@@ -1637,6 +1939,10 @@
     justify-content: center;
     border: 1rpx solid rgba(255, 255, 255, 0.1);
     transition: background-color 0.3s ease;
+  }
+
+  .container.light .preview-box {
+    border: 1rpx solid #e0e0e0;
   }
 
   .preview-tip {
@@ -1666,6 +1972,11 @@
     color: #ccc;
     border-radius: 20rpx;
     font-size: 28rpx;
+  }
+
+  .container.light .btn-cancel {
+    background: #e0e0e0;
+    color: #666666;
   }
 
   .btn-confirm-add {
@@ -1798,11 +2109,63 @@
     border-radius: 12rpx;
     display: flex;
     align-items: center;
-    padding: 0 30rpx;
+    justify-content: space-between;
+    padding: 0;
     box-sizing: border-box;
     transition: transform 0.2s ease;
     overflow: hidden;
     box-shadow: 0 0 5rpx rgba(0, 0, 0, 0.3);
+  }
+
+  .container.light .action-card {
+    background-color: #ffffff;
+    box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.08);
+  }
+
+  .action-info {
+    display: flex;
+    align-items: center;
+    flex: 1;
+    min-width: 0;
+    height: 100%;
+    padding: 0 30rpx;
+  }
+
+  .action-name {
+    font-size: 30rpx;
+    color: #f7f7f7;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .container.light .action-name {
+    color: #333333;
+  }
+
+  .action-history-area {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-left: 8px;
+    padding: 8px 4px 8px 12px;
+    border-radius: 8px;
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  .action-history-area:active {
+    background-color: rgba(255, 255, 255, 0.1);
+  }
+
+  .arrow-icon {
+    font-size: 20px;
+    color: #555;
+  }
+
+  .container.light .arrow-icon {
+    color: #999999;
   }
 
   .tag-label {
@@ -1819,10 +2182,510 @@
     color: #f7f7f7;
   }
 
+  .container.light .tag-label {
+    color: #333333;
+  }
+
   .is-dragging .action-card {
     transition: none;
     transform: scale(1.05) !important;
     box-shadow: 0 10rpx 30rpx rgba(0, 0, 0, 0.8);
     border: 1rpx solid #555;
+  }
+
+  .popup-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 9999;
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+  }
+
+  .popup-panel {
+    width: 100%;
+    max-width: 100%;
+    border-radius: 16px 16px 0 0;
+    background-color: #1e1e1e;
+    box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.3);
+    position: relative;
+    z-index: 1;
+    animation: slideUp 0.25s ease-out;
+  }
+
+  .container.light .popup-panel {
+    background-color: #ffffff;
+  }
+
+  @keyframes slideUp {
+    from {
+      transform: translateY(100%);
+    }
+
+    to {
+      transform: translateY(0);
+    }
+  }
+
+  .panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .container.light .panel-header {
+    border-bottom-color: #e0e0e0;
+  }
+
+  .container.light .panel-title {
+    color: #333333;
+  }
+
+  .container.light .close-btn {
+    color: #666666;
+  }
+
+  .panel-title {
+    font-size: 17px;
+    font-weight: 600;
+    color: inherit;
+  }
+
+  .close-btn {
+    font-size: 22px;
+    color: #888;
+    padding: 4px 8px;
+  }
+
+  .close-btn:active {
+    opacity: 0.6;
+  }
+
+  .panel-body {
+    padding: 20px;
+    max-height: 60vh;
+    overflow-y: auto;
+  }
+
+  .form-group {
+    margin-bottom: 20px;
+  }
+
+  .form-label {
+    display: block;
+    font-size: 14px;
+    color: #aaa;
+    margin-bottom: 8px;
+  }
+
+  .container.light .form-label {
+    color: #666666;
+  }
+
+  .form-input {
+    width: 100%;
+    height: 44px;
+    background-color: #2a2a2a;
+    border: none;
+    border-radius: 10px;
+    padding: 0 14px;
+    font-size: 16px;
+    color: inherit;
+    box-sizing: border-box;
+  }
+
+  .container.dark .form-input {
+    background-color: #2a2a2a;
+  }
+
+  .container.light .form-input {
+    background-color: #ffffff;
+    border: 1rpx solid #e0e0e0;
+    color: #333333;
+  }
+
+  .form-input::placeholder {
+    color: #666;
+  }
+
+  .category-selector {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .category-option {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 8px 14px;
+    border-radius: 20px;
+    background-color: #2a2a2a;
+    font-size: 13px;
+    color: #aaa;
+  }
+
+  .category-option.selected {
+    background: linear-gradient(135deg, #379bff, #0048ff);
+    color: #fff;
+  }
+
+  .container.light .category-option {
+    background-color: #ffffff;
+    border: 1rpx solid #e0e0e0;
+    color: #666666;
+  }
+
+  .container.light .category-option.selected {
+    background: linear-gradient(135deg, #379bff, #0048ff);
+    color: #ffffff;
+  }
+
+  .category-option:active {
+    opacity: 0.7;
+  }
+
+  .category-option-check {
+    font-size: 12px;
+    font-weight: bold;
+  }
+
+  .checkbox-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    background-color: #2a2a2a;
+    border-radius: 10px;
+    transition: background-color 0.2s ease;
+  }
+
+  .container.light .checkbox-row {
+    background-color: #ffffff;
+    border: 1rpx solid #e0e0e0;
+  }
+
+  .checkbox-box {
+    width: 22px;
+    height: 22px;
+    border-radius: 6px;
+    border: 2px solid #555;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+  }
+
+  .container.light .checkbox-box {
+    border-color: #999999;
+  }
+
+  .checkbox-box.checked {
+    background: linear-gradient(135deg, #379bff, #0048ff);
+    border-color: #379bff;
+  }
+
+  .checkbox-check {
+    color: #fff;
+    font-size: 14px;
+    font-weight: bold;
+  }
+
+  .checkbox-content {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .checkbox-label {
+    font-size: 15px;
+    color: inherit;
+    font-weight: 500;
+  }
+
+  .checkbox-hint {
+    font-size: 12px;
+    color: #888;
+  }
+
+  .subcategory-section-form {
+    margin-top: -8px;
+  }
+
+  .subcategory-form-label {
+    font-size: 12px;
+    color: #888;
+    padding-left: 12px;
+    margin-bottom: 6px;
+  }
+
+  .subcategory-selector {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding-left: 12px;
+  }
+
+  .subcategory-option {
+    padding: 5px 12px;
+    border-radius: 14px;
+    background-color: #2a2a2a;
+    font-size: 12px;
+    color: #999;
+    border: 1px solid transparent;
+    transition: all 0.2s ease;
+  }
+
+  .subcategory-option.selected {
+    background-color: rgba(55, 155, 255, 0.2);
+    border-color: #379bff;
+    color: #379bff;
+  }
+
+  .container.light .subcategory-option {
+    background-color: #ffffff;
+    border: 1rpx solid #e0e0e0;
+    color: #666666;
+  }
+
+  .container.light .subcategory-option.selected {
+    background-color: rgba(55, 155, 255, 0.1);
+    border-color: #379bff;
+    color: #379bff;
+  }
+
+  .subcategory-option:active {
+    opacity: 0.7;
+  }
+
+  .panel-footer {
+    padding: 16px 20px;
+    padding-bottom: calc(16px + env(safe-area-inset-bottom));
+  }
+
+  .btn-row {
+    display: flex;
+    gap: 12px;
+  }
+
+  .btn-return {
+    flex: 1;
+    text-align: center;
+    padding: 12px 0;
+    border-radius: 10px;
+    font-size: 15px;
+    color: #aaa;
+    background-color: #2a2a2a;
+  }
+
+  .container.light .btn-return {
+    background-color: #e0e0e0;
+    color: #666666;
+  }
+
+  .btn-return:active {
+    opacity: 0.7;
+  }
+
+  .btn-confirm {
+    flex: 1;
+    text-align: center;
+    padding: 12px 0;
+    border-radius: 10px;
+    font-size: 15px;
+    color: #fff;
+    background: linear-gradient(135deg, #379bff, #0048ff);
+    box-shadow: 0 4px 12px rgba(55, 155, 255, 0.3);
+  }
+
+  .btn-confirm:active {
+    opacity: 0.8;
+  }
+
+  .set-selector-panel {
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+    max-height: 70vh;
+    border-radius: 16px 16px 0 0;
+    background-color: #1e1e1e;
+    box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.3);
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .container.light .set-selector-panel {
+    background-color: #ffffff;
+  }
+
+  .container.light .set-selector-body {
+    background-color: #ffffff;
+  }
+
+  .container.light .current-action-name {
+    background: #f5f5f5;
+    color: #333333;
+  }
+
+  .container.light .preset-set-btn {
+    background: #f5f5f5;
+  }
+
+  .container.light .preset-set-btn text {
+    color: #666666;
+  }
+
+  .container.light .custom-set-input {
+    background: #f5f5f5;
+    color: #333333;
+    border: 1rpx solid #e0e0e0;
+  }
+
+  .set-selector-body {
+    padding: 20px;
+  }
+
+  .current-action-name {
+    text-align: center;
+    font-size: 16px;
+    color: #fff;
+    margin-bottom: 20px;
+    padding: 10px;
+    background: #2a2a2a;
+    border-radius: 10px;
+  }
+
+  .quick-set-options {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 30px;
+    margin-bottom: 20px;
+  }
+
+  .quick-set-btn {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: #379bff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .quick-set-btn text {
+    font-size: 20px;
+    color: #fff;
+    font-weight: bold;
+  }
+
+  .quick-set-btn:active {
+    opacity: 0.7;
+  }
+
+  .set-display {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 80px;
+  }
+
+  .set-number {
+    font-size: 40px;
+    color: #fff;
+    font-weight: bold;
+  }
+
+  .set-unit {
+    font-size: 14px;
+    color: #888;
+  }
+
+  .preset-sets {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+    margin-bottom: 20px;
+  }
+
+  .preset-set-btn {
+    width: 50px;
+    height: 40px;
+    border-radius: 8px;
+    background: #2a2a2a;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .preset-set-btn text {
+    font-size: 14px;
+    color: #aaa;
+  }
+
+  .preset-set-btn.selected {
+    background: rgba(55, 155, 255, 0.2);
+    border: 1px solid #379bff;
+  }
+
+  .preset-set-btn.selected text {
+    color: #379bff;
+  }
+
+  .custom-set-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+  }
+
+  .custom-set-label {
+    font-size: 14px;
+    color: #888;
+  }
+
+  .custom-set-input {
+    width: 60px;
+    height: 40px;
+    background: #2a2a2a;
+    border: none;
+    border-radius: 8px;
+    text-align: center;
+    font-size: 16px;
+    color: #fff;
+  }
+
+  .custom-set-unit {
+    font-size: 14px;
+    color: #888;
+  }
+
+  .set-count-btn {
+    padding: 4px 10px;
+    background: rgba(55, 155, 255, 0.15);
+    border: 1px solid #379bff;
+    border-radius: 12px;
+    margin-right: 8px;
+    flex-shrink: 0;
+    line-height: 20px;
+  }
+
+  .set-count-text {
+    font-size: 12px;
+    color: #379bff;
+  }
+
+  .container.light .set-count-btn {
+    background: rgba(55, 155, 255, 0.1);
   }
 </style>

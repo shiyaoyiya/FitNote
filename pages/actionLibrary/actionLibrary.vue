@@ -1,5 +1,5 @@
 <template>
-  <view class="container dark">
+  <view class="container" :class="{ dark: daySettingsStore.isDarkMode, light: !daySettingsStore.isDarkMode }">
     <view class="search-bar">
       <view class="search-inner">
         <text class="search-icon">🔍</text>
@@ -53,7 +53,8 @@
                       <view class="action-info" @click.stop="openEditPopup(act)">
                         <text class="action-name">{{ act.name }}</text>
                         <view class="action-category-tags">
-                          <text v-for="catId in act.categories" :key="catId" class="action-category-tag">{{ getCategoryNameById(catId) }}</text>
+                          <text v-for="catId in act.categories" :key="catId"
+                            class="action-category-tag">{{ getCategoryNameById(catId) }}</text>
                         </view>
                       </view>
                       <view class="action-history-area" @click.stop="goToHistory(act)">
@@ -111,8 +112,20 @@
               </view>
             </view>
           </view>
+          <view class="form-group">
+            <view class="checkbox-row" @click="formIsUnilateral = !formIsUnilateral">
+              <view class="checkbox-box" :class="{ checked: formIsUnilateral }">
+                <text class="checkbox-check" v-if="formIsUnilateral">✓</text>
+              </view>
+              <view class="checkbox-content">
+                <text class="checkbox-label">单侧动作</text>
+                <text class="checkbox-hint">（如哑铃单臂弯举，容量自动×2）</text>
+              </view>
+            </view>
+          </view>
           <view class="form-group" v-for="cat in categoryOptions" :key="'sub_'+cat.id">
-            <view v-if="formCategories.includes(cat.id) && getSubcategories(cat.id).length > 0" class="subcategory-section-form">
+            <view v-if="formCategories.includes(cat.id) && getSubcategories(cat.id).length > 0"
+              class="subcategory-section-form">
               <text class="form-label subcategory-form-label">{{ cat.name }} - 细分部位</text>
               <view class="subcategory-selector">
                 <view v-for="sub in getSubcategories(cat.id)" :key="sub.id" class="subcategory-option"
@@ -141,10 +154,15 @@
   import {
     useActionStore
   } from '@/stores/action.js'
+  import {
+    useDaySettingsStore
+  } from '@/stores/daySettings.js'
 
   export default {
     data() {
       return {
+        actStore: useActionStore(),
+        daySettingsStore: useDaySettingsStore(),
         searchQuery: '',
         activeCategory: 'all',
         collapsedCategories: this.getSavedCollapsedState(),
@@ -159,6 +177,7 @@
         startY: 0,
         startTime: 0,
         isClick: false,
+        formIsUnilateral: false,
       }
     },
 
@@ -289,6 +308,7 @@
     created() {
       this.actStore = useActionStore()
       this.actStore.load()
+      this.daySettingsStore.load()
     },
 
     onShow() {
@@ -381,6 +401,7 @@
         const detected = this.detectedCategory
         this.formCategories = detected ? [detected] : []
         this.formSubcategories = {}
+        this.formIsUnilateral = false
         this.showAddPopup = true
       },
 
@@ -390,6 +411,7 @@
         this.formName = ''
         this.formCategories = [categoryId]
         this.formSubcategories = {}
+        this.formIsUnilateral = false
         this.showAddPopup = true
       },
 
@@ -399,6 +421,7 @@
         this.formName = act.name
         this.formCategories = [...act.categories]
         this.formSubcategories = JSON.parse(JSON.stringify(act.subcategories || {}))
+        this.formIsUnilateral = act.isUnilateral || false
         this.showAddPopup = true
       },
 
@@ -408,6 +431,7 @@
         this.formName = ''
         this.formCategories = []
         this.formSubcategories = {}
+        this.formIsUnilateral = false
       },
 
       confirmAction() {
@@ -432,7 +456,10 @@
           this.actStore.updateAction(this.editingActionId, {
             name: name,
             categories: this.formCategories,
-            subcategories: { ...this.formSubcategories },
+            subcategories: {
+              ...this.formSubcategories
+            },
+            isUnilateral: this.formIsUnilateral,
           })
           uni.showToast({
             title: '已更新',
@@ -451,7 +478,9 @@
           const newAction = this.actStore.getActionByName(name)
           if (newAction && Object.keys(this.formSubcategories).length > 0) {
             this.actStore.updateAction(newAction.id, {
-              subcategories: { ...this.formSubcategories },
+              subcategories: {
+                ...this.formSubcategories
+              },
             })
           }
           uni.showToast({
@@ -588,7 +617,8 @@
   }
 
   .container.light .search-inner {
-    background-color: #e8e8e8;
+    background-color: #ffffff;
+    border: 1px solid #e0e0e0;
   }
 
   .search-icon {
@@ -609,6 +639,10 @@
 
   .search-input::placeholder {
     color: #888;
+  }
+
+  .container.light .search-input::placeholder {
+    color: #999;
   }
 
   .search-clear {
@@ -645,6 +679,11 @@
   .container.light .category-tab {
     background-color: #e8e8e8;
     color: #666;
+  }
+
+  .container.light .category-tab.active {
+    background: linear-gradient(135deg, #379bff, #0048ff);
+    color: #fff;
   }
 
   .category-tab.active {
@@ -739,6 +778,10 @@
     text-align: center;
   }
 
+  .container.light .collapse-arrow {
+    color: #999;
+  }
+
   .collapse-arrow.collapsed {
     transform: rotate(-90deg);
   }
@@ -752,6 +795,10 @@
   .section-count {
     font-size: 12px;
     color: #888;
+  }
+
+  .container.light .section-count {
+    color: #999;
   }
 
   .action-grid-wrapper {
@@ -797,6 +844,10 @@
     color: #666;
   }
 
+  .container.light .subcategory-count {
+    color: #999;
+  }
+
   .action-grid {
     display: flex;
     flex-direction: column;
@@ -822,16 +873,17 @@
   }
 
   .delete-btn {
-    width: 130rpx;
-    height: 80rpx;
+    width: 70px;
+    height: 62px;
     background-color: #ff5a5d;
-    border-radius: 14rpx;
+    border-radius: 14px;
     display: flex;
     align-items: center;
     justify-content: center;
     color: #fff;
     font-size: 13px;
     font-weight: 500;
+    margin-right: 2px;
   }
 
   .delete-btn:active {
@@ -913,6 +965,10 @@
   .arrow-icon {
     font-size: 20px;
     color: #555;
+  }
+
+  .container.light .arrow-icon {
+    color: #ccc;
   }
 
   .empty-state {
@@ -1070,6 +1126,10 @@
     padding: 4px 8px;
   }
 
+  .container.light .close-btn {
+    color: #666;
+  }
+
   .close-btn:active {
     opacity: 0.6;
   }
@@ -1102,11 +1162,16 @@
   }
 
   .container.light .form-input {
-    background-color: #e8e8e8;
+    background-color: #ffffff;
+    border: 1px solid #e0e0e0;
   }
 
   .form-input::placeholder {
     color: #666;
+  }
+
+  .container.light .form-input::placeholder {
+    color: #999;
   }
 
   .auto-detect-hint {
@@ -1121,7 +1186,7 @@
   }
 
   .container.light .auto-detect-hint {
-    background-color: #e8e8e8;
+    background-color: #f0f0f0;
   }
 
   .detected-cat-tag {
@@ -1137,6 +1202,10 @@
     font-size: 12px;
     text-decoration: underline;
     margin-left: auto;
+  }
+
+  .container.light .use-detected-btn {
+    color: #379bff;
   }
 
   .use-detected-btn:active {
@@ -1179,6 +1248,68 @@
     font-weight: bold;
   }
 
+  .checkbox-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    background-color: #2a2a2a;
+    border-radius: 10px;
+    transition: background-color 0.2s ease;
+  }
+
+  .container.light .checkbox-row {
+    background-color: #e8e8e8;
+  }
+
+  .checkbox-box {
+    width: 22px;
+    height: 22px;
+    border-radius: 6px;
+    border: 2px solid #555;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+  }
+
+  .container.light .checkbox-box {
+    border-color: #999;
+  }
+
+  .checkbox-box.checked {
+    background: linear-gradient(135deg, #379bff, #0048ff);
+    border-color: #379bff;
+  }
+
+  .checkbox-check {
+    color: #fff;
+    font-size: 14px;
+    font-weight: bold;
+  }
+
+  .checkbox-content {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .checkbox-label {
+    font-size: 15px;
+    color: inherit;
+    font-weight: 500;
+  }
+
+  .checkbox-hint {
+    font-size: 12px;
+    color: #888;
+  }
+
+  .container.light .checkbox-hint {
+    color: #999;
+  }
+
   .subcategory-section-form {
     margin-top: -8px;
   }
@@ -1188,6 +1319,10 @@
     color: #888;
     padding-left: 12px;
     margin-bottom: 6px;
+  }
+
+  .container.light .subcategory-form-label {
+    color: #999;
   }
 
   .subcategory-selector {
