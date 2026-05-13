@@ -1,12 +1,12 @@
 <template>
   <view>
     <!-- 设置弹窗 -->
-    <view v-if="visible && mode === 'settings'" class="popup-overlay" @click.self="$emit('close')">
-      <view class="overlay-bg" @click="$emit('close')"></view>
-      <view class="modal-panel fade-in">
+    <view v-if="visible && mode === 'settings'" class="popup-overlay">
+      <view class="overlay-bg" @click.stop="$emit('close')"></view>
+      <view class="modal-panel fade-in" @click.stop>
         <view class="modal-header">
           <text class="modal-title">训练设置</text>
-          <text class="close-icon" @click="$emit('close')">×</text>
+          <text class="close-icon" @click.stop="$emit('close')">×</text>
         </view>
         <view class="modal-body settings-body">
           <!-- 设置开关 -->
@@ -58,40 +58,83 @@
 
           <!-- 操作按钮 -->
           <view class="setting-actions-row">
-            <view class="setting-action" @click="mode = 'add'">
-              <text class="action-icon">＋</text>
-              <text class="action-label">添加动作</text>
+            <view class="setting-action manage-action" @click="switchToManage">
+              <text class="action-icon">📋</text>
+              <text class="action-label">管理动作</text>
             </view>
-            <view class="setting-action" @click="mode = 'sort'">
-              <text class="action-icon">↕</text>
-              <text class="action-label">排序动作</text>
+            <view class="setting-action export-action" @click="handleExportData">
+              <text class="action-icon">📤</text>
+              <text class="action-label">复制数据</text>
             </view>
           </view>
         </view>
       </view>
     </view>
 
-    <!-- 添加动作弹窗 -->
-    <view v-if="visible && mode === 'add'" class="popup-overlay" style="z-index: 1000;" @click.self="mode = 'settings'">
-      <view class="overlay-bg" @click="mode = 'settings'"></view>
+    <!-- 管理动作页面 -->
+    <view v-if="visible && mode === 'manage'" class="manage-modal-overlay">
+      <view class="manage-header">
+        <text class="manage-title">管理动作</text>
+        <text class="hint-text">长按拖拽排序，左滑删除</text>
+        <text class="close-icon" @click="switchToSettings">×</text>
+      </view>
+      <scroll-view class="manage-body" :scroll-y="!isDragMode" :scroll-with-animation="false">
+        <movable-area class="manage-movable-area" :style="{ height: sortedActions.length * 110 + 'rpx' }">
+          <view v-for="(item, index) in sortedActions" :key="'slot'+index" class="manage-item-slot"
+            :style="{ top: index * 110 + 'rpx' }"></view>
+          <movable-view v-for="(act, idx) in sortedActions" :key="act" direction="vertical" class="manage-movable-item"
+            :y="itemY[idx]" :disabled="!isDragMode" :class="{ 'is-dragging': dragIdx === idx }"
+            @touchstart="onSortTouchStart($event, idx)" @touchmove="onSortTouchMove($event, idx)"
+            @touchend="onSortTouchEnd($event, idx); isDragMode ? onSortDragEnd() : null"
+            @change="onSortDragMove($event, idx)">
+            <view class="manage-card-wrapper">
+              <view class="manage-delete-bg">
+                <text class="manage-delete-btn" @click.stop="handleSortDelete(idx)">删除</text>
+              </view>
+              <view class="manage-card" :style="{ transform: 'translateX(' + (sortSlideX[idx] || 0) + 'px)' }"
+                @touchstart="onSortSlideStart($event, idx)" @touchmove="onSortSlideMove($event, idx)"
+                @touchend="onSortSlideEnd(idx)">
+                <text class="manage-card-label">{{ act }}</text>
+                <text class="manage-drag-icon">≡</text>
+              </view>
+            </view>
+          </movable-view>
+        </movable-area>
+        <view v-if="sortedActions.length === 0" class="manage-empty">
+          <text class="empty-icon">📭</text>
+          <text class="empty-text">暂无动作</text>
+          <text class="empty-hint">点击下方"添加动作"按钮添加</text>
+        </view>
+      </scroll-view>
+      <view class="manage-footer">
+        <button class="manage-btn-add" @click="openAddPopup">添加动作</button>
+        <button class="manage-btn-save" @click="saveManageActions">保存编辑</button>
+      </view>
+    </view>
+
+    <!-- 添加动作弹窗（在管理动作页面内弹出） -->
+    <view v-if="visible && mode === 'manage' && showAddPopup" class="popup-overlay add-popup-overlay"
+      @click.self="closeAddPopup">
+      <view class="overlay-bg" @click="closeAddPopup"></view>
       <view class="modal-panel action-picker-panel fade-in" @click.stop>
         <view class="modal-header action-picker-header">
           <text class="modal-title">选择动作</text>
-          <text class="close-icon" @click="mode = 'settings'">×</text>
+          <text class="close-icon" @click="closeAddPopup">×</text>
         </view>
         <view class="modal-body action-picker-body">
           <view class="search-bar-container">
             <view class="search-bar-inner">
               <text class="search-icon">🔍</text>
-              <input v-model="searchKeyword" class="search-bar-input" placeholder="搜索动作名称..." @input="filterActions"
-                confirm-type="search" />
+              <input ref="searchInput" v-model="searchKeyword" class="search-bar-input" placeholder="搜索动作名称..."
+                @input="filterActions" confirm-type="search" :focus="searchFocus" />
               <text v-if="searchKeyword" class="clear-icon" @click="clearSearch">×</text>
             </view>
           </view>
           <scroll-view class="action-grid-list" scroll-y="true" show-scrollbar="false">
             <view class="action-grid-inner">
               <view v-for="(act, idx) in filteredActions" :key="idx" class="action-grid-item"
-                :class="{ 'action-selected': selectedActionIdx === idx }" @click="selectAction(idx)">
+                :class="{ 'action-selected': selectedActionIdx === idx, 'action-already-added': sortedActions.includes(act) }"
+                @click="selectAction(idx)">
                 <view class="act-name-container">
                   <text class="act-name">{{ act }}</text>
                 </view>
@@ -108,40 +151,6 @@
         <view class="modal-footer action-picker-footer no-border">
           <button class="confirm-add-btn" @click="addSelectedAction">确认添加</button>
         </view>
-      </view>
-    </view>
-
-    <!-- 排序弹窗 -->
-    <view v-if="visible && mode === 'sort'" class="sort-modal-overlay">
-      <view class="sort-header">
-        <text class="sort-hint-icon">💡</text>
-        <text class="sort-hint-text">提示：请长按每一个动作条进行拖拽排序</text>
-      </view>
-      <scroll-view class="sort-body" :scroll-y="!isDragMode" :scroll-with-animation="false">
-        <movable-area class="sort-movable-area" :style="{ height: sortedActions.length * 110 + 'rpx' }">
-          <view v-for="(item, index) in sortedActions" :key="'slot'+index" class="sort-item-slot"
-            :style="{ top: index * 110 + 'rpx' }"></view>
-          <movable-view v-for="(act, idx) in sortedActions" :key="act" direction="vertical" class="sort-movable-item"
-            :y="itemY[idx]" :disabled="!isDragMode" :class="{ 'is-dragging': dragIdx === idx }"
-            @touchstart="onSortTouchStart($event, idx)" @touchmove="onSortTouchMove($event, idx)"
-            @touchend="onSortTouchEnd($event, idx); isDragMode ? onSortDragEnd() : null"
-            @change="onSortDragMove($event, idx)">
-            <view class="sort-card-wrapper">
-              <view class="sort-delete-bg">
-                <text class="sort-delete-btn" @click.stop="handleSortDelete(idx)">删除</text>
-              </view>
-              <view class="sort-card" :style="{ transform: 'translateX(' + (sortSlideX[idx] || 0) + 'px)' }"
-                @touchstart="onSortSlideStart($event, idx)" @touchmove="onSortSlideMove($event, idx)"
-                @touchend="onSortSlideEnd(idx)">
-                <text class="sort-card-label">{{ act }}</text>
-              </view>
-            </view>
-          </movable-view>
-        </movable-area>
-      </scroll-view>
-      <view class="sort-footer">
-        <button class="sort-btn-save" @click="saveSort">保存当前排序</button>
-        <button class="sort-btn-cancel" @click="cancelSort">取消</button>
       </view>
     </view>
   </view>
@@ -172,14 +181,16 @@
       },
     },
     emits: ['close', 'add-action', 'save-sort', 'toggle-auto-timer', 'toggle-auto-fill', 'toggle-bubble-fill',
-      'set-heavy-timer', 'set-light-timer'
+      'set-heavy-timer', 'set-light-timer', 'export-data'
     ],
     data() {
       return {
-        mode: 'settings', // settings | add | sort
+        mode: 'settings', // settings | manage
         searchKeyword: '',
         filteredActions: [],
         selectedActionIdx: null,
+        searchFocus: false,
+        showAddPopup: false,
         // 排序
         sortedActions: [],
         itemY: [],
@@ -201,21 +212,28 @@
       visible(val) {
         if (val) {
           this.mode = 'settings'
+          this.showAddPopup = false
+        } else {
+          this.sortSlideX = {}
         }
       },
       mode(val) {
-        if (val === 'add') {
-          this.filterActions()
-          this.selectedActionIdx = null
-          this.searchKeyword = ''
-        }
-        if (val === 'sort') {
+        if (val === 'manage') {
           this.sortedActions = [...this.chosenActions]
           this.$nextTick(() => this.initSortPositions())
+        }
+        if (val === 'settings') {
+          this.showAddPopup = false
         }
       },
     },
     methods: {
+      switchToManage() {
+        this.mode = 'manage'
+      },
+      switchToSettings() {
+        this.mode = 'settings'
+      },
       filterActions() {
         const kw = this.searchKeyword.trim().toLowerCase()
         if (!kw) {
@@ -232,7 +250,29 @@
         this.filterActions()
       },
       selectAction(idx) {
+        if (this.sortedActions.includes(this.filteredActions[idx])) {
+          uni.showToast({
+            title: '动作已在列表中',
+            icon: 'none'
+          })
+          return
+        }
         this.selectedActionIdx = idx
+      },
+      openAddPopup() {
+        this.showAddPopup = true
+        this.filterActions()
+        this.selectedActionIdx = null
+        this.searchKeyword = ''
+        this.$nextTick(() => {
+          this.searchFocus = true
+        })
+      },
+      closeAddPopup() {
+        this.showAddPopup = false
+        this.searchFocus = false
+        this.selectedActionIdx = null
+        this.searchKeyword = ''
       },
       addSelectedAction() {
         if (this.selectedActionIdx === null) {
@@ -243,21 +283,38 @@
           return
         }
         const actName = this.filteredActions[this.selectedActionIdx]
-        if (this.chosenActions.includes(actName)) {
+        if (this.sortedActions.includes(actName)) {
           uni.showToast({
             title: '动作已在列表中',
             icon: 'none'
           })
           return
         }
-        this.$emit('add-action', actName)
-        this.mode = 'settings'
+        this.sortedActions.push(actName)
+        this.$nextTick(() => this.initSortPositions())
+        this.closeAddPopup()
+        uni.showToast({
+          title: `已添加：${actName}`,
+          icon: 'success',
+          duration: 1000
+        })
       },
 
       // 排序相关
       initSortPositions() {
-        const sys = uni.getSystemInfoSync()
-        const rh = (sys.windowWidth / 750) * 110
+        let windowWidth = 375
+        try {
+          if (typeof wx !== 'undefined' && wx.getWindowInfo) {
+            const info = wx.getWindowInfo()
+            windowWidth = info.windowWidth || 375
+          } else {
+            const sys = uni.getSystemInfoSync()
+            windowWidth = sys.windowWidth || 375
+          }
+        } catch (e) {
+          windowWidth = 375
+        }
+        const rh = (windowWidth / 750) * 110
         this.rowHeight = rh
         const newItemY = []
         for (let i = 0; i < this.sortedActions.length; i++) {
@@ -321,16 +378,26 @@
         this.initSortPositions()
         this.isDragTriggered = false
       },
-      saveSort() {
+      saveManageActions() {
         this.$emit('save-sort', [...this.sortedActions])
         this.mode = 'settings'
       },
       // 侧滑删除
       onSortSlideStart(e, idx) {
+        this.closeAllSlides(idx)
         this.sortSlideStartX = e.touches[0].pageX
         this.sortSlideStartY = e.touches[0].pageY
         this.sortSlideActive = false
         this.$set(this.sortSlideX, idx, 0)
+      },
+      closeAllSlides(exceptIdx = -1) {
+        const slideKeys = Object.keys(this.sortSlideX)
+        slideKeys.forEach(key => {
+          const k = Number(key)
+          if (k !== exceptIdx && (this.sortSlideX[k] || 0) !== 0) {
+            this.$set(this.sortSlideX, k, 0)
+          }
+        })
       },
       onSortSlideMove(e, idx) {
         const dx = e.touches[0].pageX - this.sortSlideStartX
@@ -371,10 +438,8 @@
           },
         })
       },
-      cancelSort() {
-        this.mode = 'settings'
-        this.isDragMode = false
-        this.dragIdx = -1
+      handleExportData() {
+        this.$emit('export-data')
       },
     },
     beforeUnmount() {
@@ -416,6 +481,7 @@
     display: flex;
     flex-direction: column;
     margin-top: -44px;
+    z-index: 1001;
   }
 
   .fade-in {
@@ -617,7 +683,213 @@
     color: var(--text-primary);
   }
 
+  /* 管理动作页面 */
+  .manage-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 2000;
+    background-color: rgba(0, 0, 0, 0.45);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .manage-header {
+    padding: 20rpx 30rpx;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--bg-secondary);
+    border-bottom: 1rpx solid var(--border-color);
+  }
+
+  .manage-title {
+    font-size: 32rpx;
+    font-weight: bold;
+    color: var(--text-primary);
+  }
+
+  .manage-hint {
+    padding: 20rpx 30rpx;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12rpx;
+    background: var(--bg-secondary);
+  }
+
+  .hint-icon {
+    font-size: 28rpx;
+  }
+
+  .hint-text {
+    font-size: 26rpx;
+    color: var(--text-secondary);
+  }
+
+  .manage-body {
+    flex: 1;
+    height: 0;
+    background: var(--bg-primary);
+  }
+
+  .manage-movable-area {
+    width: 100%;
+    position: relative;
+  }
+
+  .manage-item-slot {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 110rpx;
+    pointer-events: none;
+  }
+
+  .manage-movable-item {
+    width: 100%;
+    height: 66px;
+    display: flex;
+    align-items: center;
+    box-sizing: border-box;
+  }
+
+  .manage-movable-item:not(.is-dragging) {
+    transition: transform 0.2s cubic-bezier(0.25, 1, 0.5, 1) !important;
+  }
+
+  .manage-card-wrapper {
+    margin: 0 30rpx;
+    width: calc(100% - 60rpx);
+    height: 50px;
+    position: relative;
+  }
+
+  .manage-delete-bg {
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 70px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1;
+  }
+
+  .manage-delete-btn {
+    background: #ff5a5d;
+    color: #fff;
+    font-size: 12px;
+    padding: 10px 14px;
+    border-radius: 8px;
+  }
+
+  .manage-card {
+    position: relative;
+    z-index: 2;
+    width: 100%;
+    height: 100%;
+    background-color: var(--bg-card);
+    border-radius: 12rpx;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 24rpx;
+    box-shadow: 0 0 5rpx var(--shadow-color);
+    transition: transform 0.15s ease;
+    box-sizing: border-box;
+  }
+
+  .manage-card-label {
+    font-size: 28rpx;
+    color: var(--text-primary);
+  }
+
+  .manage-drag-icon {
+    font-size: 32rpx;
+    color: var(--text-muted);
+  }
+
+  .is-dragging .manage-card {
+    transform: scale(1.05);
+    box-shadow: 0 10rpx 30rpx var(--shadow-color);
+    border: 1px solid var(--border-color);
+    z-index: 999;
+  }
+
+  .is-dragging {
+    z-index: 999 !important;
+    transition: none !important;
+  }
+
+  .manage-empty {
+    padding: 100rpx 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .empty-icon {
+    font-size: 60rpx;
+    margin-bottom: 20rpx;
+  }
+
+  .empty-text {
+    font-size: 32rpx;
+    color: var(--text-primary);
+    font-weight: bold;
+    margin-bottom: 12rpx;
+  }
+
+  .empty-hint {
+    font-size: 26rpx;
+    color: var(--text-secondary);
+  }
+
+  .manage-footer {
+    padding: 30rpx;
+    display: flex;
+    gap: 20rpx;
+    justify-content: center;
+    background: var(--bg-secondary);
+    border-top: 1rpx solid var(--border-color);
+  }
+
+  .manage-btn-add {
+    flex: 1;
+    height: 90rpx;
+    line-height: 90rpx;
+    background-color: var(--bg-tertiary);
+    color: var(--text-primary);
+    border-radius: 12rpx;
+    font-size: 30rpx;
+    text-align: center;
+    border: 1rpx solid var(--border-color);
+  }
+
+  .manage-btn-save {
+    flex: 1;
+    height: 90rpx;
+    line-height: 90rpx;
+    background-color: #2ed573;
+    color: #fff;
+    border-radius: 12rpx;
+    font-size: 30rpx;
+    text-align: center;
+  }
+
   /* 添加动作弹窗 */
+  .add-popup-overlay {
+    z-index: 2100 !important;
+  }
+
   .action-picker-panel {
     width: 85vw !important;
     max-height: 70vh !important;
@@ -698,7 +970,7 @@
     background: var(--bg-tertiary);
     border-radius: 14px;
     padding: 0 12px;
-    border: 1rpx solid var(--border-color);
+    border: 1px solid var(--border-color);
     box-sizing: border-box;
     transition: all 0.15s ease;
   }
@@ -735,6 +1007,14 @@
   .action-selected .act-name {
     color: var(--theme-primary) !important;
     font-weight: bold;
+  }
+
+  .action-already-added {
+    opacity: 0.5;
+  }
+
+  .action-already-added .act-name {
+    color: var(--text-muted) !important;
   }
 
   .select-check {
@@ -793,159 +1073,11 @@
     width: 100% !important;
     height: 54px !important;
     line-height: 54px !important;
-    background: linear-gradient(135deg, var(--theme-primary), var(--theme-primary-variant)) !important;
+    background-color: #379bff;
     border-radius: 16px !important;
     font-size: 16px !important;
     font-weight: bold;
-    border: none;
-    color: #fff;
-  }
-
-  /* 排序弹窗 */
-  .sort-modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 2000;
-    background-color: rgba(0, 0, 0, 0.45);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    display: flex;
-    flex-direction: column;
-  }
-
-  .sort-header {
-    padding: 30rpx;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 12rpx;
-  }
-
-  .sort-hint-icon {
-    font-size: 32rpx;
-  }
-
-  .sort-hint-text {
-    font-size: 26rpx;
-    color: var(--text-secondary);
-  }
-
-  .sort-body {
-    flex: 1;
-    height: 0;
-  }
-
-  .sort-movable-area {
-    width: 100%;
-    position: relative;
-  }
-
-  .sort-item-slot {
-    position: absolute;
-    left: 0;
-    right: 0;
-    height: 110rpx;
-    pointer-events: none;
-  }
-
-  .sort-movable-item {
-    width: 100%;
-    height: 110rpx;
-    display: flex;
-    align-items: center;
-  }
-
-  .sort-movable-item:not(.is-dragging) {
-    transition: transform 0.2s cubic-bezier(0.25, 1, 0.5, 1) !important;
-  }
-
-  .sort-card-wrapper {
-    width: 100%;
-    height: 80rpx;
-    margin: 0 20rpx;
-    position: relative;
-  }
-
-  .sort-delete-bg {
-    position: absolute;
-    right: 0;
-    top: 0;
-    bottom: 0;
-    width: 70px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1;
-  }
-
-  .sort-delete-btn {
-    background: #ff5a5d;
-    color: #fff;
-    font-size: 12px;
-    padding: 6px 14px;
-    border-radius: 8px;
-  }
-
-  .sort-card {
-    position: relative;
-    z-index: 2;
-    width: 100%;
-    height: 80rpx;
-    background-color: var(--bg-card);
-    border-radius: 12rpx;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 0 5rpx var(--shadow-color);
-    transition: transform 0.15s ease;
-  }
-
-  .sort-card-label {
-    font-size: 25rpx;
+    border: 1px solid var(--border-color);
     color: var(--text-primary);
-  }
-
-  .is-dragging .sort-card {
-    transform: scale(1.05);
-    box-shadow: 0 10rpx 30rpx var(--shadow-color);
-    border: 1rpx solid var(--border-color);
-    z-index: 999;
-  }
-
-  .is-dragging {
-    z-index: 999 !important;
-    transition: none !important;
-  }
-
-  .sort-footer {
-    padding: 30rpx;
-    display: flex;
-    gap: 20rpx;
-    justify-content: center;
-  }
-
-  .sort-btn-save {
-    flex: 1;
-    height: 90rpx;
-    line-height: 90rpx;
-    background-color: #2ed573;
-    color: #fff;
-    border-radius: 12rpx;
-    font-size: 30rpx;
-    text-align: center;
-  }
-
-  .sort-btn-cancel {
-    flex: 1;
-    height: 90rpx;
-    line-height: 90rpx;
-    background-color: var(--bg-tertiary);
-    color: var(--text-primary);
-    border-radius: 12rpx;
-    font-size: 30rpx;
-    text-align: center;
   }
 </style>

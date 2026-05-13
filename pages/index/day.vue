@@ -38,11 +38,11 @@
 
     <!-- 设置组件 -->
     <DaySettings :visible="showSettings" :available-actions="availableActionNames" :chosen-actions="chosenActions"
-      :settings="settingsState" @close="showSettings = false" @add-action="onAddAction" @save-sort="onSaveSort"
-      @toggle-auto-timer="settingsStore.toggleAutoStartTimer()" @toggle-auto-fill="settingsStore.toggleAutoFillData()"
-      @toggle-bubble-fill="settingsStore.toggleBubbleFill()"
+      :action-entries="actionEntries" :settings="settingsState" @close="showSettings = false" @add-action="onAddAction"
+      @save-sort="onSaveSort" @toggle-auto-timer="settingsStore.toggleAutoStartTimer()"
+      @toggle-auto-fill="settingsStore.toggleAutoFillData()" @toggle-bubble-fill="settingsStore.toggleBubbleFill()"
       @set-heavy-timer="(v) => settingsStore.setHeavyTimerDuration(v)"
-      @set-light-timer="(v) => settingsStore.setLightTimerDuration(v)" />
+      @set-light-timer="(v) => settingsStore.setLightTimerDuration(v)" @export-data="onExportData" />
 
     <!-- 编辑记录弹窗 -->
     <view v-if="showEditEntryPopup" class="popup-overlay" @click.self="closeEditEntryPopup">
@@ -769,7 +769,12 @@
 
       onCloseTemplateSelector() {
         this.showChooseTpl = false
-        uni.navigateBack()
+        // 只有在没有选择任何模板且没有数据时才返回首页
+        const raw = this.dayDataCacheStore.getDayData(this.date)
+        const hasData = raw.templates && Object.keys(raw.templates).length > 0
+        if (!hasData && !this.chosenTplName) {
+          uni.navigateBack()
+        }
       },
 
       /* ========== 设置组件事件 ========== */
@@ -813,25 +818,96 @@
         })
       },
       onSaveSort(newOrder) {
+        // 先把新增的动作同步到 chosenActions / actionEntries / diffs
+        const currentSet = new Set(this.chosenActions)
+        newOrder.forEach(name => {
+          if (!currentSet.has(name)) {
+            this.chosenActions.push(name)
+            this.actionEntries.push([])
+            this.diffs.push({ text: '未记录', class: 'diff-neutral' })
+            // 持久化新动作
+            const dayKey = this.DAYDATA_PREFIX + this.date
+            const raw = uni.getStorageSync(dayKey) || {}
+            const dayData = {
+              ...raw,
+              templates: raw.templates || {},
+              actions: raw.actions || {},
+              entries: raw.entries || {}
+            }
+            dayData.entries[name] = dayData.entries[name] || []
+            dayData.actions[name] = dayData.actions[name] || 0
+            const tplInfo = dayData.templates[this.chosenTplName] || {
+              totalWeight: 0,
+              actionWeights: {},
+              actionOrder: [...this.chosenActions]
+            }
+            tplInfo.actionWeights[name] = 0
+            tplInfo.totalWeight = Object.values(tplInfo.actionWeights).reduce((a, b) => (a + (Number(b) || 0)), 0)
+            tplInfo.actionOrder = [...this.chosenActions]
+            dayData.templates[this.chosenTplName] = tplInfo
+            uni.setStorageSync(dayKey, dayData)
+            this.dayDataCacheStore.saveDayData(this.date, dayData)
+          }
+        })
+
+        // 按 newOrder 重排
         const orderMap = newOrder.map(name => this.chosenActions.indexOf(name))
-        if (orderMap.some(i => i === -1)) {
-          uni.showToast({
-            title: '排序出错，请重试',
-            icon: 'none'
-          })
-          return
-        }
         this.chosenActions = [...newOrder]
         this.actionEntries = orderMap.map(i => [...this.actionEntries[i]])
-        this.diffs = orderMap.map(i => this.diffs[i] ? {
-          ...this.diffs[i]
-        } : null)
+        this.diffs = orderMap.map(i => this.diffs[i] ? { ...this.diffs[i] } : null)
         this.persistOrder()
         this.showSettings = false
         uni.showToast({
           title: '排序已保存',
           icon: 'success',
           duration: 1000
+        })
+      },
+      onExportData() {
+        if (!this.chosenActions || this.chosenActions.length === 0) {
+          uni.showToast({
+            title: '暂无训练数据',
+            icon: 'none'
+          })
+          return
+        }
+        let exportText = ''
+        this.chosenActions.forEach((actName, actionIdx) => {
+          const entries = this.actionEntries[actionIdx] || []
+          const filledEntries = entries.filter(e => !e.isPlaceholder)
+          if (filledEntries.length === 0) return
+          exportText += `${actionIdx + 1}. ${actName}\n`
+          filledEntries.forEach((entry, entryIdx) => {
+            const stage = entry.stages && entry.stages[0]
+            if (stage) {
+              const reps = stage.reps
+              const weight = stage.weight
+              exportText += `- 第${entryIdx + 1}组：${reps}次 × ${weight}kg\n`
+            }
+          })
+          exportText += '\n'
+        })
+        if (!exportText.trim()) {
+          uni.showToast({
+            title: '暂无有效训练记录',
+            icon: 'none'
+          })
+          return
+        }
+        uni.setClipboardData({
+          data: exportText.trim(),
+          success: () => {
+            uni.showToast({
+              title: '已复制到剪贴板',
+              icon: 'success'
+            })
+          },
+          fail: () => {
+            uni.showToast({
+              title: '复制失败',
+              icon: 'none'
+            })
+          }
         })
       },
     },

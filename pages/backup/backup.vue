@@ -1,45 +1,97 @@
 <template>
   <view class="container" :class="{ dark: daySettingsStore.isDarkMode, light: !daySettingsStore.isDarkMode }">
-    <view class="status-card card">
-      <view class="path-header">
-        <view class="title-group">
-          <text class="label-text">当前备份位置</text>
-          <view class="path-badge">本地存储</view>
+    <view class="tab-bar">
+      <view :class="['tab-item', { active: activeTab === 'local' }]" @click="switchTab('local')">
+        📂 本地备份
+      </view>
+      <view :class="['tab-item', { active: activeTab === 'cloud' }]" @click="switchTab('cloud')">
+        ☁️ 云端备份
+      </view>
+    </view>
+
+    <view v-if="activeTab === 'local'" class="tab-content">
+      <view class="status-card card">
+        <view class="path-header">
+          <view class="title-group">
+            <text class="label-text">当前备份位置</text>
+            <view class="path-badge">本地存储</view>
+          </view>
+          <text class="action-link" @click="handleChoosePath">更改目录</text>
         </view>
-        <text class="action-link" @click="handleChoosePath">更改目录</text>
+
+        <view class="path-display-area">
+          <view class="folder-circle">
+            <text class="folder-icon">📂</text>
+          </view>
+          <view class="path-info">
+            <text class="path-filename-text">{{ backupPath }}</text>
+            <text class="last-time-text">上次备份: {{ lastBackupTime || '从未备份' }}</text>
+          </view>
+        </view>
       </view>
 
-      <view class="path-display-area">
-        <view class="folder-circle">
-          <text class="folder-icon">📂</text>
+      <view class="main-action-zone">
+        <view :class="['backup-orb', isBackingUp ? 'rotating' : '']" @click="handleStartBackup">
+          <view class="orb-content">
+            <text class="orb-icon">{{ isBackingUp ? '⏳' : '☁️' }}</text>
+            <text class="orb-text">{{ isBackingUp ? '备份中...' : '开始备份' }}</text>
+          </view>
+          <view class="pulse-ring" v-if="isBackingUp"></view>
         </view>
-        <view class="path-info">
-          <text class="path-filename-text">{{ backupPath }}</text>
-          <text class="last-time-text">上次备份: {{ lastBackupTime || '从未备份' }}</text>
+        <text class="hint-text">建议每个循环后备份，保障数据不丢失</text>
+      </view>
+
+      <view class="bottom-actions">
+        <button class="btn-secondary" @click="handleStartImport" :disabled="isRestoring">
+          <text class="btn-icon">📥</text>
+          <text>导入历史备份</text>
+        </button>
+
+        <view v-if="backupStatus.message" class="status-banner" :class="backupStatus.type">
+          <text class="status-icon">{{ backupStatus.type === 'success' ? '✅' : '❌' }}</text>
+          <text>{{ backupStatus.message }}</text>
         </view>
       </view>
     </view>
 
-    <view class="main-action-zone">
-      <view :class="['backup-orb', isBackingUp ? 'rotating' : '']" @click="handleStartBackup">
-        <view class="orb-content">
-          <text class="orb-icon">{{ isBackingUp ? '⏳' : '☁️' }}</text>
-          <text class="orb-text">{{ isBackingUp ? '备份中...' : '开始备份' }}</text>
+    <view v-if="activeTab === 'cloud'" class="tab-content">
+      <view class="cloud-section">
+        <view class="cloud-actions">
+          <view class="action-btn cloud-upload" @click="handleCloudUpload">
+            <text class="action-icon">☁️</text>
+            <text class="action-text">上传至云端</text>
+          </view>
+          <view class="action-btn cloud-download" @click="loadCloudBackups">
+            <text class="action-icon">📥</text>
+            <text class="action-text">刷新列表</text>
+          </view>
         </view>
-        <view class="pulse-ring" v-if="isBackingUp"></view>
-      </view>
-      <text class="hint-text">建议每个循环后备份，保障数据不丢失</text>
-    </view>
 
-    <view class="bottom-actions">
-      <button class="btn-secondary" @click="handleStartImport" :disabled="isRestoring">
-        <text class="btn-icon">📥</text>
-        <text>导入历史备份</text>
-      </button>
+        <view class="backup-info">
+          <text class="info-text">云端备份 ({{ cloudBackups.length }}/3)</text>
+        </view>
 
-      <view v-if="backupStatus.message" class="status-banner" :class="backupStatus.type">
-        <text class="status-icon">{{ backupStatus.type === 'success' ? '✅' : '❌' }}</text>
-        <text>{{ backupStatus.message }}</text>
+        <view class="backup-list" v-if="cloudBackups.length > 0">
+          <view v-for="(backup, index) in cloudBackups" :key="backup.backupId" class="backup-item">
+            <view class="backup-info-left">
+              <text class="backup-icon">☁️</text>
+              <view class="backup-details">
+                <text class="backup-time">{{ formatTime(backup.createdAt) }}</text>
+                <text class="backup-size">{{ formatSize(backup.size) }}</text>
+              </view>
+            </view>
+            <view class="backup-actions">
+              <text class="action-text download" @click="handleCloudDownload(backup)">下载</text>
+              <text class="action-text delete" @click="handleCloudDelete(backup)">删除</text>
+            </view>
+          </view>
+        </view>
+
+        <view v-else class="empty-state">
+          <text class="empty-icon">☁️</text>
+          <text class="empty-text">暂无资金租用服务器</text>
+          <text class="empty-hint">等作者中彩票先</text>
+        </view>
       </view>
     </view>
   </view>
@@ -53,6 +105,12 @@
     chooseBackupFile,
     readBackupFile,
   } from '@/utils/backup.js'
+  import {
+    listUserBackups,
+    uploadToCloud,
+    downloadFromCloud,
+    deleteBackup
+  } from '@/utils/cloudBackup.js'
   import {
     useDayDataCacheStore
   } from '@/stores/dayDataCache.js'
@@ -71,7 +129,11 @@
         backupStatus: {
           type: '',
           message: ''
-        }
+        },
+        activeTab: 'local',
+        cloudBackups: [],
+        isUploading: false,
+        isDownloading: false
       }
     },
 
@@ -235,17 +297,49 @@
           const tplArr = Array.isArray(data.fitness_templates) ? data.fitness_templates : []
           const actArr = Array.isArray(data.fitness_actions) ? data.fitness_actions : []
 
-          const LEGACY_CATEGORY_MAP = { core:'abs', cardio:'abs', other:'abs' }
+          const LEGACY_CATEGORY_MAP = {
+            core: 'abs',
+            cardio: 'abs',
+            other: 'abs'
+          }
           const migrateActionsIfNeeded = (raw) => {
             if (!Array.isArray(raw) || raw.length === 0) return raw || []
-            const kw = { chest:['卧推','飞鸟','夹胸','上斜','下斜','哑铃卧推','杠铃卧推','胸'], back:['引体','划船','下拉','硬拉','高位下拉','坐姿划船','背'], shoulders:['推举','侧平举','前平举','耸肩','肩'], arms:['弯举','臂屈伸','锤式','绳索','肱二','肱三','手臂','二头','三头'], legs:['深蹲','腿举','腿弯举','腿屈伸','弓箭步','臀推','腿'], abs:['卷腹','平板','举腿','俄罗斯','核心','腹'] }
-            const cn = { chest:'胸部', back:'背部', shoulders:'肩部', arms:'手臂', legs:'腿部', abs:'腹部' }
-            const dt = (n) => { for(const [c,ks] of Object.entries(kw)){ for(const k of ks){ if(n.includes(k)) return c } } return 'abs' }
+            const kw = {
+              chest: ['卧推', '飞鸟', '夹胸', '上斜', '下斜', '哑铃卧推', '杠铃卧推', '胸'],
+              back: ['引体', '划船', '下拉', '硬拉', '高位下拉', '坐姿划船', '背'],
+              shoulders: ['推举', '侧平举', '前平举', '耸肩', '肩'],
+              arms: ['弯举', '臂屈伸', '锤式', '绳索', '肱二', '肱三', '手臂', '二头', '三头'],
+              legs: ['深蹲', '腿举', '腿弯举', '腿屈伸', '弓箭步', '臀推', '腿'],
+              abs: ['卷腹', '平板', '举腿', '俄罗斯', '核心', '腹']
+            }
+            const cn = {
+              chest: '胸部',
+              back: '背部',
+              shoulders: '肩部',
+              arms: '手臂',
+              legs: '腿部',
+              abs: '腹部'
+            }
+            const dt = (n) => {
+              for (const [c, ks] of Object.entries(kw)) {
+                for (const k of ks) {
+                  if (n.includes(k)) return c
+                }
+              }
+              return 'abs'
+            }
             const gid = () => Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8)
             if (typeof raw[0] === 'string') {
               return raw.map(n => {
                 const cat = dt(n)
-                return { id:gid(), name:n, categories:[cat], subcategories:{}, categoryName:cn[cat]||'腹部', createdAt:new Date().toISOString() }
+                return {
+                  id: gid(),
+                  name: n,
+                  categories: [cat],
+                  subcategories: {},
+                  categoryName: cn[cat] || '腹部',
+                  createdAt: new Date().toISOString()
+                }
               })
             }
             if (typeof raw[0] === 'object') {
@@ -258,7 +352,14 @@
                 } else {
                   cats = cats.map(c => LEGACY_CATEGORY_MAP[c] || c)
                 }
-                return { id:a.id||gid(), name:a.name, categories:cats, subcategories:a.subcategories||{}, categoryName:cn[cats[0]]||'腹部', createdAt:a.createdAt||new Date().toISOString() }
+                return {
+                  id: a.id || gid(),
+                  name: a.name,
+                  categories: cats,
+                  subcategories: a.subcategories || {},
+                  categoryName: cn[cats[0]] || '腹部',
+                  createdAt: a.createdAt || new Date().toISOString()
+                }
               })
             }
             return raw
@@ -406,6 +507,271 @@
           type,
           message
         }
+      },
+
+      switchTab(tab) {
+        this.activeTab = tab
+        if (tab === 'cloud') {
+          this.loadCloudBackups()
+        }
+      },
+
+      async loadCloudBackups() {
+        try {
+          const backups = await listUserBackups()
+          this.cloudBackups = backups
+        } catch (e) {
+          console.error('加载云端备份失败:', e)
+          uni.showToast({
+            title: '加载失败',
+            icon: 'none'
+          })
+        }
+      },
+
+      async handleCloudUpload() {
+        if (this.isUploading) return
+
+        uni.showLoading({
+          title: '上传中...'
+        })
+        this.isUploading = true
+
+        try {
+          await uploadToCloud()
+          uni.showToast({
+            title: '上传成功',
+            icon: 'success'
+          })
+          await this.loadCloudBackups()
+        } catch (e) {
+          console.error('上传失败:', e)
+          uni.showToast({
+            title: '上传失败: ' + (e.message || '未知错误'),
+            icon: 'none'
+          })
+        } finally {
+          this.isUploading = false
+          uni.hideLoading()
+        }
+      },
+
+      async handleCloudDownload(backup) {
+        uni.showActionSheet({
+          itemList: ['覆盖导入 (清除现有数据)', '合并导入 (保留现有数据)'],
+          success: async (res) => {
+            const overwrite = res.tapIndex === 0
+            uni.showLoading({
+              title: '下载中...'
+            })
+            this.isDownloading = true
+
+            try {
+              const backupData = await downloadFromCloud(backup.backupId)
+              await this.restoreDataFromCloud(backupData, overwrite)
+              uni.showToast({
+                title: '恢复成功',
+                icon: 'success'
+              })
+            } catch (e) {
+              console.error('下载失败:', e)
+              uni.showToast({
+                title: '下载失败',
+                icon: 'none'
+              })
+            } finally {
+              this.isDownloading = false
+              uni.hideLoading()
+            }
+          }
+        })
+      },
+
+      async restoreDataFromCloud(backupData, overwrite) {
+        const LEGACY_CATEGORY_MAP = {
+          core: 'abs',
+          cardio: 'abs',
+          other: 'abs'
+        }
+        const migrateActionsIfNeeded = (raw) => {
+          if (!Array.isArray(raw) || raw.length === 0) return raw || []
+          const kw = {
+            chest: ['卧推', '飞鸟', '夹胸', '上斜', '下斜', '哑铃卧推', '杠铃卧推', '胸'],
+            back: ['引体', '划船', '下拉', '硬拉', '高位下拉', '坐姿划船', '背'],
+            shoulders: ['推举', '侧平举', '前平举', '耸肩', '肩'],
+            arms: ['弯举', '臂屈伸', '锤式', '绳索', '肱二', '肱三', '手臂', '二头', '三头'],
+            legs: ['深蹲', '腿举', '腿弯举', '腿屈伸', '弓箭步', '臀推', '腿'],
+            abs: ['卷腹', '平板', '举腿', '俄罗斯', '核心', '腹']
+          }
+          const cn = {
+            chest: '胸部',
+            back: '背部',
+            shoulders: '肩部',
+            arms: '手臂',
+            legs: '腿部',
+            abs: '腹部'
+          }
+          const dt = (n) => {
+            for (const [c, ks] of Object.entries(kw)) {
+              for (const k of ks) {
+                if (n.includes(k)) return c
+              }
+            }
+            return 'abs'
+          }
+          const gid = () => Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8)
+          if (typeof raw[0] === 'string') {
+            return raw.map(n => {
+              const cat = dt(n)
+              return {
+                id: gid(),
+                name: n,
+                categories: [cat],
+                subcategories: {},
+                categoryName: cn[cat] || '腹部',
+                createdAt: new Date().toISOString()
+              }
+            })
+          }
+          if (typeof raw[0] === 'object') {
+            return raw.map(a => {
+              let cats = a.categories
+              if (!cats || !Array.isArray(cats) || cats.length === 0) {
+                const oldCat = a.category || dt(a.name)
+                const mapped = LEGACY_CATEGORY_MAP[oldCat] || oldCat
+                cats = [mapped]
+              } else {
+                cats = cats.map(c => LEGACY_CATEGORY_MAP[c] || c)
+              }
+              return {
+                id: a.id || gid(),
+                name: a.name,
+                categories: cats,
+                subcategories: a.subcategories || {},
+                categoryName: cn[cats[0]] || '腹部',
+                createdAt: a.createdAt || new Date().toISOString()
+              }
+            })
+          }
+          return raw
+        }
+
+        const data = backupData.data || {}
+        const tplArr = Array.isArray(data.fitness_templates) ? data.fitness_templates : []
+        const actArr = Array.isArray(data.fitness_actions) ? data.fitness_actions : []
+        const migratedActArr = migrateActionsIfNeeded(actArr)
+        const daydata = data.fitness_daydata || {}
+        const annivsArr = Array.isArray(data.fitness_annivs) ? data.fitness_annivs : []
+
+        const TEMPLATE_KEY = 'fitness_templates'
+        const ACTION_KEY = 'fitness_actions'
+        const DAYDATA_PREFIX = 'fitness_daydata_'
+        const INDEX_KEY = 'fitness_index'
+
+        const clearAllData = () => {
+          const info = uni.getStorageInfoSync()
+          info.keys.forEach(key => {
+            if (key === TEMPLATE_KEY || key === ACTION_KEY || key.startsWith(DAYDATA_PREFIX) ||
+              key === 'annivs' || key === INDEX_KEY) {
+              uni.removeStorageSync(key)
+            }
+          })
+        }
+
+        const mergeArraysUnique = (arrA, arrB) => {
+          const a = Array.isArray(arrA) ? arrA.slice() : []
+          const b = Array.isArray(arrB) ? arrB : []
+          b.forEach(item => {
+            if (!a.some(x => JSON.stringify(x) === JSON.stringify(item))) {
+              a.push(item)
+            }
+          })
+          return a
+        }
+
+        if (overwrite) {
+          clearAllData()
+          uni.setStorageSync(TEMPLATE_KEY, tplArr)
+          uni.setStorageSync(ACTION_KEY, migratedActArr)
+          Object.keys(daydata).forEach(date => {
+            const value = daydata[date] || {}
+            uni.setStorageSync(DAYDATA_PREFIX + date, value)
+          })
+          if (annivsArr.length > 0) {
+            uni.setStorageSync('annivs', JSON.stringify(annivsArr))
+          }
+        } else {
+          const currentTpl = uni.getStorageSync(TEMPLATE_KEY) || []
+          const currentAct = uni.getStorageSync(ACTION_KEY) || []
+          const mergedTpl = mergeArraysUnique(currentTpl, tplArr)
+          const mergedAct = mergeArraysUnique(currentAct, migratedActArr)
+
+          uni.setStorageSync(TEMPLATE_KEY, mergedTpl)
+          uni.setStorageSync(ACTION_KEY, mergedAct)
+          Object.keys(daydata).forEach(date => {
+            const key = DAYDATA_PREFIX + date
+            const existed = uni.getStorageSync(key) || {}
+            const next = Object.assign({}, existed, daydata[date] || {})
+            uni.setStorageSync(key, next)
+          })
+          if (annivsArr.length > 0) {
+            const currentAnnivs = uni.getStorageSync('annivs') ? JSON.parse(uni.getStorageSync('annivs')) : []
+            const mergedAnnivs = mergeArraysUnique(currentAnnivs, annivsArr)
+            uni.setStorageSync('annivs', JSON.stringify(mergedAnnivs))
+          }
+        }
+
+        const cacheStore = useDayDataCacheStore()
+        cacheStore.buildIndex()
+        cacheStore.clearCache()
+      },
+
+      async handleCloudDelete(backup) {
+        uni.showModal({
+          title: '确认删除',
+          content: '确定要删除此备份吗？',
+          success: async (res) => {
+            if (res.confirm) {
+              try {
+                await deleteBackup(backup.backupId)
+                uni.showToast({
+                  title: '删除成功',
+                  icon: 'success'
+                })
+                await this.loadCloudBackups()
+              } catch (e) {
+                console.error('删除失败:', e)
+                uni.showToast({
+                  title: '删除失败',
+                  icon: 'none'
+                })
+              }
+            }
+          }
+        })
+      },
+
+      formatTime(timestamp) {
+        const date = new Date(timestamp)
+        const now = new Date()
+        const isToday = date.toDateString() === now.toDateString()
+
+        if (isToday) {
+          return `今天 ${date.getHours()}:${String(date.getMinutes()).padStart(2, '0')}`
+        }
+
+        const month = date.getMonth() + 1
+        const day = date.getDate()
+        const hours = date.getHours()
+        const minutes = String(date.getMinutes()).padStart(2, '0')
+
+        return `${month}月${day}日 ${hours}:${minutes}`
+      },
+
+      formatSize(bytes) {
+        if (!bytes || bytes < 1024) return bytes + ' B'
+        if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
+        return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
       }
     }
   }
@@ -699,7 +1065,6 @@
     box-shadow: 0 0 20px rgba(0, 122, 255, 0.4);
   }
 
-  /* 增强：同步中球体本身的轻微缩放呼吸感 */
   @keyframes orb-breath {
 
     0%,
@@ -714,5 +1079,200 @@
 
   .rotating.backup-orb {
     animation: orb-breath 2s infinite ease-in-out;
+  }
+
+  .tab-bar {
+    display: flex;
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 4px;
+    margin-bottom: 20px;
+  }
+
+  .container.dark .tab-bar {
+    background: #1c1c1e;
+  }
+
+  .tab-item {
+    flex: 1;
+    text-align: center;
+    padding: 10px 0;
+    border-radius: 8px;
+    color: #666;
+    font-size: 14px;
+    transition: all 0.3s;
+  }
+
+  .tab-item.active {
+    background: #007aff;
+    color: #ffffff;
+  }
+
+  /* .container.dark .tab-item {
+    color: #999;
+  } */
+
+  .container.dark .tab-item.active {
+    background: #58a6ff;
+  }
+
+  .tab-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .cloud-section {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .cloud-actions {
+    display: flex;
+    gap: 12px;
+  }
+
+  .action-btn {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: #ffffff;
+    border-radius: 16px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  }
+
+  .container.dark .action-btn {
+    background: #1c1c1e;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  }
+
+  .cloud-upload .action-icon {
+    font-size: 32px;
+    margin-bottom: 8px;
+  }
+
+  .cloud-download .action-icon {
+    font-size: 32px;
+    margin-bottom: 8px;
+  }
+
+  .action-text {
+    font-size: 14px;
+    color: #333;
+  }
+
+  .container.dark .action-text {
+    color: #f2f2f7;
+  }
+
+  .backup-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+  }
+
+  .info-text {
+    font-size: 14px;
+    color: #666;
+  }
+
+  .container.dark .info-text {
+    color: #999;
+  }
+
+  .backup-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .backup-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px;
+    background: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  }
+
+  .container.dark .backup-item {
+    background: #1c1c1e;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  }
+
+  .backup-info-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .backup-icon {
+    font-size: 24px;
+  }
+
+  .backup-details {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .backup-time {
+    font-size: 14px;
+    color: #333;
+  }
+
+  .container.dark .backup-time {
+    color: #f2f2f7;
+  }
+
+  .backup-size {
+    font-size: 12px;
+    color: #999;
+    margin-top: 4px;
+  }
+
+  .backup-actions {
+    display: flex;
+    gap: 16px;
+  }
+
+  .action-text.download {
+    color: #007aff;
+  }
+
+  .action-text.delete {
+    color: #ff3b30;
+  }
+
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 40px 20px;
+  }
+
+  .empty-icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+  }
+
+  .empty-text {
+    font-size: 16px;
+    color: #666;
+    margin-bottom: 8px;
+  }
+
+  .container.dark .empty-text {
+    color: #999;
+  }
+
+  .empty-hint {
+    font-size: 14px;
+    color: #999;
   }
 </style>

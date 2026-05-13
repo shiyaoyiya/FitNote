@@ -110,10 +110,12 @@
         console.log('Timer Modal - Platform detection - isMiniProgram:', this.isMiniProgram)
       },
       initTimer() {
-        const savedDuration = uni.getStorageSync('fitness_timer_duration') || this.defaultDuration
-        this.totalDuration = savedDuration
-        this.remaining = savedDuration
-        this.selectedQuickSeconds = savedDuration
+        const initialDuration = this.defaultDuration > 0
+          ? this.defaultDuration
+          : uni.getStorageSync('fitness_timer_duration') || 180
+        this.totalDuration = initialDuration
+        this.remaining = initialDuration
+        this.selectedQuickSeconds = initialDuration
         this.notified = false
         this.canvasReady = true
         this.$nextTick(() => {

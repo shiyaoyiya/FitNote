@@ -51,7 +51,7 @@
         <text class="tab-label">训练统计</text>
       </view>
 
-      <view class="tab-item" @click="goToBackup" @longpress="onExportCSV">
+      <view class="tab-item" v-if="!isMiniProgram" @click="goToBackup" @longpress="onExportCSV">
         <view class="tab-icon">
           <view class="icon-base icon-backup"></view>
         </view>
@@ -434,6 +434,12 @@
             }
           }
         }
+        return false
+      },
+      isMiniProgram() {
+        // #ifdef MP-WEIXIN || MP-ALIPAY || MP-BAIDU || MP-TOUTIAO || MP-QQ
+        return true
+        // #endif
         return false
       },
     },
@@ -1342,6 +1348,9 @@
 
       /* ========== CSV 导出 ========== */
       onExportCSV() {
+        if (this.isMiniProgram) {
+          return
+        }
         uni.vibrateShort({
           type: 'light'
         })
@@ -1356,6 +1365,9 @@
         })
       },
       async doExportCSV() {
+        if (this.isMiniProgram) {
+          return
+        }
         uni.showLoading({
           title: '导出中...'
         })

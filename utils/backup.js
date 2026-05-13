@@ -145,11 +145,14 @@ function isApp() {
 
 
 export function isAndroidApp() {
+  // #ifdef APP-PLUS
   try {
-    return isApp() && typeof plus !== 'undefined' && plus.os && plus.os.name === 'Android'
+    return typeof plus !== 'undefined' && plus.os && plus.os.name === 'Android'
   } catch (e) {
     return false
   }
+  // #endif
+  return false
 }
 
 
@@ -1267,8 +1270,7 @@ export function chooseBackupPath() {
   console.log('开始选择路径，当前环境:', {
     isApp: isApp(),
     isAndroidApp: isAndroidApp(),
-    plus: !!plus,
-    plusAndroid: !!(plus && plus.android)
+    hasPlus: typeof plus !== 'undefined'
   })
 
   return new Promise((resolve, reject) => {

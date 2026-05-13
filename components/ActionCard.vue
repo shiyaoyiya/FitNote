@@ -360,6 +360,8 @@
           stages,
         })
 
+        this.expanded = true
+
         // 重置输入
         this.mainReps = ''
         this.mainWeight = ''
