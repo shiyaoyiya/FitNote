@@ -2,8 +2,8 @@
     "name" : "FitNote",
     "appid" : "__UNI__0B27BED",
     "description" : "",
-    "versionName" : "1.9.4",
-    "versionCode" : 194,
+    "versionName" : "1.9.5",
+    "versionCode" : 195,
     "transformPx" : false,
     /* 5+App特有相关 */
     "app-plus" : {

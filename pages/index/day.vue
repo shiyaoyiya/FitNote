@@ -501,9 +501,8 @@
       removeEntry(aIdx, eIdx) {
         const removed = this.actionEntries[aIdx].splice(eIdx, 1)[0]
         const isPlaceholder = isPlaceholderEntry(removed)
-        if (isPlaceholder) {
-          this.$set(this.actionEntries, aIdx, [...this.actionEntries[aIdx], createPlaceholderEntry()])
-        }
+        // 移除删除占位符后再添加新占位符的逻辑
+        // 原来的逻辑是: if (isPlaceholder) { this.$set(this.actionEntries, aIdx, [...this.actionEntries[aIdx], createPlaceholderEntry()]) }
         this.debounceSaveToStorage(aIdx)
         this.debounceCalcDiffs()
         const msg = isPlaceholder ? `已删除占位符` : `已删除：${removed.input}`

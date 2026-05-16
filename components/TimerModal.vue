@@ -12,12 +12,12 @@
         </view>
         <view class="timer-core">
           <canvas v-if="canvasReady" id="timerCanvas" canvas-id="timerCanvas" class="timer-canvas"
-            style="width:250px; height:250px;" />
+            style="width:250px; height:250px; position:absolute; left:50%; top:50%; transform: translate(-50%, -50%);" />
           <view class="time-text">{{ displayTime }}</view>
         </view>
         <view class="timer-actions">
-          <button class="action-btn" @click.stop="adjustDuration(-10)">－10s</button>
-          <button class="action-btn" @click.stop="adjustDuration(+10)">＋10s</button>
+          <button class="action-btn" @click.stop="adjustDuration(-10)">-10s</button>
+          <button class="action-btn" @click.stop="adjustDuration(+10)">+10s</button>
           <button class="action-btn done-btn" @click.stop="completeTimer">完成</button>
         </view>
       </view>
@@ -110,18 +110,16 @@
         console.log('Timer Modal - Platform detection - isMiniProgram:', this.isMiniProgram)
       },
       initTimer() {
-        const initialDuration = this.defaultDuration > 0
-          ? this.defaultDuration
-          : uni.getStorageSync('fitness_timer_duration') || 180
+        const initialDuration = this.defaultDuration > 0 ?
+          this.defaultDuration :
+          uni.getStorageSync('fitness_timer_duration') || 180
         this.totalDuration = initialDuration
         this.remaining = initialDuration
         this.selectedQuickSeconds = initialDuration
         this.notified = false
         this.canvasReady = true
         this.$nextTick(() => {
-          this.$nextTick(() => {
-            this.initCanvas()
-          })
+          this.initCanvas()
         })
       },
       initCanvas() {
@@ -215,11 +213,12 @@
         if (!this.ctx) return
 
         const size = 250
-        const cx = size / 2,
-          cy = size / 2,
-          r = 110
+        const cx = size / 2
+        const cy = size / 2
+        const r = 110
 
         this.ctx.clearRect(0, 0, size, size)
+
         this.ctx.setStrokeStyle('rgba(255, 255, 255, 0.1)')
         this.ctx.setLineWidth(14)
         this.ctx.beginPath()
@@ -232,12 +231,20 @@
 
         this.ctx.setStrokeStyle('#379bff')
         this.ctx.setLineWidth(17)
-        this.ctx.setShadow(0, 0, 15, '#379bff')
+
+        if (this.isMiniProgram) {
+          this.ctx.setShadow(0, 0, 7, '#379bff')
+        } else {
+          this.ctx.setShadow(0, 0, 15, '#379bff')
+        }
+
         this.ctx.beginPath()
         this.ctx.arc(cx, cy, r, startAngle, endAngle, false)
         this.ctx.stroke()
 
-        this.ctx.draw && this.ctx.draw()
+        if (this.ctx.draw) {
+          this.ctx.draw()
+        }
       },
     },
   }
@@ -276,12 +283,10 @@
   @keyframes fadeIn {
     from {
       opacity: 0;
-      transform: scale(0.9);
     }
 
     to {
       opacity: 1;
-      transform: scale(1);
     }
   }
 
@@ -358,6 +363,8 @@
   .timer-core {
     position: relative;
     margin: 10px 0;
+    width: 250px;
+    height: 250px;
     display: flex;
     justify-content: center;
     align-items: center;

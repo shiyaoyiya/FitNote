@@ -79,7 +79,7 @@
         <text class="close-icon" @click="switchToSettings">×</text>
       </view>
       <scroll-view class="manage-body" :scroll-y="!isDragMode" :scroll-with-animation="false">
-        <movable-area class="manage-movable-area" :style="{ height: sortedActions.length * 110 + 'rpx' }">
+        <movable-area class="manage-movable-area" :style="{ height: sortedActions.length * 110 + 55 + 'rpx' }">
           <view v-for="(item, index) in sortedActions" :key="'slot'+index" class="manage-item-slot"
             :style="{ top: index * 110 + 'rpx' }"></view>
           <movable-view v-for="(act, idx) in sortedActions" :key="act" direction="vertical" class="manage-movable-item"

@@ -24,7 +24,7 @@
             </view>
             <view class="action-card" :style="{ transform: 'translateX(' + (slideOffset[idx] || 0) + 'px)' }"
               @touchstart="onTouchStart($event, idx)" @touchmove="onTouchMove($event, idx)"
-              @touchend="onTouchEnd($event, idx)" @longpress="onDragTrigger(idx)" @tap="goToTemplateDetail(tpl.name)">
+              @touchend="onTouchEnd($event, idx)" @longpress="onDragTrigger(idx)">
               <view class="card-color-bar" :style="{ backgroundColor: tpl.color || '#555' }"></view>
               <view class="card-info">
                 <text class="card-name">{{ tpl.name }}</text>
