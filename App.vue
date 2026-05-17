@@ -523,6 +523,7 @@
 </template>
 
 <style>
+@import '@/static/css/liquid-glass.css';
   /* 全局根容器配置 */
   page {
     height: 100%;
