@@ -492,7 +492,7 @@ html .container.dark.liquid-glass .save-row {
   border-radius: 32rpx 32rpx 0 0 !important;
   box-shadow:
     inset -2px -2px 4px var(--glass-shadow-inner),
-    4px -4px 20px var(--glass-shadow-outer) !important;
+    4px 4px 20px var(--glass-shadow-outer) !important;
   -webkit-backdrop-filter: blur(20px) !important;
   backdrop-filter: blur(20px) !important;
 }
@@ -542,7 +542,7 @@ html .container.dark.liquid-glass .save-row {
   border-radius: 32rpx 32rpx 0 0 !important;
   box-shadow:
     inset -2px -2px 4px var(--glass-shadow-inner),
-    4px -4px 20px var(--glass-shadow-outer) !important;
+    4px 4px 20px var(--glass-shadow-outer) !important;
   -webkit-backdrop-filter: blur(20px) !important;
   backdrop-filter: blur(20px) !important;
 }
