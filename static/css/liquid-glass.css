@@ -301,8 +301,8 @@ html .container.dark.liquid-glass .save-row {
 /* 计时器面�?*/
 .container.liquid-glass .timer-panel {
   background:
-    linear-gradient(135deg, transparent, rgba(255,255,255,0.25), transparent) 0% 0% / 300% 300%,
-    var(--glass-bg) !important;
+    linear-gradient(135deg, transparent, rgba(255,255,255,0.35), transparent) 0% 0% / 300% 300%,
+    rgba(255, 255, 255, 0.45) !important;
   background-blend-mode: overlay !important;
   animation: glass-shine 5s ease-in-out infinite !important;
   border: 1px solid var(--glass-border) !important;
@@ -317,6 +317,25 @@ html .container.dark.liquid-glass .save-row {
 .container.liquid-glass .timer-full-body {
   background: transparent !important;
   background-color: transparent !important;
+}
+
+/* 计时器快捷按钮 */
+.container.liquid-glass .quick-btn {
+  background: var(--glass-bg) !important;
+  border: 1px solid var(--glass-border) !important;
+  border-radius: 12px !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  backdrop-filter: blur(20px) !important;
+}
+
+.container.liquid-glass .quick-btn-active {
+  border-color: var(--focus-glow) !important;
+  background: rgba(55, 155, 255, 0.3) !important;
+}
+
+.container.liquid-glass .quick-btn-active .quick-label,
+.container.liquid-glass .quick-btn-active .quick-time {
+  color: var(--focus-glow) !important;
 }
 
 /* ===== templateManager.vue ===== */
