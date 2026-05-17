@@ -231,6 +231,22 @@
   backdrop-filter: blur(3px) !important;
 }
 
+/* 阅读说明弹窗 */
+.container.liquid-glass .guide-panel {
+  background:
+    linear-gradient(135deg, transparent, rgba(255,255,255,0.12), transparent) 0% 0% / 300% 300%,
+    var(--glass-bg) !important;
+  background-blend-mode: overlay !important;
+  animation: glass-shine 5s ease-in-out infinite !important;
+  border: 1px solid var(--glass-border) !important;
+  border-radius: 16px !important;
+  box-shadow:
+    inset -2px -2px 4px var(--glass-shadow-inner),
+    4px 4px 20px var(--glass-shadow-outer) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  backdrop-filter: blur(20px) !important;
+}
+
 /* ===== day.vue ===== */
 
 /* 底部保存行 — 液态玻璃下透明背景，仅显示内部按钮 */
