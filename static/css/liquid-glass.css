@@ -51,7 +51,7 @@
   border: 1px solid var(--glass-border);
   box-shadow:
     inset 0 0 0 1px var(--glass-shadow-inner),
-    inset 0 0 6px var(--glass-shadow-inner);
+    inset 0 0 12px var(--glass-shadow-inner);
   -webkit-backdrop-filter: blur(20px);
   backdrop-filter: blur(20px);
   color: var(--glass-text);
@@ -79,7 +79,7 @@
   border-radius: 60rpx;
   box-shadow:
     inset 0 0 0 1px var(--glass-shadow-inner),
-    inset 0 0 6px var(--glass-shadow-inner);
+    inset 0 0 12px var(--glass-shadow-inner);
   color: var(--glass-text);
   -webkit-backdrop-filter: blur(20px);
   backdrop-filter: blur(20px);
@@ -91,7 +91,7 @@
   transform: scale(0.96);
   box-shadow:
     inset 0 0 0 1px var(--glass-shadow-inner),
-    inset 0 0 6px var(--glass-shadow-inner);
+    inset 0 0 12px var(--glass-shadow-inner);
 }
 
 /* ===== 通用玻璃面板（弹窗） ===== */
@@ -105,7 +105,7 @@
   border-radius: 24rpx;
   box-shadow:
     inset 0 0 0 1px var(--glass-shadow-inner),
-    inset 0 0 6px var(--glass-shadow-inner);
+    inset 0 0 12px var(--glass-shadow-inner);
   color: var(--glass-text);
   -webkit-backdrop-filter: blur(20px);
   backdrop-filter: blur(20px);
@@ -682,4 +682,21 @@ html .container.dark.liquid-glass .save-row {
 
 .container.liquid-glass .icon-base {
   background-color: var(--glass-text) !important;
+}
+
+/* ===== 弹窗/面板去掉边框 ===== */
+.container.liquid-glass .glass-panel,
+.container.liquid-glass .modal-panel,
+.container.liquid-glass .menu-panel,
+.container.liquid-glass .split-panel,
+.container.liquid-glass .guide-panel,
+.container.liquid-glass .timer-panel,
+.container.liquid-glass .popup-panel,
+.container.liquid-glass .color-picker-card,
+.container.liquid-glass .action-picker-panel,
+.container.liquid-glass .set-selector-panel,
+.container.liquid-glass .picker-panel,
+.container.liquid-glass .selector-panel,
+.container.liquid-glass .sort-card {
+  border: none !important;
 }
