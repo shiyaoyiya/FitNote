@@ -319,6 +319,23 @@ html .container.dark.liquid-glass .save-row {
   background-color: transparent !important;
 }
 
+/* 清除 uni-app <button> 默认边框 */
+.container.liquid-glass button {
+  border: none !important;
+  outline: none !important;
+}
+
+/* ActionCard 确认按钮 */
+.container.liquid-glass .confirm-btn,
+.container.liquid-glass .extra-confirm-btn {
+  background: var(--glass-bg) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  backdrop-filter: blur(20px) !important;
+  box-shadow:
+    inset -2px -2px 4px var(--glass-shadow-inner),
+    2px 2px 6px var(--glass-shadow-outer) !important;
+}
+
 /* 计时器快捷按钮 */
 .container.liquid-glass .quick-btn {
   background: var(--glass-bg) !important;
