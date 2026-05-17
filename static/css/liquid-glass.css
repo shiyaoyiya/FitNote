@@ -224,6 +224,13 @@
   backdrop-filter: blur(20px) !important;
 }
 
+/* ===== 遮罩层玻璃化 — 让 backdrop-filter 有内容可模糊 ===== */
+.container.liquid-glass .overlay-bg {
+  background: rgba(0, 0, 0, 0.25) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+  backdrop-filter: blur(8px) !important;
+}
+
 /* ===== day.vue ===== */
 
 /* 底部保存行 — 液态玻璃下透明背景，仅显示内部按钮 */
