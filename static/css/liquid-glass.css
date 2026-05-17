@@ -3,7 +3,7 @@
 
 /* ===== 浅色模式变量 ===== */
 .container.liquid-glass.light {
-  --glass-bg: rgba(255, 255, 255, 0.25);
+  --glass-bg: rgba(255, 255, 255, 0.1);
   --glass-border: rgba(255, 255, 255, 0.5);
   --glass-text: #1a1a1a;
   --glass-shadow-outer: rgba(0, 0, 0, 0.08);
@@ -15,7 +15,7 @@
 
 /* ===== 深色模式变量 ===== */
 .container.liquid-glass.dark {
-  --glass-bg: rgba(0, 0, 0, 0.35);
+  --glass-bg: rgba(0, 0, 0, 0.1);
   --glass-border: rgba(255, 255, 255, 0.2);
   --glass-text: #ffffff;
   --glass-shadow-outer: rgba(0, 0, 0, 0.3);
@@ -168,6 +168,28 @@
   backdrop-filter: blur(20px) !important;
 }
 
+/* Tab Bar 内部 tab-item — 液态玻璃下清除原始背景 */
+.container.liquid-glass .tab-bar-fixed .tab-item {
+  background: transparent !important;
+  border: none !important;
+}
+
+/* 分化计划弹窗 */
+.container.liquid-glass .split-panel {
+  background:
+    linear-gradient(90deg, transparent, rgba(255,255,255,0.12), transparent) 0% 0% / 200% 100%,
+    var(--glass-bg) !important;
+  background-blend-mode: overlay !important;
+  animation: glass-shine 5s ease-in-out infinite !important;
+  border: 1px solid var(--glass-border) !important;
+  border-radius: 24rpx !important;
+  box-shadow:
+    inset 0 1px 2px var(--glass-shadow-inner),
+    0 8px 32px var(--glass-shadow-outer) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  backdrop-filter: blur(20px) !important;
+}
+
 /* 更多菜单弹窗 */
 .container.liquid-glass .menu-panel {
   background:
@@ -202,12 +224,12 @@
 
 /* ===== day.vue ===== */
 
-/* 底部保存行 */
+/* 底部保存行 — 液态玻璃下透明背景，仅显示内部按钮 */
 .container.liquid-glass .save-row {
-  background: var(--glass-bg) !important;
-  -webkit-backdrop-filter: blur(20px) !important;
-  backdrop-filter: blur(20px) !important;
-  border-top: 1px solid var(--glass-border) !important;
+  background: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border-top: none !important;
 }
 
 /* 计时器/设置按钮 */
@@ -226,6 +248,26 @@
 .container.liquid-glass .minimal-timer-btn:active,
 .container.liquid-glass .minimal-settings-btn:active {
   transform: scale(0.96) !important;
+}
+
+/* 计时器面板 */
+.container.liquid-glass .timer-panel {
+  background:
+    linear-gradient(90deg, transparent, rgba(255,255,255,0.12), transparent) 0% 0% / 200% 100%,
+    var(--glass-bg) !important;
+  background-blend-mode: overlay !important;
+  animation: glass-shine 5s ease-in-out infinite !important;
+  border: 1px solid var(--glass-border) !important;
+  border-radius: 32rpx !important;
+  box-shadow:
+    inset 0 1px 2px var(--glass-shadow-inner),
+    0 8px 32px var(--glass-shadow-outer) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  backdrop-filter: blur(20px) !important;
+}
+
+.container.liquid-glass .timer-full-body {
+  background: transparent !important;
 }
 
 /* ===== templateManager.vue ===== */
@@ -327,6 +369,23 @@
   backdrop-filter: blur(20px) !important;
 }
 
+.container.liquid-glass .category-tab.active {
+  border-color: var(--focus-glow) !important;
+  box-shadow: 0 0 0 1px var(--focus-glow), inset 0 0 0 1px var(--focus-glow) !important;
+  background:
+    linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent) 0% 0% / 200% 100%,
+    var(--glass-bg) !important;
+  background-blend-mode: overlay !important;
+}
+
+/* 底部操作栏 — 液态玻璃下全透明 */
+.container.liquid-glass .bottom-bar {
+  background: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border-top: none !important;
+}
+
 /* 搜索框 */
 .container.liquid-glass .search-inner {
   background: var(--glass-bg) !important;
@@ -350,67 +409,6 @@
     0 -8px 32px var(--glass-shadow-outer) !important;
   -webkit-backdrop-filter: blur(20px) !important;
   backdrop-filter: blur(20px) !important;
-}
-
-/* ===== backup.vue ===== */
-
-/* Tab 标签 */
-.container.liquid-glass .tab-item {
-  background: var(--glass-bg) !important;
-  border: 1px solid var(--glass-border) !important;
-  border-radius: 16rpx !important;
-  color: var(--glass-text) !important;
-  -webkit-backdrop-filter: blur(20px) !important;
-  backdrop-filter: blur(20px) !important;
-}
-
-.container.liquid-glass .tab-item.active {
-  border-color: var(--focus-glow) !important;
-  box-shadow: 0 0 0 1px var(--focus-glow) !important;
-}
-
-/* 状态卡片 */
-.container.liquid-glass .status-card.card {
-  background:
-    linear-gradient(90deg, transparent, rgba(255,255,255,0.12), transparent) 0% 0% / 200% 100%,
-    var(--glass-bg) !important;
-  background-blend-mode: overlay !important;
-  animation: glass-shine 5s ease-in-out infinite !important;
-  border: 1px solid var(--glass-border) !important;
-  border-radius: 32rpx !important;
-  box-shadow:
-    inset 0 1px 2px var(--glass-shadow-inner),
-    0 8px 32px var(--glass-shadow-outer) !important;
-  -webkit-backdrop-filter: blur(20px) !important;
-  backdrop-filter: blur(20px) !important;
-}
-
-/* 备份球体 */
-.container.liquid-glass .backup-orb {
-  background:
-    linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent) 0% 0% / 200% 100%,
-    linear-gradient(135deg, rgba(0,122,255,0.4), rgba(0,86,179,0.4)) !important;
-  background-blend-mode: overlay !important;
-  animation: glass-shine 5s ease-in-out infinite !important;
-  border: 1px solid var(--glass-border) !important;
-  box-shadow:
-    inset 0 2px 4px var(--glass-shadow-inner),
-    0 8px 32px var(--glass-shadow-outer) !important;
-  -webkit-backdrop-filter: blur(20px) !important;
-  backdrop-filter: blur(20px) !important;
-}
-
-/* 次要按钮 */
-.container.liquid-glass .btn-secondary {
-  background: var(--glass-bg) !important;
-  border: 1px solid var(--glass-border) !important;
-  border-radius: 24rpx !important;
-  color: var(--glass-text) !important;
-  -webkit-backdrop-filter: blur(20px) !important;
-  backdrop-filter: blur(20px) !important;
-  box-shadow:
-    inset 0 1px 2px var(--glass-shadow-inner),
-    0 4px 12px var(--glass-shadow-outer) !important;
 }
 
 /* ===== trainingStat.vue 及子组件 ===== */
@@ -461,6 +459,127 @@
     0 -8px 32px var(--glass-shadow-outer) !important;
   -webkit-backdrop-filter: blur(20px) !important;
   backdrop-filter: blur(20px) !important;
+}
+
+/* ===== 弹窗内部内容液态玻璃化 ===== */
+
+.container.liquid-glass .popup-panel .panel-header,
+.container.liquid-glass .popup-panel .panel-body {
+  background: transparent !important;
+}
+
+.container.liquid-glass .form-input {
+  background: var(--glass-bg) !important;
+  border: 1px solid var(--glass-border) !important;
+  border-radius: 16rpx !important;
+  color: var(--glass-text) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  backdrop-filter: blur(20px) !important;
+}
+
+.container.liquid-glass .form-input::placeholder {
+  color: var(--glass-placeholder) !important;
+}
+
+.container.liquid-glass .checkbox-row {
+  background: var(--glass-bg) !important;
+  border: 1px solid var(--glass-border) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  backdrop-filter: blur(20px) !important;
+}
+
+.container.liquid-glass .category-option {
+  background: var(--glass-bg) !important;
+  border: 1px solid var(--glass-border) !important;
+  color: var(--glass-text) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  backdrop-filter: blur(20px) !important;
+}
+
+.container.liquid-glass .category-option.selected {
+  border-color: var(--focus-glow) !important;
+  box-shadow: 0 0 0 1px var(--focus-glow) !important;
+}
+
+.container.liquid-glass .subcategory-option {
+  background: var(--glass-bg) !important;
+  border: 1px solid var(--glass-border) !important;
+  color: var(--glass-text) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  backdrop-filter: blur(20px) !important;
+}
+
+.container.liquid-glass .subcategory-option.selected {
+  border-color: var(--focus-glow) !important;
+}
+
+.container.liquid-glass .auto-detect-hint {
+  background: var(--glass-bg) !important;
+  border: 1px solid var(--glass-border) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  backdrop-filter: blur(20px) !important;
+}
+
+.container.liquid-glass .form-label {
+  color: var(--glass-text) !important;
+}
+
+.container.liquid-glass .btn-return {
+  background: var(--glass-bg) !important;
+  border: 1px solid var(--glass-border) !important;
+  color: var(--glass-text) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  backdrop-filter: blur(20px) !important;
+}
+
+/* ===== color-picker-card 内部玻璃化 ===== */
+
+.container.liquid-glass .color-picker-card .color-option-item {
+  background: var(--glass-bg) !important;
+  border: 1px solid var(--glass-border) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  backdrop-filter: blur(20px) !important;
+}
+
+/* ===== set-selector 内部玻璃化 ===== */
+
+.container.liquid-glass .set-selector-body {
+  background: transparent !important;
+}
+
+.container.liquid-glass .quick-set-btn {
+  background: var(--glass-bg) !important;
+  border: 1px solid var(--glass-border) !important;
+  color: var(--glass-text) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  backdrop-filter: blur(20px) !important;
+}
+
+.container.liquid-glass .preset-set-btn {
+  background: var(--glass-bg) !important;
+  border: 1px solid var(--glass-border) !important;
+  color: var(--glass-text) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  backdrop-filter: blur(20px) !important;
+}
+
+.container.liquid-glass .preset-set-btn.selected {
+  border-color: var(--focus-glow) !important;
+  box-shadow: 0 0 0 1px var(--focus-glow) !important;
+}
+
+.container.liquid-glass .custom-set-input {
+  background: var(--glass-bg) !important;
+  border: 1px solid var(--glass-border) !important;
+  color: var(--glass-text) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  backdrop-filter: blur(20px) !important;
+}
+
+/* ===== trainingStat uni-scroll-view-content ===== */
+
+.container.liquid-glass .uni-scroll-view-content {
+  background: transparent !important;
 }
 
 /* ===== Tab 图标颜色适配 ===== */
