@@ -1,5 +1,5 @@
 <template>
-  <view class="container" :class="{ dark: settingsStore.isDarkMode, light: !settingsStore.isDarkMode }">
+  <view class="container" :class="{ dark: settingsStore.isDarkMode, light: !settingsStore.isDarkMode, 'liquid-glass': settingsStore.liquidGlassEnabled }">
     <!-- 休息日状态展示 -->
     <view v-if="isRestDay" class="rest-day-header">
       <text class="rest-day-text">📅 今日标记为休息日：{{ restReasonStored }}</text>
