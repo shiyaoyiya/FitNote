@@ -3,7 +3,7 @@
 
 /* ===== 浅色模式变量 ===== */
 .container.liquid-glass.light {
-  --glass-bg: rgba(245, 247, 250, 0.4);
+  --glass-bg: rgba(252, 252, 254, 0.7);
   --icon-bg: #ffffff !important;
   --glass-border: rgba(200, 210, 230, 0.6);
   --glass-text: #1a1a1a;
