@@ -1,15 +1,15 @@
-/* ===== 液态玻璃 UI 全局样式 ===== */
+/* ===== 液态玻�?UI 全局样式 ===== */
 /* 开关：在根容器添加 .liquid-glass 类名 */
 
 /* ===== 浅色模式变量 ===== */
 .container.liquid-glass.light {
-  --glass-bg: rgba(255, 255, 255, 0.1);
-  --glass-border: rgba(255, 255, 255, 0.5);
+  --glass-bg: rgba(245, 247, 250, 0.55);
+  --glass-border: rgba(200, 210, 230, 0.6);
   --glass-text: #1a1a1a;
-  --glass-shadow-outer: rgba(0, 0, 0, 0.08);
-  --glass-shadow-inner: rgba(255, 255, 255, 0.3);
+  --glass-shadow-outer: rgba(0, 0, 0, 0.12);
+  --glass-shadow-inner: rgba(255, 255, 255, 0.5);
   --glass-placeholder: rgba(0, 0, 0, 0.45);
-  --glass-edge: rgba(255, 255, 255, 0.6);
+  --glass-edge: rgba(200, 210, 230, 0.5);
   --focus-glow: rgba(0, 122, 255, 0.6);
 }
 
@@ -103,7 +103,7 @@
   backdrop-filter: blur(20px);
 }
 
-/* ===== 通用玻璃输入框 ===== */
+/* ===== 通用玻璃输入�?===== */
 .container.liquid-glass .glass-input {
   background: var(--glass-bg);
   border: 1px solid var(--glass-border);
@@ -169,7 +169,7 @@
   color: var(--glass-text) !important;
 }
 
-/* Tab Bar 悬浮（仅液态玻璃下） */
+/* Tab Bar 悬浮（仅液态玻璃下�?*/
 .container.liquid-glass .tab-bar-fixed {
   bottom: 16px !important;
   left: 16px !important;
@@ -189,7 +189,7 @@
   backdrop-filter: blur(20px) !important;
 }
 
-/* Tab Bar 内部 tab-item — 液态玻璃下清除原始背景 */
+/* Tab Bar 内部 tab-item �?液态玻璃下清除原始背景 */
 .container.liquid-glass .tab-bar-fixed .tab-item {
   background: transparent !important;
   border: none !important;
@@ -243,7 +243,7 @@
   backdrop-filter: blur(20px) !important;
 }
 
-/* ===== 遮罩层玻璃化 — 让 backdrop-filter 有内容可模糊 ===== */
+/* ===== 遮罩层玻璃化 �?�?backdrop-filter 有内容可模糊 ===== */
 .container.liquid-glass .overlay-bg {
   background: rgba(0, 0, 0, 0.25) !important;
   -webkit-backdrop-filter: blur(3px) !important;
@@ -268,15 +268,16 @@
 
 /* ===== day.vue ===== */
 
-/* 底部保存行 — 液态玻璃下透明背景，仅显示内部按钮 */
-.container.liquid-glass .save-row {
+/* 底部保存�?�?液态玻璃下透明背景，仅显示内部按钮 */
+.container.light.liquid-glass .save-row,
+.container.dark.liquid-glass .save-row {
   background: transparent !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
   border-top: none !important;
 }
 
-/* 计时器/设置按钮 */
+/* 计时�?设置按钮 */
 .container.liquid-glass .minimal-timer-btn,
 .container.liquid-glass .minimal-settings-btn {
   background: var(--glass-bg) !important;
@@ -294,7 +295,7 @@
   transform: scale(0.96) !important;
 }
 
-/* 计时器面板 */
+/* 计时器面�?*/
 .container.liquid-glass .timer-panel {
   background:
     linear-gradient(135deg, transparent, rgba(255,255,255,0.12), transparent) 0% 0% / 300% 300%,
@@ -422,7 +423,7 @@
   background-blend-mode: overlay !important;
 }
 
-/* 底部操作栏 — 液态玻璃下全透明 */
+/* 底部操作�?�?液态玻璃下全透明 */
 .container.liquid-glass .bottom-bar {
   background: transparent !important;
   backdrop-filter: none !important;
@@ -430,7 +431,7 @@
   border-top: none !important;
 }
 
-/* 搜索框 */
+/* 搜索�?*/
 .container.liquid-glass .search-inner {
   background: var(--glass-bg) !important;
   border: 1px solid var(--glass-border) !important;
@@ -576,7 +577,7 @@
   backdrop-filter: blur(20px) !important;
 }
 
-/* ===== color-picker-card 内部玻璃化 ===== */
+/* ===== color-picker-card 内部玻璃�?===== */
 
 .container.liquid-glass .color-picker-card .color-option-item {
   background: var(--glass-bg) !important;
@@ -585,7 +586,7 @@
   backdrop-filter: blur(20px) !important;
 }
 
-/* ===== set-selector 内部玻璃化 ===== */
+/* ===== set-selector 内部玻璃�?===== */
 
 .container.liquid-glass .set-selector-body {
   background: transparent !important;
@@ -631,3 +632,4 @@
 .container.liquid-glass .icon-base {
   background-color: var(--glass-text) !important;
 }
+
