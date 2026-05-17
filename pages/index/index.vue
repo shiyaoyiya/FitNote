@@ -1,5 +1,5 @@
 <template>
-  <view class="container" :class="{ dark: daySettingsStore.isDarkMode, light: !daySettingsStore.isDarkMode }">
+  <view class="container" :class="{ dark: daySettingsStore.isDarkMode, light: !daySettingsStore.isDarkMode, 'liquid-glass': daySettingsStore.liquidGlassEnabled }">
     <!-- 顶部：年月 -->
     <view class="calendar-container" @touchstart="onTouchStart" @touchend="onTouchEnd">
       <view class="calendar-slide-container" :style="{ transform: `translateX(${slideOffset}px)` }">
@@ -108,6 +108,10 @@
         <view class="menu-item" @click="onToggleTheme">
           <text class="menu-icon">{{ daySettingsStore.isDarkMode ? '☀️' : '🌙' }}</text>
           <text class="menu-text">{{ daySettingsStore.isDarkMode ? '切换浅色模式' : '切换深色模式' }}</text>
+        </view>
+        <view class="menu-item" @click="onToggleLiquidGlass">
+          <text class="menu-icon">✨</text>
+          <text class="menu-text">{{ daySettingsStore.liquidGlassEnabled ? '关闭液态玻璃' : '开启液态玻璃' }}</text>
         </view>
       </view>
     </view>
@@ -1339,6 +1343,15 @@
           icon: 'none'
         })
         uni.$emit('themeChanged', this.daySettingsStore.isDarkMode ? 'dark' : 'light')
+      },
+      onToggleLiquidGlass() {
+        this.daySettingsStore.toggleLiquidGlass()
+        this.showMoreMenu = false
+        uni.showToast({
+          title: this.daySettingsStore.liquidGlassEnabled ? '已开启液态玻璃' : '已关闭液态玻璃',
+          icon: 'none'
+        })
+        uni.$emit('liquidGlassChanged', this.daySettingsStore.liquidGlassEnabled)
       },
 
       /* ========== 智能推荐 ========== */
