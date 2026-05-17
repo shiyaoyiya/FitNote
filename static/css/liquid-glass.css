@@ -193,6 +193,7 @@
 /* Tab Bar 内部 tab-item �?液态玻璃下清除原始背景 */
 .container.liquid-glass .tab-bar-fixed .tab-item {
   background: transparent !important;
+  background-color: transparent !important;
   border: none !important;
 }
 
@@ -270,9 +271,10 @@
 /* ===== day.vue ===== */
 
 /* 底部保存�?�?液态玻璃下透明背景，仅显示内部按钮 */
-.container.light.liquid-glass .save-row,
-.container.dark.liquid-glass .save-row {
+html .container.light.liquid-glass .save-row,
+html .container.dark.liquid-glass .save-row {
   background: transparent !important;
+  background-color: transparent !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
   border-top: none !important;
@@ -314,6 +316,7 @@
 
 .container.liquid-glass .timer-full-body {
   background: transparent !important;
+  background-color: transparent !important;
 }
 
 /* ===== templateManager.vue ===== */
@@ -427,6 +430,7 @@
 /* 底部操作�?�?液态玻璃下全透明 */
 .container.liquid-glass .bottom-bar {
   background: transparent !important;
+  background-color: transparent !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
   border-top: none !important;
@@ -512,6 +516,7 @@
 .container.liquid-glass .popup-panel .panel-header,
 .container.liquid-glass .popup-panel .panel-body {
   background: transparent !important;
+  background-color: transparent !important;
 }
 
 .container.liquid-glass .form-input {
@@ -591,6 +596,7 @@
 
 .container.liquid-glass .set-selector-body {
   background: transparent !important;
+  background-color: transparent !important;
 }
 
 .container.liquid-glass .quick-set-btn {
@@ -626,6 +632,7 @@
 
 .container.liquid-glass .uni-scroll-view-content {
   background: transparent !important;
+  background-color: transparent !important;
 }
 
 /* ===== Tab 图标颜色适配 ===== */
