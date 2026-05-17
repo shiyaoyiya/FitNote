@@ -150,6 +150,25 @@
   color: var(--glass-text) !important;
 }
 
+/* 更多按钮 (CalendarMonth) */
+.container.liquid-glass .more-btn {
+  background: var(--glass-bg) !important;
+  border: 1px solid var(--glass-border) !important;
+  box-shadow:
+    inset -3px -3px 6px var(--glass-shadow-inner),
+    3px 3px 8px var(--glass-shadow-outer) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  backdrop-filter: blur(20px) !important;
+}
+
+.container.liquid-glass .more-btn:active {
+  transform: scale(0.96) !important;
+}
+
+.container.liquid-glass .more-dots {
+  color: var(--glass-text) !important;
+}
+
 /* Tab Bar 悬浮（仅液态玻璃下） */
 .container.liquid-glass .tab-bar-fixed {
   bottom: 16px !important;
