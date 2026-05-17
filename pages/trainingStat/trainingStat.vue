@@ -1,5 +1,5 @@
 <template>
-  <scroll-view class="container" :class="{ dark: daySettingsStore.isDarkMode, light: !daySettingsStore.isDarkMode }" scroll-y>
+  <scroll-view class="container" :class="{ dark: daySettingsStore.isDarkMode, light: !daySettingsStore.isDarkMode, 'liquid-glass': daySettingsStore.liquidGlassEnabled }" scroll-y>
     <view class="content-area">
       <view class="filter-header-row">
         <view class="period-toggle">
