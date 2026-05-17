@@ -1,14 +1,14 @@
-/* ===== 液态玻�?UI 全局样式 ===== */
+/* ===== 液态玻�?UI 全局样式 ===== */
 /* 开关：在根容器添加 .liquid-glass 类名 */
 
 /* ===== 浅色模式变量 ===== */
 .container.liquid-glass.light {
-  --glass-bg: rgba(245, 247, 250, 0.55);
+  --glass-bg: rgba(245, 247, 250, 0.4);
   --icon-bg: #ffffff !important;
   --glass-border: rgba(200, 210, 230, 0.6);
   --glass-text: #1a1a1a;
   --glass-shadow-outer: rgba(0, 0, 0, 0.12);
-  --glass-shadow-inner: rgba(255, 255, 255, 0.5);
+  --glass-shadow-inner: rgba(255, 255, 255, 0.7);
   --glass-placeholder: rgba(0, 0, 0, 0.45);
   --glass-edge: rgba(200, 210, 230, 0.5);
   --focus-glow: rgba(0, 122, 255, 0.6);
@@ -36,7 +36,7 @@
 /* ===== 通用基础玻璃背景 ===== */
 .container.liquid-glass .glass-bg {
   background:
-    linear-gradient(135deg, transparent, rgba(255,255,255,0.12), transparent) 0% 0% / 300% 300%,
+    linear-gradient(135deg, transparent, rgba(255,255,255,0.25), transparent) 0% 0% / 300% 300%,
     var(--glass-bg);
   background-blend-mode: overlay;
   animation: glass-shine 5s ease-in-out infinite;
@@ -63,7 +63,7 @@
 /* ===== 通用玻璃按钮 ===== */
 .container.liquid-glass .glass-btn {
   background:
-    linear-gradient(135deg, transparent, rgba(255,255,255,0.12), transparent) 0% 0% / 300% 300%,
+    linear-gradient(135deg, transparent, rgba(255,255,255,0.25), transparent) 0% 0% / 300% 300%,
     var(--glass-bg);
   background-blend-mode: overlay;
   animation: glass-shine 5s ease-in-out infinite;
@@ -90,7 +90,7 @@
 /* ===== 通用玻璃面板（弹窗） ===== */
 .container.liquid-glass .glass-panel {
   background:
-    linear-gradient(135deg, transparent, rgba(255,255,255,0.12), transparent) 0% 0% / 300% 300%,
+    linear-gradient(135deg, transparent, rgba(255,255,255,0.25), transparent) 0% 0% / 300% 300%,
     var(--glass-bg);
   background-blend-mode: overlay;
   animation: glass-shine 5s ease-in-out infinite;
@@ -104,7 +104,7 @@
   backdrop-filter: blur(20px);
 }
 
-/* ===== 通用玻璃输入�?===== */
+/* ===== 通用玻璃输入�?===== */
 .container.liquid-glass .glass-input {
   background: var(--glass-bg);
   border: 1px solid var(--glass-border);
@@ -130,7 +130,7 @@
 /* 今日训练按钮 */
 .container.liquid-glass .today-train-btn {
   background:
-    linear-gradient(135deg, transparent, rgba(255,255,255,0.12), transparent) 0% 0% / 300% 300%,
+    linear-gradient(135deg, transparent, rgba(255,255,255,0.25), transparent) 0% 0% / 300% 300%,
     var(--glass-bg) !important;
   background-blend-mode: overlay !important;
   animation: glass-shine 5s ease-in-out infinite !important;
@@ -170,7 +170,7 @@
   color: var(--glass-text) !important;
 }
 
-/* Tab Bar 悬浮（仅液态玻璃下�?*/
+/* Tab Bar 悬浮（仅液态玻璃下�?*/
 .container.liquid-glass .tab-bar-fixed {
   bottom: 16px !important;
   left: 16px !important;
@@ -178,7 +178,7 @@
   width: auto !important;
   border-radius: 20rpx !important;
   background:
-    linear-gradient(135deg, transparent, rgba(255,255,255,0.12), transparent) 0% 0% / 300% 300%,
+    linear-gradient(135deg, transparent, rgba(255,255,255,0.25), transparent) 0% 0% / 300% 300%,
     var(--glass-bg) !important;
   background-blend-mode: overlay !important;
   animation: glass-shine 5s ease-in-out infinite !important;
@@ -190,7 +190,7 @@
   backdrop-filter: blur(20px) !important;
 }
 
-/* Tab Bar 内部 tab-item �?液态玻璃下清除原始背景 */
+/* Tab Bar 内部 tab-item �?液态玻璃下清除原始背景 */
 .container.liquid-glass .tab-bar-fixed .tab-item {
   background: transparent !important;
   background-color: transparent !important;
@@ -200,7 +200,7 @@
 /* 分化计划弹窗 */
 .container.liquid-glass .split-panel {
   background:
-    linear-gradient(135deg, transparent, rgba(255,255,255,0.12), transparent) 0% 0% / 300% 300%,
+    linear-gradient(135deg, transparent, rgba(255,255,255,0.25), transparent) 0% 0% / 300% 300%,
     var(--glass-bg) !important;
   background-blend-mode: overlay !important;
   animation: glass-shine 5s ease-in-out infinite !important;
@@ -216,7 +216,7 @@
 /* 更多菜单弹窗 */
 .container.liquid-glass .menu-panel {
   background:
-    linear-gradient(135deg, transparent, rgba(255,255,255,0.12), transparent) 0% 0% / 300% 300%,
+    linear-gradient(135deg, transparent, rgba(255,255,255,0.25), transparent) 0% 0% / 300% 300%,
     var(--glass-bg) !important;
   background-blend-mode: overlay !important;
   animation: glass-shine 5s ease-in-out infinite !important;
@@ -232,7 +232,7 @@
 /* 通用弹窗 panel */
 .container.liquid-glass .modal-panel {
   background:
-    linear-gradient(135deg, transparent, rgba(255,255,255,0.12), transparent) 0% 0% / 300% 300%,
+    linear-gradient(135deg, transparent, rgba(255,255,255,0.25), transparent) 0% 0% / 300% 300%,
     var(--glass-bg) !important;
   background-blend-mode: overlay !important;
   animation: glass-shine 5s ease-in-out infinite !important;
@@ -245,7 +245,7 @@
   backdrop-filter: blur(20px) !important;
 }
 
-/* ===== 遮罩层玻璃化 �?�?backdrop-filter 有内容可模糊 ===== */
+/* ===== 遮罩层玻璃化 �?�?backdrop-filter 有内容可模糊 ===== */
 .container.liquid-glass .overlay-bg {
   background: rgba(0, 0, 0, 0.25) !important;
   -webkit-backdrop-filter: blur(3px) !important;
@@ -255,7 +255,7 @@
 /* 阅读说明弹窗 */
 .container.liquid-glass .guide-panel {
   background:
-    linear-gradient(135deg, transparent, rgba(255,255,255,0.12), transparent) 0% 0% / 300% 300%,
+    linear-gradient(135deg, transparent, rgba(255,255,255,0.25), transparent) 0% 0% / 300% 300%,
     var(--glass-bg) !important;
   background-blend-mode: overlay !important;
   animation: glass-shine 5s ease-in-out infinite !important;
@@ -270,7 +270,7 @@
 
 /* ===== day.vue ===== */
 
-/* 底部保存�?�?液态玻璃下透明背景，仅显示内部按钮 */
+/* 底部保存�?�?液态玻璃下透明背景，仅显示内部按钮 */
 html .container.light.liquid-glass .save-row,
 html .container.dark.liquid-glass .save-row {
   background: transparent !important;
@@ -280,7 +280,7 @@ html .container.dark.liquid-glass .save-row {
   border-top: none !important;
 }
 
-/* 计时�?设置按钮 */
+/* 计时�?设置按钮 */
 .container.liquid-glass .minimal-timer-btn,
 .container.liquid-glass .minimal-settings-btn {
   background: var(--glass-bg) !important;
@@ -298,10 +298,10 @@ html .container.dark.liquid-glass .save-row {
   transform: scale(0.96) !important;
 }
 
-/* 计时器面�?*/
+/* 计时器面�?*/
 .container.liquid-glass .timer-panel {
   background:
-    linear-gradient(135deg, transparent, rgba(255,255,255,0.12), transparent) 0% 0% / 300% 300%,
+    linear-gradient(135deg, transparent, rgba(255,255,255,0.25), transparent) 0% 0% / 300% 300%,
     var(--glass-bg) !important;
   background-blend-mode: overlay !important;
   animation: glass-shine 5s ease-in-out infinite !important;
@@ -323,7 +323,7 @@ html .container.dark.liquid-glass .save-row {
 
 .container.liquid-glass .btn-create {
   background:
-    linear-gradient(135deg, transparent, rgba(255,255,255,0.12), transparent) 0% 0% / 300% 300%,
+    linear-gradient(135deg, transparent, rgba(255,255,255,0.25), transparent) 0% 0% / 300% 300%,
     var(--glass-bg) !important;
   background-blend-mode: overlay !important;
   animation: glass-shine 5s ease-in-out infinite !important;
@@ -344,7 +344,7 @@ html .container.dark.liquid-glass .save-row {
 
 .container.liquid-glass .color-picker-card {
   background:
-    linear-gradient(135deg, transparent, rgba(255,255,255,0.12), transparent) 0% 0% / 300% 300%,
+    linear-gradient(135deg, transparent, rgba(255,255,255,0.25), transparent) 0% 0% / 300% 300%,
     var(--glass-bg) !important;
   background-blend-mode: overlay !important;
   animation: glass-shine 5s ease-in-out infinite !important;
@@ -360,7 +360,7 @@ html .container.dark.liquid-glass .save-row {
 .container.liquid-glass .action-picker-panel,
 .container.liquid-glass .set-selector-panel {
   background:
-    linear-gradient(135deg, transparent, rgba(255,255,255,0.12), transparent) 0% 0% / 300% 300%,
+    linear-gradient(135deg, transparent, rgba(255,255,255,0.25), transparent) 0% 0% / 300% 300%,
     var(--glass-bg) !important;
   background-blend-mode: overlay !important;
   animation: glass-shine 5s ease-in-out infinite !important;
@@ -378,7 +378,7 @@ html .container.dark.liquid-glass .save-row {
 /* 新建动作按钮 */
 .container.liquid-glass .btn-add-action {
   background:
-    linear-gradient(135deg, transparent, rgba(255,255,255,0.12), transparent) 0% 0% / 300% 300%,
+    linear-gradient(135deg, transparent, rgba(255,255,255,0.25), transparent) 0% 0% / 300% 300%,
     var(--glass-bg) !important;
   background-blend-mode: overlay !important;
   animation: glass-shine 5s ease-in-out infinite !important;
@@ -422,12 +422,12 @@ html .container.dark.liquid-glass .save-row {
   border-color: var(--focus-glow) !important;
   box-shadow: 0 0 0 1px var(--focus-glow), inset 0 0 0 1px var(--focus-glow) !important;
   background:
-    linear-gradient(135deg, transparent, rgba(255,255,255,0.15), transparent) 0% 0% / 300% 300%,
+    linear-gradient(135deg, transparent, rgba(255,255,255,0.25), transparent) 0% 0% / 300% 300%,
     var(--glass-bg) !important;
   background-blend-mode: overlay !important;
 }
 
-/* 底部操作�?�?液态玻璃下全透明 */
+/* 底部操作�?�?液态玻璃下全透明 */
 .container.liquid-glass .bottom-bar {
   background: transparent !important;
   background-color: transparent !important;
@@ -436,7 +436,7 @@ html .container.dark.liquid-glass .save-row {
   border-top: none !important;
 }
 
-/* 搜索�?*/
+/* 搜索�?*/
 .container.liquid-glass .search-inner {
   background: var(--glass-bg) !important;
   border: 1px solid var(--glass-border) !important;
@@ -448,7 +448,7 @@ html .container.dark.liquid-glass .save-row {
 /* 新建动作弹窗 */
 .container.liquid-glass .popup-panel {
   background:
-    linear-gradient(135deg, transparent, rgba(255,255,255,0.12), transparent) 0% 0% / 300% 300%,
+    linear-gradient(135deg, transparent, rgba(255,255,255,0.25), transparent) 0% 0% / 300% 300%,
     var(--glass-bg) !important;
   background-blend-mode: overlay !important;
   animation: glass-shine 5s ease-in-out infinite !important;
@@ -466,7 +466,7 @@ html .container.dark.liquid-glass .save-row {
 /* BodyPartManager 排序卡片 */
 .container.liquid-glass .sort-card {
   background:
-    linear-gradient(135deg, transparent, rgba(255,255,255,0.12), transparent) 0% 0% / 300% 300%,
+    linear-gradient(135deg, transparent, rgba(255,255,255,0.25), transparent) 0% 0% / 300% 300%,
     var(--glass-bg) !important;
   background-blend-mode: overlay !important;
   animation: glass-shine 5s ease-in-out infinite !important;
@@ -482,7 +482,7 @@ html .container.dark.liquid-glass .save-row {
 /* DatePicker 选择面板 */
 .container.liquid-glass .picker-panel {
   background:
-    linear-gradient(135deg, transparent, rgba(255,255,255,0.12), transparent) 0% 0% / 300% 300%,
+    linear-gradient(135deg, transparent, rgba(255,255,255,0.25), transparent) 0% 0% / 300% 300%,
     var(--glass-bg) !important;
   background-blend-mode: overlay !important;
   animation: glass-shine 5s ease-in-out infinite !important;
@@ -498,7 +498,7 @@ html .container.dark.liquid-glass .save-row {
 /* BodyPartSelector 选择面板 */
 .container.liquid-glass .selector-panel {
   background:
-    linear-gradient(135deg, transparent, rgba(255,255,255,0.12), transparent) 0% 0% / 300% 300%,
+    linear-gradient(135deg, transparent, rgba(255,255,255,0.25), transparent) 0% 0% / 300% 300%,
     var(--glass-bg) !important;
   background-blend-mode: overlay !important;
   animation: glass-shine 5s ease-in-out infinite !important;
@@ -583,7 +583,7 @@ html .container.dark.liquid-glass .save-row {
   backdrop-filter: blur(20px) !important;
 }
 
-/* ===== color-picker-card 内部玻璃�?===== */
+/* ===== color-picker-card 内部玻璃�?===== */
 
 .container.liquid-glass .color-picker-card .color-option-item {
   background: var(--glass-bg) !important;
@@ -592,7 +592,7 @@ html .container.dark.liquid-glass .save-row {
   backdrop-filter: blur(20px) !important;
 }
 
-/* ===== set-selector 内部玻璃�?===== */
+/* ===== set-selector 内部玻璃�?===== */
 
 .container.liquid-glass .set-selector-body {
   background: transparent !important;
