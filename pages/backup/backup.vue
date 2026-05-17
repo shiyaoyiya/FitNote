@@ -1,5 +1,5 @@
 <template>
-  <view class="container" :class="{ dark: daySettingsStore.isDarkMode, light: !daySettingsStore.isDarkMode }">
+  <view class="container" :class="{ dark: daySettingsStore.isDarkMode, light: !daySettingsStore.isDarkMode, 'liquid-glass': daySettingsStore.liquidGlassEnabled }">
     <view class="tab-bar">
       <view :class="['tab-item', { active: activeTab === 'local' }]" @click="switchTab('local')">
         📂 本地备份
