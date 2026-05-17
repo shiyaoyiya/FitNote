@@ -174,20 +174,17 @@
   border: none !important;
 }
 
-/* 分化计划弹窗 */
+/* 分化计划弹窗 — 全透明背景，仅靠高光边框和阴影勾勒 */
 .container.liquid-glass .split-panel {
-  background:
-    linear-gradient(90deg, transparent, rgba(255,255,255,0.12), transparent) 0% 0% / 200% 100%,
-    var(--glass-bg) !important;
-  background-blend-mode: overlay !important;
-  animation: glass-shine 5s ease-in-out infinite !important;
+  background: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  animation: none !important;
   border: 1px solid var(--glass-border) !important;
   border-radius: 24rpx !important;
   box-shadow:
-    inset 0 1px 2px var(--glass-shadow-inner),
+    0 0 0 1px var(--glass-edge) inset,
     0 8px 32px var(--glass-shadow-outer) !important;
-  -webkit-backdrop-filter: blur(20px) !important;
-  backdrop-filter: blur(20px) !important;
 }
 
 /* 更多菜单弹窗 */
