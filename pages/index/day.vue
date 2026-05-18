@@ -1,5 +1,6 @@
 <template>
-  <view class="container" :class="{ dark: settingsStore.isDarkMode, light: !settingsStore.isDarkMode, 'liquid-glass': settingsStore.liquidGlassEnabled }">
+  <view class="container"
+    :class="{ dark: settingsStore.isDarkMode, light: !settingsStore.isDarkMode, 'liquid-glass': settingsStore.liquidGlassEnabled }">
     <!-- 休息日状态展示 -->
     <view v-if="isRestDay" class="rest-day-header">
       <text class="rest-day-text">📅 今日标记为休息日：{{ restReasonStored }}</text>
@@ -38,9 +39,9 @@
 
     <!-- 设置组件 -->
     <DaySettings :visible="showSettings" :available-actions="availableActionNames" :chosen-actions="chosenActions"
-      :action-entries="actionEntries" :settings="settingsState" @close="showSettings = false" @add-action="onAddAction"
-      @save-sort="onSaveSort" @toggle-auto-timer="settingsStore.toggleAutoStartTimer()"
-      @toggle-auto-fill="settingsStore.toggleAutoFillData()" @toggle-bubble-fill="settingsStore.toggleBubbleFill()"
+      :settings="settingsState" @close="showSettings = false" @add-action="onAddAction" @save-sort="onSaveSort"
+      @toggle-auto-timer="settingsStore.toggleAutoStartTimer()" @toggle-auto-fill="settingsStore.toggleAutoFillData()"
+      @toggle-bubble-fill="settingsStore.toggleBubbleFill()"
       @set-heavy-timer="(v) => settingsStore.setHeavyTimerDuration(v)"
       @set-light-timer="(v) => settingsStore.setLightTimerDuration(v)" @export-data="onExportData" />
 
@@ -55,16 +56,33 @@
         <view class="modal-body edit-body">
           <view class="edit-badge">
             <text>第 {{ editEntryInfo.entryIdx + 1 }} 组</text>
+            <text v-if="editEntryType !== 'normal'" class="entry-type-tag">
+              {{ editEntryType === 'decreasing' ? '🔻 递减' : '⏸ 暂停' }}
+            </text>
           </view>
-          <view class="edit-main-row">
+          <view v-if="editEntryStages.length <= 1" class="edit-main-row">
             <view class="input-item">
-              <input type="digit" v-model="editEntryReps" class="big-input" focus />
+              <input type="digit" v-model="editEntryStages[0].reps" class="big-input" focus />
               <text class="unit-label">次</text>
             </view>
             <text class="x-mark">×</text>
             <view class="input-item">
-              <input type="digit" v-model="editEntryWeight" class="big-input" />
+              <input type="digit" v-model="editEntryStages[0].weight" class="big-input" />
               <text class="unit-label">kg</text>
+            </view>
+          </view>
+          <view v-else class="edit-stages-wrap">
+            <view v-for="(stage, si) in editEntryStages" :key="si" class="edit-stage-row">
+              <text class="stage-label">{{ si === 0 ? '第1组' : '第' + (si + 1) + '组' }}</text>
+              <view class="input-item">
+                <input type="digit" v-model="stage.reps" class="small-input" />
+                <text class="unit-label">次</text>
+              </view>
+              <text class="x-mark">×</text>
+              <view class="input-item">
+                <input type="digit" v-model="stage.weight" class="small-input" />
+                <text class="unit-label">kg</text>
+              </view>
             </view>
           </view>
         </view>
@@ -142,8 +160,11 @@
           actionIdx: -1,
           entryIdx: -1
         },
-        editEntryReps: '',
-        editEntryWeight: '',
+        editEntryStages: [{
+          reps: '',
+          weight: ''
+        }],
+        editEntryType: 'normal',
         // 差异缓存
         actionLatestRecordCache: {},
         calcDiffTimer: null,
@@ -209,7 +230,9 @@
     },
     onShow() {
       if (!this.showChooseTpl) this.loadDayData()
+      this.checkPendingManageActions()
     },
+    onHide() {},
     onUnload() {
       this.clearAllTimers()
     },
@@ -566,12 +589,18 @@
         }
         const entry = this.actionEntries[actionIdx][entryIdx]
         if (entry.stages && entry.stages.length > 0) {
-          this.editEntryReps = String(entry.stages[0].reps)
-          this.editEntryWeight = entry.stages[0].weight > 0 ? String(entry.stages[0].weight) : ''
+          this.editEntryStages = entry.stages.map(s => ({
+            reps: String(s.reps),
+            weight: s.weight > 0 ? String(s.weight) : ''
+          }))
+          this.editEntryType = entry.type || ENTRY_TYPE.NORMAL
         } else {
           const [reps, weight] = (entry.input || '').split('×')
-          this.editEntryReps = reps
-          this.editEntryWeight = weight || ''
+          this.editEntryStages = [{
+            reps,
+            weight: weight || ''
+          }]
+          this.editEntryType = ENTRY_TYPE.NORMAL
         }
         this.showEditEntryPopup = true
       },
@@ -581,31 +610,29 @@
           actionIdx: -1,
           entryIdx: -1
         }
-        this.editEntryReps = ''
-        this.editEntryWeight = ''
+        this.editEntryStages = [{
+          reps: '',
+          weight: ''
+        }]
+        this.editEntryType = ENTRY_TYPE.NORMAL
       },
       saveEditedEntry() {
         const {
           actionIdx,
           entryIdx
         } = this.editEntryInfo
-        const reps = this.editEntryReps
-        const weight = this.editEntryWeight
-        if (!reps || Number(reps) <= 0) {
+        const stages = this.editEntryStages
+        if (!stages[0].reps || Number(stages[0].reps) <= 0) {
           uni.showToast({
             title: '请输入次数',
             icon: 'none'
           })
           return
         }
-        const repsNum = Number(reps)
-        const weightNum = weight ? Number(weight) : 0
         const actName = this.chosenActions[actionIdx]
         const isUnilateral = this.actionStore.getActionByName(actName)?.isUnilateral || false
-        const entry = buildEntry(ENTRY_TYPE.NORMAL, [{
-          reps: repsNum,
-          weight: weightNum
-        }], isUnilateral)
+        const entry = buildEntry(this.editEntryType, stages, isUnilateral)
+        if (!entry) return
         this.$set(this.actionEntries[actionIdx], entryIdx, entry)
         this.saveEntryToStorage(actionIdx)
         this.calcDiffForSingleAction(actionIdx)
@@ -776,6 +803,16 @@
         }
       },
 
+      checkPendingManageActions() {
+        const raw = uni.removeStorageSync('_pendingManageActions')
+        if (!raw) return
+        try {
+          const newOrder = JSON.parse(raw)
+          if (Array.isArray(newOrder)) {
+            this.onSaveSort(newOrder)
+          }
+        } catch (e) {}
+      },
       /* ========== 设置组件事件 ========== */
       onAddAction(actName) {
         if (!this.chosenTplName) {
@@ -823,7 +860,10 @@
           if (!currentSet.has(name)) {
             this.chosenActions.push(name)
             this.actionEntries.push([])
-            this.diffs.push({ text: '未记录', class: 'diff-neutral' })
+            this.diffs.push({
+              text: '未记录',
+              class: 'diff-neutral'
+            })
             // 持久化新动作
             const dayKey = this.DAYDATA_PREFIX + this.date
             const raw = uni.getStorageSync(dayKey) || {}
@@ -853,7 +893,9 @@
         const orderMap = newOrder.map(name => this.chosenActions.indexOf(name))
         this.chosenActions = [...newOrder]
         this.actionEntries = orderMap.map(i => [...this.actionEntries[i]])
-        this.diffs = orderMap.map(i => this.diffs[i] ? { ...this.diffs[i] } : null)
+        this.diffs = orderMap.map(i => this.diffs[i] ? {
+          ...this.diffs[i]
+        } : null)
         this.persistOrder()
         this.showSettings = false
         uni.showToast({
@@ -950,7 +992,7 @@
     --text-muted: #999999;
     --text-placeholder: #cccccc;
     --text-btn: #333333;
-    --icon-bg: #909090;
+    --icon-bg: #ffffff;
     --icon-color: #ffffff;
     --divider-color: #e0e0e0;
     --tag-bg: #ffffff;
@@ -1189,6 +1231,45 @@
     font-weight: bold;
   }
 
+  .entry-type-tag {
+    margin-left: 6px;
+    font-size: 11px;
+    color: #ff8c00;
+  }
+
+  .edit-stages-wrap {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .edit-stage-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .stage-label {
+    font-size: 12px;
+    color: var(--text-secondary);
+    min-width: 36px;
+    text-align: right;
+  }
+
+  .small-input {
+    width: 60px;
+    height: 44px;
+    background: var(--bg-input);
+    border: 1rpx solid var(--border-color);
+    border-radius: 10px;
+    text-align: center;
+    font-size: 18px;
+    font-weight: bold;
+    color: var(--text-primary);
+  }
+
   .edit-main-row {
     display: flex;
     align-items: center;
@@ -1226,6 +1307,10 @@
     margin-top: -20px;
   }
 
+  .edit-stage-row .x-mark {
+    margin-top: 0;
+  }
+
   .save-entry-btn {
     width: 100% !important;
     height: 50px !important;
@@ -1237,5 +1322,6 @@
     margin-bottom: 10px;
     border: none;
     box-shadow: 0 4px 12px rgba(55, 155, 255, 0.3);
+    color: #ffffff;
   }
 </style>

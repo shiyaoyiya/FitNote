@@ -1424,6 +1424,9 @@
   .container {
     min-height: 100vh;
     overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
   }
 
   .container.light {
@@ -2479,5 +2482,24 @@
   .btn-set-color {
     margin-top: 12px;
     color: #379bff;
+  }
+</style>
+
+<!-- 非 scoped 样式块，覆盖 scoped 无法生效的伪元素选择器 -->
+<style>
+  page::-webkit-scrollbar,
+  uni-page-wrapper::-webkit-scrollbar,
+  uni-page-body::-webkit-scrollbar,
+  .container::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    background: transparent;
+  }
+  page,
+  uni-page-wrapper,
+  uni-page-body,
+  .container {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
   }
 </style>

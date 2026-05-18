@@ -1,5 +1,6 @@
 <template>
-  <view class="container" :class="{ dark: daySettingsStore.isDarkMode, light: !daySettingsStore.isDarkMode, 'liquid-glass': daySettingsStore.liquidGlassEnabled }">
+  <view class="container"
+    :class="{ dark: daySettingsStore.isDarkMode, light: !daySettingsStore.isDarkMode, 'liquid-glass': daySettingsStore.liquidGlassEnabled }">
     <view class="search-bar">
       <view class="search-inner">
         <text class="search-icon">🔍</text>
@@ -1221,7 +1222,6 @@
   .category-option {
     display: flex;
     align-items: center;
-    gap: 4px;
     padding: 8px 14px;
     border-radius: 20px;
     background-color: #2a2a2a;

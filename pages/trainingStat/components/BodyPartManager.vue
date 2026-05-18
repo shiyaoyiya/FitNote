@@ -187,9 +187,12 @@
 
   function onSortTouchStart(e, idx) {
     clearTimer()
-    sortLongPressStartPos.value = e.touches
-      ? { x: e.touches[0].clientX, y: e.touches[0].clientY }
-      : null
+    sortLongPressStartPos.value = e.touches ?
+      {
+        x: e.touches[0].clientX,
+        y: e.touches[0].clientY
+      } :
+      null
     sortLongPressTimer.value = setTimeout(() => {
       onSortDragTrigger(idx, e)
     }, sortLongPressThreshold)
@@ -222,7 +225,9 @@
       if (targetIdx === lastTargetIdx.value) return
       lastTargetIdx.value = targetIdx
 
-      swapItems(idx, targetIdx)
+      const list = [...localOrder.value];
+      [list[idx], list[targetIdx]] = [list[targetIdx], list[idx]]
+      localOrder.value = list
       dragIdx.value = targetIdx
       dragStartY.value = currentY
       itemDragOffset.value = targetIdx * CARD_HEIGHT_PX
@@ -260,12 +265,6 @@
     itemDragOffset.value = 0
     isDragTriggered.value = false
     hasSwapped.value = false
-  }
-
-  function swapItems(from, to) {
-    const items = [...localOrder.value];
-    [items[from], items[to]] = [items[to], items[from]]
-    localOrder.value = items
   }
 
   function cleanup() {
@@ -382,8 +381,23 @@
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
   }
 
+  .container.liquid-glass .sort-card {
+    background: var(--glass-bg) !important;
+    border: none !important;
+    box-shadow:
+      0 0 0 0.5px var(--glass-edge) inset,
+      0 1px 3px var(--glass-shadow-inner) inset,
+      0 1px 4px var(--glass-shadow-outer) !important;
+    -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
+    backdrop-filter: blur(12px) saturate(140%) !important;
+  }
+
   .sort-card.is-hidden {
     opacity: 0.4;
+  }
+
+  .container.liquid-glass .sort-card.is-hidden {
+    opacity: 0.35 !important;
   }
 
   .drag-handle {
@@ -401,6 +415,10 @@
     color: #888888;
   }
 
+  .container.liquid-glass .drag-handle {
+    color: var(--glass-placeholder) !important;
+  }
+
   .sort-card-name {
     flex: 1;
     font-size: 15px;
@@ -415,6 +433,10 @@
 
   .container.dark .sort-card-name {
     color: #f7f7f7;
+  }
+
+  .container.liquid-glass .sort-card-name {
+    color: var(--glass-text) !important;
   }
 
   .card-actions {

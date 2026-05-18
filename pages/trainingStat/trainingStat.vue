@@ -52,13 +52,13 @@
         @select:bodyPart="onBodyPartSelect"
       />
     </view>
-  </scroll-view>
 
-  <BodyPartManager
-    v-show="showBodyPartManager"
-    @close="onBodyPartManagerClose"
-    @save="onBodyPartManagerSave"
-  />
+    <BodyPartManager
+      v-show="showBodyPartManager"
+      @close="onBodyPartManagerClose"
+      @save="onBodyPartManagerSave"
+    />
+  </scroll-view>
 </template>
 
 <script setup>

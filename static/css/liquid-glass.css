@@ -4,14 +4,16 @@
 /* ===== 浅色模式变量 ===== */
 .container.liquid-glass.light {
   --glass-bg: rgba(252, 252, 254, 0.7);
-  --icon-bg: #ffffff !important;
   --glass-border: rgba(200, 210, 230, 0.6);
   --glass-text: #1a1a1a;
-  --glass-shadow-outer: rgba(0, 0, 0, 0.12);
-  --glass-shadow-inner: rgba(255, 255, 255, 0.7);
+  --glass-shadow-outer: rgba(0, 0, 0, 0.2);
+  --glass-shadow-inner: rgba(255, 255, 255, 0.55);
   --glass-placeholder: rgba(0, 0, 0, 0.45);
-  --glass-edge: rgba(200, 210, 230, 0.5);
+  --glass-edge: rgba(255, 255, 255, 0.65);
   --focus-glow: rgba(0, 122, 255, 0.6);
+  --glass-grid-bg: rgba(245, 245, 245, 0.1);
+  --glass-btn-bg: rgba(255, 255, 255, 0.6);
+  --glass-float: 0 8px 24px rgba(0, 0, 0, 0.06);
 }
 
 /* ===== 深色模式变量 ===== */
@@ -19,11 +21,14 @@
   --glass-bg: rgba(0, 0, 0, 0.1);
   --glass-border: rgba(255, 255, 255, 0.2);
   --glass-text: #ffffff;
-  --glass-shadow-outer: rgba(0, 0, 0, 0.3);
-  --glass-shadow-inner: rgba(255, 255, 255, 0.08);
+  --glass-shadow-outer: rgba(0, 0, 0, 0.4);
+  --glass-shadow-inner: rgba(255, 255, 255, 0.1);
   --glass-placeholder: rgba(255, 255, 255, 0.35);
-  --glass-edge: rgba(255, 255, 255, 0.15);
+  --glass-edge: rgba(255, 255, 255, 0.2);
   --focus-glow: rgba(0, 122, 255, 0.8);
+  --glass-grid-bg: rgba(129, 129, 129, 0.1);
+  --glass-btn-bg: rgba(10, 10, 10, 0.85);
+  --glass-float: 0 8px 24px rgba(200, 200, 200, 0.05);
 }
 
 /* ===== 流动高光动画（已禁用） ===== */
@@ -33,92 +38,25 @@
   background: var(--glass-bg);
   border: none;
   box-shadow:
-    inset 0 0 0 1px var(--glass-shadow-inner),
-    inset 0 0 12px var(--glass-shadow-inner);
-  -webkit-backdrop-filter: blur(20px);
-  backdrop-filter: blur(20px);
-  color: var(--glass-text);
-  -webkit-tap-highlight-color: transparent;
-  position: relative;
-  overflow: hidden;
+    var(--glass-float),
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 3px var(--glass-shadow-inner) inset,
+    0 1px 4px var(--glass-shadow-outer) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
+  backdrop-filter: blur(12px) saturate(140%) !important;
 }
 
-/* backdrop-filter 降级 */
-@supports not ((backdrop-filter: blur(20px)) or (-webkit-backdrop-filter: blur(20px))) {
-  .container.liquid-glass .glass-bg {
-    -webkit-backdrop-filter: none;
-    backdrop-filter: none;
-  }
-}
-
-/* ===== 通用玻璃按钮 ===== */
-.container.liquid-glass .glass-btn {
-  background: var(--glass-bg);
-  border: none;
-  border-radius: 60rpx;
-  box-shadow:
-    inset 0 0 0 1px var(--glass-shadow-inner),
-    inset 0 0 12px var(--glass-shadow-inner);
-  color: var(--glass-text);
-  -webkit-backdrop-filter: blur(20px);
-  backdrop-filter: blur(20px);
-  -webkit-tap-highlight-color: transparent;
-  transition: transform 0.15s, box-shadow 0.15s;
-}
-
-.container.liquid-glass .glass-btn:active {
-  transform: scale(0.96);
-  box-shadow:
-    inset 0 0 0 1px var(--glass-shadow-inner),
-    inset 0 0 12px var(--glass-shadow-inner);
-}
-
-/* ===== 通用玻璃面板（弹窗） ===== */
-.container.liquid-glass .glass-panel {
-  background: var(--glass-bg);
-  border: none;
-  border-radius: 24rpx;
-  box-shadow:
-    inset 0 0 0 1px var(--glass-shadow-inner),
-    inset 0 0 12px var(--glass-shadow-inner);
-  color: var(--glass-text);
-  -webkit-backdrop-filter: blur(20px);
-  backdrop-filter: blur(20px);
-}
-
-/* ===== 通用玻璃输入�?===== */
-.container.liquid-glass .glass-input {
-  background: var(--glass-bg);
-  border: none;
-  border-radius: 16rpx;
-  color: var(--glass-text);
-  -webkit-backdrop-filter: blur(20px);
-  backdrop-filter: blur(20px);
-  transition: border-color 0.2s, box-shadow 0.2s;
-}
-
-.container.liquid-glass .glass-input:focus,
-.container.liquid-glass .glass-input[focused] {
-  border-color: var(--focus-glow);
-  box-shadow: 0 0 0 2px var(--focus-glow);
-}
-
-.container.liquid-glass .glass-input::placeholder {
-  color: var(--glass-placeholder);
-}
-
-/* ===== index.vue ===== */
-
-/* 今日训练按钮 */
 .container.liquid-glass .today-train-btn {
   background: var(--glass-bg) !important;
   border: none !important;
   border-radius: 60rpx !important;
   box-shadow:
-    inset 0 0 0 1px var(--glass-shadow-inner),
-    inset 0 0 6px var(--glass-shadow-inner) !important;
-  -webkit-backdrop-filter: blur(20px) !important;
-  backdrop-filter: blur(20px) !important;
+    var(--glass-float),
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 3px var(--glass-shadow-inner) inset,
+    0 1px 4px var(--glass-shadow-outer) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
+  backdrop-filter: blur(12px) saturate(140%) !important;
 }
 
 .container.liquid-glass .today-train-btn:active {
@@ -134,10 +72,11 @@
   background: var(--glass-bg) !important;
   border: none !important;
   box-shadow:
-    inset 0 0 0 1px var(--glass-shadow-inner),
-    inset 0 0 6px var(--glass-shadow-inner) !important;
-  -webkit-backdrop-filter: blur(20px) !important;
-  backdrop-filter: blur(20px) !important;
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 3px var(--glass-shadow-inner) inset,
+    0 1px 4px var(--glass-shadow-outer) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
+  backdrop-filter: blur(12px) saturate(140%) !important;
 }
 
 .container.liquid-glass .more-btn:active {
@@ -150,18 +89,20 @@
 
 /* Tab Bar 悬浮（仅液态玻璃下�?*/
 .container.liquid-glass .tab-bar-fixed {
-  bottom: 16px !important;
+  bottom: 20px !important;
   left: 16px !important;
   right: 16px !important;
   width: auto !important;
-  border-radius: 20rpx !important;
+  border-radius: 50px !important;
   background: var(--glass-bg) !important;
   border: none !important;
   box-shadow:
-    inset 0 0 0 1px var(--glass-shadow-inner),
-    inset 0 0 6px var(--glass-shadow-inner) !important;
-  -webkit-backdrop-filter: blur(20px) !important;
-  backdrop-filter: blur(20px) !important;
+    var(--glass-float),
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 3px var(--glass-shadow-inner) inset,
+    0 1px 4px var(--glass-shadow-outer) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
+  backdrop-filter: blur(12px) saturate(140%) !important;
 }
 
 /* Tab Bar 内部 tab-item �?液态玻璃下清除原始背景 */
@@ -171,16 +112,21 @@
   border: none !important;
 }
 
+.container.liquid-glass .tab-bar-fixed .tab-label {
+  display: none;
+}
+
 /* 分化计划弹窗 */
 .container.liquid-glass .split-panel {
   background: var(--glass-bg) !important;
   border: none !important;
   border-radius: 24rpx !important;
   box-shadow:
-    inset 0 0 0 1px var(--glass-shadow-inner),
-    inset 0 0 6px var(--glass-shadow-inner) !important;
-  -webkit-backdrop-filter: blur(20px) !important;
-  backdrop-filter: blur(20px) !important;
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 3px var(--glass-shadow-inner) inset,
+    0 1px 4px var(--glass-shadow-outer) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
+  backdrop-filter: blur(12px) saturate(140%) !important;
 }
 
 /* 更多菜单弹窗 */
@@ -189,10 +135,11 @@
   border: none !important;
   border-radius: 24rpx !important;
   box-shadow:
-    inset 0 0 0 1px var(--glass-shadow-inner),
-    inset 0 0 6px var(--glass-shadow-inner) !important;
-  -webkit-backdrop-filter: blur(20px) !important;
-  backdrop-filter: blur(20px) !important;
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 3px var(--glass-shadow-inner) inset,
+    0 1px 4px var(--glass-shadow-outer) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
+  backdrop-filter: blur(12px) saturate(140%) !important;
 }
 
 /* 通用弹窗 panel */
@@ -201,10 +148,11 @@
   border: none !important;
   border-radius: 24rpx !important;
   box-shadow:
-    inset 0 0 0 1px var(--glass-shadow-inner),
-    inset 0 0 6px var(--glass-shadow-inner) !important;
-  -webkit-backdrop-filter: blur(20px) !important;
-  backdrop-filter: blur(20px) !important;
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 3px var(--glass-shadow-inner) inset,
+    0 1px 4px var(--glass-shadow-outer) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
+  backdrop-filter: blur(12px) saturate(140%) !important;
 }
 
 /* ===== 遮罩层玻璃化 �?�?backdrop-filter 有内容可模糊 ===== */
@@ -220,10 +168,11 @@
   border: none !important;
   border-radius: 16px !important;
   box-shadow:
-    inset 0 0 0 1px var(--glass-shadow-inner),
-    inset 0 0 6px var(--glass-shadow-inner) !important;
-  -webkit-backdrop-filter: blur(20px) !important;
-  backdrop-filter: blur(20px) !important;
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 3px var(--glass-shadow-inner) inset,
+    0 1px 4px var(--glass-shadow-outer) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
+  backdrop-filter: blur(12px) saturate(140%) !important;
 }
 
 /* ===== day.vue ===== */
@@ -237,8 +186,7 @@ html .container.light.liquid-glass .save-row {
 }
 
 html .container.dark.liquid-glass .save-row {
-  background: transparent !important;
-  background-color: transparent !important;
+  background: linear-gradient(to top, var(--glass-bg), transparent) !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
   border-top: none !important;
@@ -249,12 +197,13 @@ html .container.dark.liquid-glass .save-row {
 .container.liquid-glass .minimal-settings-btn {
   background: var(--glass-bg) !important;
   border: none !important;
-  border-radius: 60rpx !important;
-  -webkit-backdrop-filter: blur(20px) !important;
-  backdrop-filter: blur(20px) !important;
+  border-radius: 50px !important;
+  -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
+  backdrop-filter: blur(12px) saturate(140%) !important;
   box-shadow:
-    inset 0 0 0 1px var(--glass-shadow-inner),
-    inset 0 0 6px var(--glass-shadow-inner) !important;
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 3px var(--glass-shadow-inner) inset,
+    0 1px 4px var(--glass-shadow-outer) !important;
 }
 
 .container.liquid-glass .minimal-timer-btn:active,
@@ -268,10 +217,11 @@ html .container.dark.liquid-glass .save-row {
   border: none !important;
   border-radius: 32rpx !important;
   box-shadow:
-    inset 0 0 0 1px var(--glass-shadow-inner),
-    inset 0 0 6px var(--glass-shadow-inner) !important;
-  -webkit-backdrop-filter: blur(20px) !important;
-  backdrop-filter: blur(20px) !important;
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 3px var(--glass-shadow-inner) inset,
+    0 1px 4px var(--glass-shadow-outer) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
+  backdrop-filter: blur(12px) saturate(140%) !important;
 }
 
 .container.liquid-glass .timer-full-body {
@@ -284,6 +234,7 @@ html .container.dark.liquid-glass .save-row {
   border: none !important;
   outline: none !important;
 }
+
 .container.liquid-glass button::after {
   border: none !important;
 }
@@ -292,11 +243,28 @@ html .container.dark.liquid-glass .save-row {
 .container.liquid-glass .confirm-btn,
 .container.liquid-glass .extra-confirm-btn {
   background: var(--glass-bg) !important;
-  -webkit-backdrop-filter: blur(20px) !important;
-  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
+  backdrop-filter: blur(12px) saturate(140%) !important;
   box-shadow:
-    inset 0 0 0 1px var(--glass-shadow-inner),
-    inset 0 0 6px var(--glass-shadow-inner) !important;
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 3px var(--glass-shadow-inner) inset,
+    0 1px 4px var(--glass-shadow-outer) !important;
+}
+
+/* ===== Light mode confirm-btn (non-liquid-glass, tag-like) ===== */
+html .container.light:not(.liquid-glass) .confirm-btn,
+html .container.light:not(.liquid-glass) .extra-confirm-btn {
+  background: var(--tag-bg) !important;
+  border: 1rpx solid var(--border-color) !important;
+  border-radius: 6px !important;
+  box-shadow: 0 4rpx 12rpx var(--shadow-color) !important;
+  color: var(--text-primary) !important;
+}
+
+/* ===== Light mode input backgrounds (globally, including liquid glass) ===== */
+.container.light .input-reps,
+.container.light .input-weight {
+  background-color: #f8f8f8 !important;
 }
 
 /* 计时器快捷按钮 */
@@ -304,8 +272,38 @@ html .container.dark.liquid-glass .save-row {
   background: var(--glass-bg) !important;
   border: none !important;
   border-radius: 12px !important;
-  -webkit-backdrop-filter: blur(20px) !important;
-  backdrop-filter: blur(20px) !important;
+  box-shadow:
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 3px var(--glass-shadow-inner) inset,
+    0 1px 4px var(--glass-shadow-outer) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
+  backdrop-filter: blur(12px) saturate(140%) !important;
+}
+
+/* 计时器操作按钮 */
+.container.liquid-glass .action-btn {
+  background: var(--glass-bg) !important;
+  border: none !important;
+  border-radius: 12px !important;
+  box-shadow:
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 3px var(--glass-shadow-inner) inset,
+    0 1px 4px var(--glass-shadow-outer) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
+  backdrop-filter: blur(12px) saturate(140%) !important;
+  color: var(--glass-text) !important;
+}
+
+.container.liquid-glass .done-btn {
+  background: linear-gradient(135deg, rgba(55, 155, 255, 0.6), rgba(45, 130, 214, 0.6)) !important;
+  box-shadow:
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 3px var(--glass-shadow-inner) inset,
+    0 1px 4px var(--glass-shadow-outer),
+    0 4px 12px rgba(55, 155, 255, 0.3) !important;
+  color: #fff !important;
+  -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
+  backdrop-filter: blur(12px) saturate(140%) !important;
 }
 
 .container.liquid-glass .quick-btn-active {
@@ -325,27 +323,101 @@ html .container.dark.liquid-glass .save-row {
   border: none !important;
   border-radius: 60rpx !important;
   box-shadow:
-    inset 0 0 0 1px var(--glass-shadow-inner),
-    inset 0 0 6px var(--glass-shadow-inner) !important;
-  -webkit-backdrop-filter: blur(20px) !important;
-  backdrop-filter: blur(20px) !important;
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 3px var(--glass-shadow-inner) inset,
+    0 1px 4px var(--glass-shadow-outer) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
+  backdrop-filter: blur(12px) saturate(140%) !important;
+  color: var(--glass-text) !important;
 }
 
 .container.liquid-glass .btn-create:active {
   transform: scale(0.96) !important;
 }
 
+.container.liquid-glass .btn-save {
+  background: var(--glass-bg) !important;
+  border: none !important;
+  border-radius: 12rpx !important;
+  box-shadow:
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 3px var(--glass-shadow-inner) inset,
+    0 1px 4px var(--glass-shadow-outer) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
+  backdrop-filter: blur(12px) saturate(140%) !important;
+  color: var(--glass-text) !important;
+}
+
+.container.liquid-glass .btn-save:active {
+  transform: scale(0.96) !important;
+}
+
+.container.liquid-glass .btn-save text {
+  color: var(--glass-text) !important;
+}
+
+/* 搜索栏 */
+.container.liquid-glass .search-bar-inner {
+  background: var(--glass-bg) !important;
+  border: none !important;
+  box-shadow:
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 3px var(--glass-shadow-inner) inset,
+    0 1px 4px var(--glass-shadow-outer) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
+  backdrop-filter: blur(12px) saturate(140%) !important;
+}
+
+.container.liquid-glass .search-bar-inner:focus-within {
+  box-shadow:
+    0 0 0 1px var(--focus-glow),
+    inset 0 1px 3px var(--glass-shadow-inner),
+    0 1px 4px var(--glass-shadow-outer) !important;
+}
+
+/* 动作选项 */
+.container.liquid-glass .action-item {
+  background: var(--glass-bg) !important;
+  border: 1rpx solid transparent !important;
+  color: var(--glass-text) !important;
+  box-shadow:
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 3px var(--glass-shadow-inner) inset,
+    0 1px 4px var(--glass-shadow-outer) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
+  backdrop-filter: blur(12px) saturate(140%) !important;
+}
+
+.container.liquid-glass .action-item.selected {
+  border-color: var(--focus-glow) !important;
+  box-shadow:
+    0 0 0 1px var(--focus-glow),
+    inset 0 1px 3px var(--glass-shadow-inner),
+    0 1px 4px var(--glass-shadow-outer) !important;
+}
+
 /* ===== templateDetail.vue ===== */
+
+html .container.liquid-glass.light .color-picker-card {
+  background: rgba(255, 255, 255, 0.55) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(160%) !important;
+  backdrop-filter: blur(16px) saturate(160%) !important;
+}
 
 .container.liquid-glass .color-picker-card {
   background: var(--glass-bg) !important;
   border: none !important;
   border-radius: 40rpx !important;
   box-shadow:
-    inset 0 0 0 1px var(--glass-shadow-inner),
-    inset 0 0 6px var(--glass-shadow-inner) !important;
-  -webkit-backdrop-filter: blur(20px) !important;
-  backdrop-filter: blur(20px) !important;
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 3px var(--glass-shadow-inner) inset,
+    0 1px 4px var(--glass-shadow-outer) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
+  backdrop-filter: blur(12px) saturate(140%) !important;
+}
+
+html .container.liquid-glass.light .color-name-dark {
+  color: #333 !important;
 }
 
 .container.liquid-glass .action-picker-panel,
@@ -354,10 +426,145 @@ html .container.dark.liquid-glass .save-row {
   border: none !important;
   border-radius: 24rpx !important;
   box-shadow:
-    inset 0 0 0 1px var(--glass-shadow-inner),
-    inset 0 0 6px var(--glass-shadow-inner) !important;
-  -webkit-backdrop-filter: blur(20px) !important;
-  backdrop-filter: blur(20px) !important;
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 3px var(--glass-shadow-inner) inset,
+    0 1px 4px var(--glass-shadow-outer) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
+  backdrop-filter: blur(12px) saturate(140%) !important;
+}
+
+html .container.liquid-glass.light .cp-footer {
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+html .container.liquid-glass.dark .cp-footer {
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.container.liquid-glass.light .quick-set-btn text,
+.container.liquid-glass.light .set-number,
+.container.liquid-glass.light .current-action-name {
+  color: var(--glass-text) !important;
+}
+
+.container.liquid-glass.light .manager-overlay {
+  background: rgba(0, 0, 0, 0.15) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+}
+
+.container.liquid-glass.dark .manager-overlay {
+  background: rgba(0, 0, 0, 0.35) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+}
+
+.container.liquid-glass .sort-card-name {
+  color: var(--glass-text) !important;
+}
+
+.container.liquid-glass .drag-handle {
+  color: var(--glass-placeholder) !important;
+}
+
+html .container.liquid-glass .sort-item-wrapper.is-dragging .sort-card {
+  box-shadow:
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 3px var(--glass-shadow-inner) inset,
+    0 4px 20px rgba(0, 0, 0, 0.5) !important;
+  transform: scale(1.05) !important;
+}
+
+.container.liquid-glass .sort-card.is-hidden {
+  opacity: 0.35 !important;
+}
+
+/* ===== custom-color-card（自定义颜色弹窗） ===== */
+
+html .container.liquid-glass.light .custom-color-card {
+  background: rgba(255, 255, 255, 0.55) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(160%) !important;
+  backdrop-filter: blur(16px) saturate(160%) !important;
+}
+
+.container.liquid-glass .custom-color-card {
+  background: var(--glass-bg) !important;
+  border: none !important;
+  border-radius: 40rpx !important;
+  box-shadow:
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 3px var(--glass-shadow-inner) inset,
+    0 1px 4px var(--glass-shadow-outer) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
+  backdrop-filter: blur(12px) saturate(140%) !important;
+}
+
+.container.liquid-glass .custom-header::after {
+  background: var(--glass-border) !important;
+}
+
+.container.liquid-glass .modern-input {
+  background: var(--glass-bg) !important;
+  border: none !important;
+  border-radius: 16rpx !important;
+  box-shadow:
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 3px var(--glass-shadow-inner) inset;
+  color: var(--glass-text) !important;
+}
+
+.container.liquid-glass .btn-cancel {
+  background: var(--glass-btn-bg) !important;
+  border: none !important;
+  color: var(--glass-text) !important;
+  box-shadow:
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 3px var(--glass-shadow-inner) inset;
+}
+
+.container.liquid-glass .preview-box {
+  border: 1rpx solid var(--glass-border) !important;
+}
+
+.container.liquid-glass.light .color-popup-overlay {
+  background: rgba(0, 0, 0, 0.15) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+}
+
+.container.liquid-glass.dark .color-popup-overlay {
+  background: rgba(0, 0, 0, 0.35) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+}
+
+/* ===== animate-pop 增强动画（液态玻璃版） ===== */
+
+.container.liquid-glass .animate-pop {
+  animation: popInGlass 0.4s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+@keyframes popInGlass {
+  0% {
+    opacity: 0;
+    transform: scale(0.92);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    backdrop-filter: blur(24px) saturate(180%);
+  }
+
+  60% {
+    opacity: 1;
+    transform: scale(1.02);
+  }
+
+  100% {
+    opacity: 1;
+    transform: scale(1);
+    -webkit-backdrop-filter: blur(16px) saturate(140%);
+    backdrop-filter: blur(16px) saturate(140%);
+  }
 }
 
 /* ===== actionLibrary.vue ===== */
@@ -368,10 +575,12 @@ html .container.dark.liquid-glass .save-row {
   border: none !important;
   border-radius: 60rpx !important;
   box-shadow:
-    inset 0 0 0 1px var(--glass-shadow-inner),
-    inset 0 0 6px var(--glass-shadow-inner) !important;
-  -webkit-backdrop-filter: blur(20px) !important;
-  backdrop-filter: blur(20px) !important;
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 3px var(--glass-shadow-inner) inset,
+    0 1px 4px var(--glass-shadow-outer) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
+  backdrop-filter: blur(12px) saturate(140%) !important;
+  color: var(--glass-text) !important;
 }
 
 .container.liquid-glass .btn-add-action:active {
@@ -387,8 +596,8 @@ html .container.dark.liquid-glass .save-row {
 .container.liquid-glass .section-header-right {
   background: var(--glass-bg) !important;
   border: none !important;
-  -webkit-backdrop-filter: blur(20px) !important;
-  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
+  backdrop-filter: blur(12px) saturate(140%) !important;
 }
 
 /* 分类标签 */
@@ -397,13 +606,20 @@ html .container.dark.liquid-glass .save-row {
   border: none !important;
   border-radius: 20rpx !important;
   color: var(--glass-text) !important;
-  -webkit-backdrop-filter: blur(20px) !important;
-  backdrop-filter: blur(20px) !important;
+  box-shadow:
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 3px var(--glass-shadow-inner) inset,
+    0 1px 4px var(--glass-shadow-outer) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
+  backdrop-filter: blur(12px) saturate(140%) !important;
 }
 
 .container.liquid-glass .category-tab.active {
   border-color: var(--focus-glow) !important;
-  box-shadow: 0 0 0 1px var(--focus-glow), inset 0 0 0 1px var(--focus-glow) !important;
+  box-shadow:
+    0 0 0 1px var(--focus-glow),
+    inset 0 0 0 1px var(--focus-glow),
+    inset 0 1px 3px var(--glass-shadow-inner) !important;
   background: var(--glass-bg) !important;
 }
 
@@ -421,8 +637,8 @@ html .container.dark.liquid-glass .save-row {
   background: var(--glass-bg) !important;
   border: none !important;
   border-radius: 20rpx !important;
-  -webkit-backdrop-filter: blur(20px) !important;
-  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
+  backdrop-filter: blur(12px) saturate(140%) !important;
 }
 
 /* 新建动作弹窗 */
@@ -431,10 +647,11 @@ html .container.dark.liquid-glass .save-row {
   border: none !important;
   border-radius: 32rpx 32rpx 0 0 !important;
   box-shadow:
-    inset 0 0 0 1px var(--glass-shadow-inner),
-    inset 0 0 6px var(--glass-shadow-inner) !important;
-  -webkit-backdrop-filter: blur(20px) !important;
-  backdrop-filter: blur(20px) !important;
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 3px var(--glass-shadow-inner) inset,
+    0 1px 4px var(--glass-shadow-outer) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
+  backdrop-filter: blur(12px) saturate(140%) !important;
 }
 
 /* ===== trainingStat.vue 及子组件 ===== */
@@ -445,10 +662,11 @@ html .container.dark.liquid-glass .save-row {
   border: none !important;
   border-radius: 16rpx !important;
   box-shadow:
-    inset 0 0 0 1px var(--glass-shadow-inner),
-    inset 0 0 6px var(--glass-shadow-inner) !important;
-  -webkit-backdrop-filter: blur(20px) !important;
-  backdrop-filter: blur(20px) !important;
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 3px var(--glass-shadow-inner) inset,
+    0 1px 4px var(--glass-shadow-outer) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
+  backdrop-filter: blur(12px) saturate(140%) !important;
 }
 
 /* DatePicker 选择面板 */
@@ -457,10 +675,11 @@ html .container.dark.liquid-glass .save-row {
   border: none !important;
   border-radius: 24rpx !important;
   box-shadow:
-    inset 0 0 0 1px var(--glass-shadow-inner),
-    inset 0 0 6px var(--glass-shadow-inner) !important;
-  -webkit-backdrop-filter: blur(20px) !important;
-  backdrop-filter: blur(20px) !important;
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 3px var(--glass-shadow-inner) inset,
+    0 1px 4px var(--glass-shadow-outer) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
+  backdrop-filter: blur(12px) saturate(140%) !important;
 }
 
 /* BodyPartSelector 选择面板 */
@@ -469,10 +688,11 @@ html .container.dark.liquid-glass .save-row {
   border: none !important;
   border-radius: 32rpx 32rpx 0 0 !important;
   box-shadow:
-    inset 0 0 0 1px var(--glass-shadow-inner),
-    inset 0 0 6px var(--glass-shadow-inner) !important;
-  -webkit-backdrop-filter: blur(20px) !important;
-  backdrop-filter: blur(20px) !important;
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 3px var(--glass-shadow-inner) inset,
+    0 1px 4px var(--glass-shadow-outer) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
+  backdrop-filter: blur(12px) saturate(140%) !important;
 }
 
 /* ===== 弹窗内部内容液态玻璃化 ===== */
@@ -488,8 +708,12 @@ html .container.dark.liquid-glass .save-row {
   border: none !important;
   border-radius: 16rpx !important;
   color: var(--glass-text) !important;
-  -webkit-backdrop-filter: blur(20px) !important;
-  backdrop-filter: blur(20px) !important;
+  box-shadow:
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 3px var(--glass-shadow-inner) inset,
+    0 1px 4px var(--glass-shadow-outer) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
+  backdrop-filter: blur(12px) saturate(140%) !important;
 }
 
 .container.liquid-glass .form-input::placeholder {
@@ -499,40 +723,59 @@ html .container.dark.liquid-glass .save-row {
 .container.liquid-glass .checkbox-row {
   background: var(--glass-bg) !important;
   border: none !important;
-  -webkit-backdrop-filter: blur(20px) !important;
-  backdrop-filter: blur(20px) !important;
+  box-shadow:
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 3px var(--glass-shadow-inner) inset,
+    0 1px 4px var(--glass-shadow-outer) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
+  backdrop-filter: blur(12px) saturate(140%) !important;
 }
 
 .container.liquid-glass .category-option {
   background: var(--glass-bg) !important;
   border: none !important;
   color: var(--glass-text) !important;
-  -webkit-backdrop-filter: blur(20px) !important;
-  backdrop-filter: blur(20px) !important;
+  box-shadow:
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 3px var(--glass-shadow-inner) inset,
+    0 1px 4px var(--glass-shadow-outer) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
+  backdrop-filter: blur(12px) saturate(140%) !important;
 }
 
 .container.liquid-glass .category-option.selected {
   border-color: var(--focus-glow) !important;
-  box-shadow: 0 0 0 1px var(--focus-glow) !important;
+  box-shadow:
+    0 0 0 1px var(--focus-glow),
+    inset 0 1px 3px var(--glass-shadow-inner),
+    0 1px 4px var(--glass-shadow-outer) !important;
 }
 
 .container.liquid-glass .subcategory-option {
   background: var(--glass-bg) !important;
   border: none !important;
   color: var(--glass-text) !important;
-  -webkit-backdrop-filter: blur(20px) !important;
-  backdrop-filter: blur(20px) !important;
+  box-shadow:
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 3px var(--glass-shadow-inner) inset,
+    0 1px 4px var(--glass-shadow-outer) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
+  backdrop-filter: blur(12px) saturate(140%) !important;
 }
 
 .container.liquid-glass .subcategory-option.selected {
   border-color: var(--focus-glow) !important;
+  box-shadow:
+    0 0 0 1px var(--focus-glow),
+    inset 0 1px 3px var(--glass-shadow-inner),
+    0 1px 4px var(--glass-shadow-outer) !important;
 }
 
 .container.liquid-glass .auto-detect-hint {
   background: var(--glass-bg) !important;
   border: none !important;
-  -webkit-backdrop-filter: blur(20px) !important;
-  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
+  backdrop-filter: blur(12px) saturate(140%) !important;
 }
 
 .container.liquid-glass .form-label {
@@ -543,8 +786,12 @@ html .container.dark.liquid-glass .save-row {
   background: var(--glass-bg) !important;
   border: none !important;
   color: var(--glass-text) !important;
-  -webkit-backdrop-filter: blur(20px) !important;
-  backdrop-filter: blur(20px) !important;
+  box-shadow:
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 3px var(--glass-shadow-inner) inset,
+    0 1px 4px var(--glass-shadow-outer) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
+  backdrop-filter: blur(12px) saturate(140%) !important;
 }
 
 /* ===== color-picker-card 内部玻璃�?===== */
@@ -552,8 +799,8 @@ html .container.dark.liquid-glass .save-row {
 .container.liquid-glass .color-picker-card .color-option-item {
   background: var(--glass-bg) !important;
   border: none !important;
-  -webkit-backdrop-filter: blur(20px) !important;
-  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
+  backdrop-filter: blur(12px) saturate(140%) !important;
 }
 
 /* ===== set-selector 内部玻璃�?===== */
@@ -567,16 +814,28 @@ html .container.dark.liquid-glass .save-row {
   background: var(--glass-bg) !important;
   border: none !important;
   color: var(--glass-text) !important;
-  -webkit-backdrop-filter: blur(20px) !important;
-  backdrop-filter: blur(20px) !important;
+  box-shadow:
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 3px var(--glass-shadow-inner) inset,
+    0 1px 4px var(--glass-shadow-outer) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
+  backdrop-filter: blur(12px) saturate(140%) !important;
+}
+
+.container.liquid-glass .current-action-name {
+  background: var(--glass-bg) !important;
 }
 
 .container.liquid-glass .preset-set-btn {
   background: var(--glass-bg) !important;
   border: none !important;
   color: var(--glass-text) !important;
-  -webkit-backdrop-filter: blur(20px) !important;
-  backdrop-filter: blur(20px) !important;
+  box-shadow:
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 3px var(--glass-shadow-inner) inset,
+    0 1px 4px var(--glass-shadow-outer) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
+  backdrop-filter: blur(12px) saturate(140%) !important;
 }
 
 .container.liquid-glass .preset-set-btn.selected {
@@ -588,8 +847,12 @@ html .container.dark.liquid-glass .save-row {
   background: var(--glass-bg) !important;
   border: none !important;
   color: var(--glass-text) !important;
-  -webkit-backdrop-filter: blur(20px) !important;
-  backdrop-filter: blur(20px) !important;
+  box-shadow:
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 3px var(--glass-shadow-inner) inset,
+    0 1px 4px var(--glass-shadow-outer) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
+  backdrop-filter: blur(12px) saturate(140%) !important;
 }
 
 /* ===== trainingStat uni-scroll-view-content ===== */
@@ -603,4 +866,126 @@ html .container.dark.liquid-glass .save-row {
 
 .container.liquid-glass .icon-base {
   background-color: var(--glass-text) !important;
+}
+
+/* ===== manageActions.vue ===== */
+
+.container.liquid-glass .manage-container {
+  background: transparent !important;
+}
+
+.container.liquid-glass .manage-header {
+  background: var(--glass-bg) !important;
+  backdrop-filter: blur(12px) saturate(140%) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
+  border-bottom: none !important;
+}
+
+.container.liquid-glass .manage-header .manage-back-btn,
+.container.liquid-glass .manage-header .manage-hint {
+  color: var(--glass-text) !important;
+}
+
+.container.liquid-glass .manage-card {
+  background: var(--glass-bg) !important;
+  box-shadow:
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 3px var(--glass-shadow-inner) inset,
+    0 1px 4px var(--glass-shadow-outer) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
+  backdrop-filter: blur(12px) saturate(140%) !important;
+  border: none !important;
+}
+
+.container.liquid-glass .manage-card-label {
+  color: var(--glass-text) !important;
+}
+
+.container.liquid-glass .manage-drag-icon {
+  color: var(--glass-placeholder) !important;
+}
+
+.container.liquid-glass .manage-btn-add {
+  background: var(--glass-bg) !important;
+  border: none !important;
+  border-radius: 12rpx !important;
+  box-shadow:
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 3px var(--glass-shadow-inner) inset,
+    0 1px 4px var(--glass-shadow-outer) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
+  backdrop-filter: blur(12px) saturate(140%) !important;
+  color: var(--glass-text) !important;
+}
+
+.container.liquid-glass .manage-btn-save {
+  background: var(--glass-bg) !important;
+  border: none !important;
+  border-radius: 12rpx !important;
+  box-shadow:
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 3px var(--glass-shadow-inner) inset,
+    0 1px 4px var(--glass-shadow-outer) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
+  backdrop-filter: blur(12px) saturate(140%) !important;
+  color: var(--glass-text) !important;
+}
+
+.container.liquid-glass .manage-footer {
+  background: var(--glass-bg) !important;
+  backdrop-filter: blur(12px) saturate(140%) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
+  border-top: none !important;
+}
+
+.container.liquid-glass .manage-delete-btn {
+  background: rgba(255, 90, 93, 0.8) !important;
+}
+
+.container.liquid-glass .action-grid-item {
+  background: var(--glass-grid-bg) !important;
+  backdrop-filter: blur(8px) saturate(120%) !important;
+  -webkit-backdrop-filter: blur(8px) saturate(120%) !important;
+}
+
+.container.liquid-glass.light .confirm-add-btn {
+  background: var(--glass-btn-bg);
+  border: none !important;
+  box-shadow:
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 3px var(--glass-shadow-inner) inset,
+    0 1px 4px var(--glass-shadow-outer) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
+  backdrop-filter: blur(12px) saturate(140%) !important;
+  color: var(--glass-text) !important;
+}
+
+.container.liquid-glass.dark .confirm-add-btn {
+  background: var(--glass-btn-bg);
+  border: none !important;
+  box-shadow:
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 3px var(--glass-shadow-inner) inset,
+    0 1px 4px var(--glass-shadow-outer) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+  backdrop-filter: blur(20px) saturate(180%) !important;
+  color: var(--glass-text) !important;
+}
+
+/* 纪念日弹窗 input */
+.container.liquid-glass .action-input {
+  background: var(--glass-bg) !important;
+  border: none !important;
+  border-radius: 16rpx !important;
+  color: var(--glass-text) !important;
+  box-shadow:
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 3px var(--glass-shadow-inner) inset,
+    0 1px 4px var(--glass-shadow-outer) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
+  backdrop-filter: blur(12px) saturate(140%) !important;
+}
+
+.container.liquid-glass .action-input::placeholder {
+  color: var(--glass-placeholder) !important;
 }

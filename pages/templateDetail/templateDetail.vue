@@ -1,5 +1,6 @@
 <template>
-  <view class="container" :class="{ dark: daySettingsStore.isDarkMode, light: !daySettingsStore.isDarkMode, 'liquid-glass': daySettingsStore.liquidGlassEnabled }">
+  <view class="container"
+    :class="{ dark: daySettingsStore.isDarkMode, light: !daySettingsStore.isDarkMode, 'liquid-glass': daySettingsStore.liquidGlassEnabled }">
     <view class="header-fixed">
       <view class="input-wrapper">
         <text class="pen-icon">重命名：️️</text>
@@ -94,45 +95,39 @@
       </view>
     </view>
 
-    <view v-if="showAddActionPopup" class="popup-overlay" @click.self="closeAddActionPopup">
+    <view v-if="showAddActionPopup" class="popup-overlay action-picker-overlay" @click.self="closeAddActionPopup">
       <view class="overlay-bg" @click="closeAddActionPopup"></view>
-      <view class="action-picker-panel slide-up" @click.stop>
-
-        <view class="panel-header action-picker-header">
-          <text class="panel-title">选择动作</text>
-          <text class="close-btn" @click="closeAddActionPopup">×</text>
+      <view class="modal-panel action-picker-panel fade-in" @click.stop>
+        <view class="modal-header action-picker-header">
+          <text class="modal-title">选择动作</text>
+          <text class="close-icon" @click="closeAddActionPopup">×</text>
         </view>
-
-        <view class="panel-body action-picker-body">
+        <view class="modal-body action-picker-body">
           <view class="search-bar-container">
             <view class="search-bar-inner">
               <text class="search-icon">🔍</text>
-              <input v-model="searchTerm" placeholder="搜索动作名称..." class="search-bar-input"
-                @input="availableActions = filteredActions" />
-              <text v-if="searchTerm" class="clear-icon" @click="searchTerm=''; availableActions=allActions">×</text>
+              <input ref="searchInput" v-model="searchKeyword" class="search-bar-input" placeholder="搜索动作名称..."
+                @input="filterActions" confirm-type="search" :focus="searchFocus" />
+              <text v-if="searchKeyword" class="clear-icon" @click="clearSearch">×</text>
             </view>
           </view>
-
-          <scroll-view class="action-grid-list" scroll-y="true" show-scrollbar="false">
-            <view class="action-grid-inner">
-              <view v-for="(act, idx) in availableActions" :key="idx" class="action-grid-item"
-                :class="{ 'action-selected': selectedActionIdx === idx }" @click="selectAction(idx)">
-                <view class="act-name-container">
-                  <text class="act-name">{{ act }}</text>
-                </view>
-                <view v-if="selectedActionIdx === idx" class="select-check">✓</view>
+          <view class="action-grid-inner">
+            <view v-for="(act, idx) in filteredActions" :key="idx" class="action-grid-item"
+              :class="{ 'action-selected': selectedActionIdx === idx, 'action-already-added': chosenActions.includes(act) }"
+              @click="selectAction(idx)">
+              <view class="act-name-container">
+                <text class="act-name">{{ act }}</text>
               </view>
-
-              <view v-if="availableActions.length === 0" class="no-data-v2">
-                <text class="no-data-icon">🤷‍♂️</text>
-                <text class="no-data-text">未找到相关动作</text>
-              </view>
+              <view v-if="selectedActionIdx === idx" class="select-check">✓</view>
             </view>
-          </scroll-view>
-        </view>
-
-        <view class="panel-footer action-picker-footer">
-          <button class="confirm-add-btn" @click="addSelectedAction">确认添加</button>
+            <view v-if="filteredActions.length === 0" class="no-data-v2">
+              <text class="no-data-icon">🤷‍♂️</text>
+              <text class="no-data-text">未找到相关动作</text>
+              <text class="no-data-sub">请检查关键词或在首页添加</text>
+            </view>
+            <view class="list-bottom-guard"></view>
+          </view>
+          <view class="confirm-add-btn" @click="addSelectedAction">确认添加</view>
         </view>
       </view>
     </view>
@@ -309,7 +304,7 @@
         showSetSelectorPopup: false,
         setSelectorIdx: -1,
         setSelectorValue: 4,
-        availableActions: [],
+        filteredActions: [],
         selectedActionIdx: null,
         showColorPopup: false,
         showCustomColorPopup: false,
@@ -364,9 +359,8 @@
             value: '#f8f4ed'
           }
         ],
-        showSearchInput: false,
-        searchTerm: '',
-        allActions: [],
+        searchKeyword: '',
+        searchFocus: false,
         lastVibrateTime: 0,
         isNavigating: false,
         showEditPopup: false,
@@ -382,13 +376,6 @@
       isValidHex() {
         // 简单的正则判断是否为合法的 Hex 颜色代码
         return /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(this.newColorCode);
-      },
-      filteredActions() {
-        if (!this.searchTerm) {
-          return this.allActions.slice()
-        }
-        const kw = this.searchTerm.toLowerCase()
-        return this.allActions.filter(a => a.toLowerCase().includes(kw))
       },
       displayColors() {
         const {
@@ -417,7 +404,6 @@
 
       this.actStore = useActionStore();
       this.actStore.load();
-      this.availableActions = this.actStore.actionNames;
 
       this.loadTemplateDetail();
     },
@@ -869,16 +855,16 @@
         }
       },
       addSelectedAction() {
-        if (this.selectedActionIdx == null) {
+        if (this.selectedActionIdx === null) {
           uni.showToast({
             title: '请选择一个动作',
             icon: 'none'
           });
           return;
         }
-        const act = this.availableActions[this.selectedActionIdx];
+        const actName = this.filteredActions[this.selectedActionIdx];
 
-        if (this.chosenActions.includes(act)) {
+        if (this.chosenActions.includes(actName)) {
           uni.showToast({
             title: '动作已在模板中',
             icon: 'none'
@@ -886,15 +872,15 @@
           return;
         }
 
-        this.chosenActions.push(act);
-        this.chosenActionSets[act] = 4;
-        this.tplStore.addAction(this.templateName, act);
+        this.chosenActions.push(actName);
+        this.chosenActionSets[actName] = 4;
+        this.tplStore.addAction(this.templateName, actName);
         this.saveToStore();
         this.loadTemplateDetail(true);
         this.showAddActionPopup = false;
 
         uni.showToast({
-          title: `已添加：${act}`,
+          title: `已添加：${actName}`,
           icon: 'success'
         });
       },
@@ -1026,19 +1012,45 @@
         uni.navigateBack()
       },
       openAddActionPopup() {
-        this.allActions = useActionStore().actionNames.slice()
-        this.searchTerm = ''
-        this.showSearchInput = false
         this.showAddActionPopup = true
-        this.availableActions = this.allActions.slice()
+        this.filterActions()
         this.selectedActionIdx = null
+        this.searchKeyword = ''
+        this.$nextTick(() => {
+          this.searchFocus = true
+        })
       },
       closeAddActionPopup() {
         this.showAddActionPopup = false
+        this.searchFocus = false
         this.selectedActionIdx = null
+        this.searchKeyword = ''
       },
       selectAction(idx) {
+        if (this.chosenActions.includes(this.filteredActions[idx])) {
+          uni.showToast({
+            title: '动作已在列表中',
+            icon: 'none'
+          })
+          return
+        }
         this.selectedActionIdx = idx
+      },
+      filterActions() {
+        const kw = this.searchKeyword.trim().toLowerCase()
+        const all = this.actStore ? this.actStore.actionNames : []
+        if (!kw) {
+          this.filteredActions = all.slice()
+        } else {
+          this.filteredActions = all.filter(act =>
+            act.toLowerCase().includes(kw)
+          )
+        }
+        this.selectedActionIdx = null
+      },
+      clearSearch() {
+        this.searchKeyword = ''
+        this.filterActions()
       },
       closeColorPopup() {
         this.showColorPopup = false
@@ -1398,52 +1410,27 @@
     background-color: rgba(0, 0, 0, 0.6);
   }
 
-  /* ========== 选择动作弹窗 CSS（与编辑弹窗一致）========== */
+  /* ========== 选择动作弹窗 CSS（居中模态框）========== */
   .action-picker-panel {
-    width: 100%;
-    max-width: 100%;
-    height: 50vh;
-    border-radius: 16px 16px 0 0;
-    background-color: #1e1e1e;
-    box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.3);
-    position: relative;
-    z-index: 1;
-    display: flex;
-    flex-direction: column;
+    width: 85vw !important;
+    max-height: 70vh !important;
+    border-radius: 24px !important;
     overflow: hidden;
-  }
-
-  .container.light .action-picker-panel {
-    background-color: #ffffff;
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
   }
 
   .action-picker-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 16px 20px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-    flex-shrink: 0;
-  }
-
-  .container.light .action-picker-header {
-    border-bottom-color: #eee;
+    padding: 16px 20px 0 !important;
   }
 
   .action-picker-body {
-    padding: 20px;
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    min-height: 0;
-    max-height: calc(50vh - 120px);
+    padding: 0 20px !important;
+    position: relative;
   }
 
   /* 搜索栏样式 */
   .search-bar-container {
-    padding: 10px 0 10px;
-    background-color: inherit;
+    padding: 15px 0 12px;
     position: sticky;
     top: 0;
     z-index: 10;
@@ -1452,55 +1439,59 @@
   .search-bar-inner {
     display: flex;
     align-items: center;
-    height: 44px;
+    height: 48px;
     background: #fff;
     border-radius: 100px;
-    padding: 0 15px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    padding: 0 16px;
+    border: 1rpx solid rgba(200,200,200,0.3);
+    transition: all 0.2s;
   }
 
   .container.dark .search-bar-inner {
     background: #1a1a1a;
-    box-shadow: none;
+    border-color: rgba(255,255,255,0.12);
+  }
+
+  .search-bar-inner:focus-within {
+    border-color: rgba(55, 155, 255, 0.3);
   }
 
   .search-icon {
-    margin-right: 8px;
-    font-size: 14px;
+    font-size: 16px;
     color: #999;
+    margin-right: 10px;
   }
 
   .search-bar-input {
     flex: 1;
-    font-size: 14px;
+    height: 100%;
+    font-size: 15px;
     color: inherit;
   }
 
   .clear-icon {
+    font-size: 20px;
+    color: #999;
     padding: 5px;
-    font-size: 18px;
-    color: #ccc;
   }
 
-  /* 双列网格布局关键代码 */
-  .action-grid-list {
-    flex: 1;
-    width: 100%;
-    height: 0;
-    min-height: 30vh;
-    overflow: hidden;
-  }
-
+  /* 双列网格布局 */
   .action-grid-inner {
     display: flex;
     flex-wrap: wrap;
     justify-content: space-between;
-    padding: 0px 2px;
+    padding-bottom: 20px;
+  }
+
+  .list-bottom-guard {
+    height: 8px;
+    width: 100%;
+    pointer-events: none;
   }
 
   .action-grid-item {
     position: relative;
-    width: calc(50% - 7px);
+    width: calc(50% - 8px);
     height: 54px;
     background: #fff;
     border-radius: 14px;
@@ -1508,14 +1499,20 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 0 10px;
+    padding: 0 12px;
     box-sizing: border-box;
-    border: 1rpx solid transparent;
-    transition: all 0.2s;
+    border: 1px solid rgba(200,200,200,0.3);
+    transition: all 0.15s ease;
   }
 
   .container.dark .action-grid-item {
     background: #2e2e2e;
+    border-color: rgba(255,255,255,0.08);
+  }
+
+  .action-grid-item:active {
+    transform: scale(0.96);
+    opacity: 0.8;
   }
 
   .act-name {
@@ -1526,12 +1523,26 @@
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 2;
     overflow: hidden;
+    font-weight: 500;
   }
 
   /* 选中状态 */
   .action-selected {
+    background: rgba(55, 155, 255, 0.2) !important;
     border: 2px solid #379bff !important;
-    background: rgba(55, 155, 255, 0.05) !important;
+  }
+
+  .action-selected .act-name {
+    color: #379bff !important;
+    font-weight: bold;
+  }
+
+  .action-already-added {
+    opacity: 0.5;
+  }
+
+  .action-already-added .act-name {
+    color: #888 !important;
   }
 
   .select-check {
@@ -1547,43 +1558,143 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 2px 5px rgba(55, 155, 255, 0.3);
+    z-index: 2;
   }
 
-  /* 底部按钮 */
-  .action-picker-footer {
-    padding: 16px 20px;
-    border-top: 1px solid rgba(255, 255, 255, 0.08);
-    flex-shrink: 0;
+  /* 居中弹窗覆盖层 */
+  .popup-overlay.action-picker-overlay {
+    align-items: center;
   }
 
-  .container.light .action-picker-footer {
-    border-top-color: #eee;
+  /* 模态框容器 */
+  .modal-panel {
+    position: relative;
+    width: 80vw;
+    max-height: 70vh;
+    background-color: #1e1e1e;
+    border: 1rpx solid rgba(255,255,255,0.1);
+    border-radius: 10px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    z-index: 1001;
+  }
+
+  .container.light .modal-panel {
+    background-color: #ffffff;
+    border-color: rgba(200,200,200,0.3);
+  }
+
+  .fade-in {
+    animation: fadeIn 0.2s ease-out;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: scale(0.9);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  .modal-header {
+    position: relative;
+    padding: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .modal-title {
+    font-size: 16px;
+    font-weight: bold;
+    margin-left: 2vw;
+    color: inherit;
+  }
+
+  .close-icon {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 20px;
+    border-radius: 50%;
+    color: #888;
+  }
+
+  .modal-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px 16px;
   }
 
   .confirm-add-btn {
+    position: sticky;
+    bottom: 20px;
+    z-index: 10;
     width: 100%;
-    height: 50px;
-    line-height: 50px;
-    background: linear-gradient(135deg, #379bff, #2d82d6);
-    border-radius: 15px;
+    height: 48px;
+    background: rgba(36, 36, 36, 0.6);
+    border: 1rpx solid rgba(255, 255, 255, 0.12);
+    border-radius: 60rpx;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     color: #fff;
-    font-weight: bold;
-    font-size: 16px;
-    border: none;
+    font-size: 15px;
+    font-weight: 400;
+    backdrop-filter: blur(20px) saturate(150%);
+    -webkit-backdrop-filter: blur(20px) saturate(150%);
+    box-shadow:
+      0 0 0 0.5px rgba(255, 255, 255, 0.08) inset,
+      0 1px 3px rgba(255, 255, 255, 0.06) inset,
+      0 2px 12px rgba(0, 0, 0, 0.2);
+  }
+
+  .container.light .confirm-add-btn {
+    background: rgba(255, 255, 255, 0.6);
+    border-color: rgba(200, 200, 200, 0.35);
+    color: #333;
+    box-shadow:
+      0 0 0 0.5px rgba(255, 255, 255, 0.5) inset,
+      0 1px 3px rgba(255, 255, 255, 0.4) inset,
+      0 2px 12px rgba(0, 0, 0, 0.1);
+  }
+
+  .confirm-add-btn:active {
+    transform: scale(0.97);
+    opacity: 0.8;
   }
 
   .no-data-v2 {
     width: 100%;
+    padding: 50px 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
     text-align: center;
-    padding: 40px 0;
-    color: #999;
   }
 
   .no-data-icon {
-    font-size: 30px;
-    display: block;
-    margin-bottom: 10px;
+    font-size: 40px;
+    margin-bottom: 15px;
+  }
+
+  .no-data-text {
+    font-size: 16px;
+    color: inherit;
+    font-weight: bold;
+    margin-bottom: 8px;
+  }
+
+  .no-data-sub {
+    font-size: 13px;
+    color: #888;
   }
 
   /* 颜色弹窗遮罩层 - 核心修改：改为垂直居中对齐 */
@@ -1599,7 +1710,7 @@
     justify-content: center;
     align-items: center;
     /* 添加半透明遮罩，提升视觉层次 */
-    background-color: rgba(0, 0, 0, 0.6);
+    background-color: rgba(0, 0, 0, 0.3);
   }
 
   /* 弹窗主体卡片 */

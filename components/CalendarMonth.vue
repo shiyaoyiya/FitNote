@@ -107,7 +107,9 @@
         default: false
       }
     },
-    emits: ['date-click', 'date-longpress', 'go-to-year-page', 'open-anniv-popup', 'toggle-train-btn', 'open-more-menu'],
+    emits: ['date-click', 'date-longpress', 'go-to-year-page', 'open-anniv-popup', 'toggle-train-btn',
+      'open-more-menu'
+    ],
     data() {
       return {}
     },

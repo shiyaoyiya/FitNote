@@ -525,11 +525,21 @@
 <style>
 @import '@/static/css/liquid-glass.css';
   /* 全局根容器配置 */
+  html, body {
+    overflow: hidden;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+  }
   page {
     height: 100%;
     display: flex;
     flex-direction: column;
     overflow: hidden;
+  }
+  uni-page-wrapper, uni-page-body {
+    overflow: hidden !important;
+    height: 100%;
   }
 
   /* 统一各页面的最外层容器 */

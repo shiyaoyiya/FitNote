@@ -53,6 +53,12 @@
       "style": {
         "navigationBarTitleText": "💾 数据备份"
       }
+    },
+    {
+      "path": "pages/manageActions/manageActions",
+      "style": {
+        "navigationBarTitleText": "管理动作"
+      }
     }
   ],
   "globalStyle": {
@@ -60,6 +66,7 @@
     "navigationBarBackgroundColor": "#121212",
     "navigationBarTextStyle": "white",
     "backgroundColor": "#121212"
+    // "navigationStyle": "custom"
   },
   "uniIdRouter": {}
 }
