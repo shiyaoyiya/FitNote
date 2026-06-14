@@ -146,6 +146,10 @@
         localMode: 'cycle',
         localWeekPlan: [],
         weekDayNames: ['周一', '周二', '周三', '周四', '周五', '周六', '周日'],
+        showImportExportPanel: false,
+        importExportTab: 'export',
+        importText: '',
+        parsedPlan: null,
       }
     },
     computed: {
@@ -182,6 +186,15 @@
     methods: {
       switchMode(mode) {
         this.localMode = mode
+      },
+      openImportExportPanel() {
+        this.showImportExportPanel = true
+        this.importExportTab = 'export'
+        this.importText = ''
+        this.parsedPlan = null
+      },
+      closeImportExportPanel() {
+        this.showImportExportPanel = false
       },
       toggleDay(idx) {
         this.localPlan[idx].enabled = !this.localPlan[idx].enabled
