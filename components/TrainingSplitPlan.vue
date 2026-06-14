@@ -4,7 +4,10 @@
     <view class="split-panel fade-in" :class="{ light: isLightMode }" @click.stop>
       <view class="split-header">
         <text class="split-title">设置分化计划</text>
-        <text class="close-icon" @click="onClose">×</text>
+        <view class="header-actions">
+          <text class="import-export-icon" @click="openImportExportPanel">📤</text>
+          <text class="close-icon" @click="onClose">×</text>
+        </view>
       </view>
       <view class="mode-tabs">
         <view class="mode-tab" :class="{ 'mode-tab-active': localMode === 'cycle' }" @click="switchMode('cycle')">
@@ -249,7 +252,7 @@
     position: relative;
     width: 85vw;
     max-width: 360px;
-    background-color: #1e1e1e;
+    background-color: var(--bg-secondary);
     border-radius: 16px;
     overflow: hidden;
     display: flex;
@@ -259,7 +262,6 @@
   }
 
   .split-panel.light {
-    background-color: #ffffff;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
   }
 
@@ -284,22 +286,14 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    border-bottom: 1px solid #333;
-  }
-
-  .split-panel.light .split-header {
-    border-bottom-color: #e0e0e0;
+    border-bottom: 1px solid var(--border-color);
   }
 
   .mode-tabs {
     display: flex;
     padding: 8px 16px;
     gap: 8px;
-    border-bottom: 1px solid #333;
-  }
-
-  .split-panel.light .mode-tabs {
-    border-bottom-color: #e0e0e0;
+    border-bottom: 1px solid var(--border-color);
   }
 
   .mode-tab {
@@ -309,12 +303,8 @@
     justify-content: center;
     align-items: center;
     border-radius: 8px;
-    background-color: #2a2a2a;
+    background-color: var(--bg-tertiary);
     transition: all 0.2s;
-  }
-
-  .split-panel.light .mode-tab {
-    background-color: #e8e8e8;
   }
 
   .mode-tab-active {
@@ -327,27 +317,23 @@
 
   .mode-tab-text {
     font-size: 13px;
-    color: #888;
+    color: var(--text-muted);
   }
 
   .mode-tab-text-active {
-    color: #379bff;
+    color: var(--primary);
     font-weight: 500;
   }
 
   .split-title {
     font-size: 16px;
     font-weight: bold;
-    color: #f7f7f7;
-  }
-
-  .split-panel.light .split-title {
-    color: #333333;
+    color: var(--text-primary);
   }
 
   .close-icon {
     font-size: 20px;
-    color: #999;
+    color: var(--text-secondary);
     width: 40px;
     height: 40px;
     display: flex;
@@ -355,8 +341,20 @@
     align-items: center;
   }
 
-  .split-panel.light .close-icon {
-    color: #666666;
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .import-export-icon {
+    font-size: 18px;
+    color: var(--text-secondary);
+    width: 40px;
+    height: 40px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
   }
 
   .split-body {
@@ -369,11 +367,7 @@
     display: flex;
     align-items: center;
     padding: 10px 0;
-    border-bottom: 1px solid #2a2a2a;
-  }
-
-  .split-panel.light .day-row {
-    border-bottom-color: #e0e0e0;
+    border-bottom: 1px solid var(--bg-tertiary);
   }
 
   .day-row:last-child {
@@ -387,12 +381,8 @@
 
   .day-label {
     font-size: 14px;
-    color: #ccc;
+    color: var(--text-secondary);
     font-weight: 500;
-  }
-
-  .split-panel.light .day-label {
-    color: #666666;
   }
 
   .day-control {
@@ -403,15 +393,11 @@
   .day-toggle {
     padding: 4px 12px;
     border-radius: 100px;
-    background-color: #333;
+    background-color: var(--border-color);
     transition: all 0.2s;
     display: flex;
     align-items: center;
     justify-content: center;
-  }
-
-  .split-panel.light .day-toggle {
-    background-color: #e0e0e0;
   }
 
   .day-toggle-active {
@@ -420,11 +406,11 @@
 
   .toggle-text {
     font-size: 12px;
-    color: #999;
+    color: var(--text-secondary);
   }
 
   .toggle-text-active {
-    color: #379bff;
+    color: var(--primary);
   }
 
   .day-template {
@@ -435,32 +421,27 @@
   .tpl-picker {
     display: flex;
     align-items: center;
-    background-color: #2a2a2a;
+    background-color: var(--bg-tertiary);
     border-radius: 8px;
     padding: 6px 10px;
   }
 
   .split-panel.light .tpl-picker {
-    background-color: #f5f5f5;
-    border: 1px solid #e0e0e0;
+    border: 1px solid var(--border-color);
   }
 
   .tpl-picker-text {
     flex: 1;
     font-size: 13px;
-    color: #f7f7f7;
+    color: var(--text-primary);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
 
-  .split-panel.light .tpl-picker-text {
-    color: #333333;
-  }
-
   .tpl-arrow {
     font-size: 12px;
-    color: #666;
+    color: var(--text-muted);
     margin-left: 4px;
   }
 
@@ -476,35 +457,27 @@
 
   .remove-icon {
     font-size: 18px;
-    color: #666;
+    color: var(--text-muted);
   }
 
   .add-day-row {
     margin-top: 8px;
     padding: 10px;
     text-align: center;
-    border: 1px dashed #444;
+    border: 1px dashed var(--border-color);
     border-radius: 10px;
-  }
-
-  .split-panel.light .add-day-row {
-    border: 1px dashed #e0e0e0;
   }
 
   .add-day-text {
     font-size: 14px;
-    color: #379bff;
+    color: var(--primary);
   }
 
   .split-footer {
     padding: 12px 16px;
     display: flex;
     gap: 12px;
-    border-top: 1px solid #333;
-  }
-
-  .split-panel.light .split-footer {
-    border-top-color: #e0e0e0;
+    border-top: 1px solid var(--border-color);
   }
 
   .btn-cancel {
@@ -513,20 +486,12 @@
     line-height: 44px;
     text-align: center;
     border-radius: 10px;
-    background-color: #333;
-  }
-
-  .split-panel.light .btn-cancel {
-    background-color: #e0e0e0;
+    background-color: var(--border-color);
   }
 
   .btn-cancel text {
     font-size: 15px;
-    color: #bbb;
-  }
-
-  .split-panel.light .btn-cancel text {
-    color: #666666;
+    color: var(--text-secondary);
   }
 
   .btn-save {
@@ -535,7 +500,7 @@
     line-height: 44px;
     text-align: center;
     border-radius: 10px;
-    background: linear-gradient(135deg, #379bff, #2d82d6);
+    background: linear-gradient(135deg, var(--primary), var(--primary));
     box-shadow: 0 4px 12px rgba(55, 155, 255, 0.3);
   }
 
