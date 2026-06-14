@@ -268,6 +268,81 @@
           }
         })
       },
+      pasteFromClipboard() {
+        uni.getClipboardData({
+          success: (res) => {
+            if (res && res.data) {
+              this.importText = res.data
+              const parsed = this.parsePlanText(res.data)
+              this.parsedPlan = parsed
+              if (!parsed) {
+                uni.showToast({ title: '无法识别计划数据', icon: 'none' })
+              }
+            } else {
+              uni.showToast({ title: '剪贴板为空', icon: 'none' })
+            }
+          },
+          fail: () => {
+            uni.showToast({ title: '获取剪贴板失败', icon: 'none' })
+          }
+        })
+      },
+      parsePlanText(text) {
+        if (!text || !text.trim()) return null
+        
+        const lines = text.trim().split('\n')
+        if (lines.length < 2) return null
+
+        const firstLine = lines[0]
+        let mode = 'cycle'
+        if (firstLine.includes('按周')) {
+          mode = 'week'
+        }
+
+        const plan = []
+        let currentDay = null
+
+        for (let i = 1; i < lines.length; i++) {
+          const line = lines[i].trim()
+          if (!line) continue
+
+          if (line.includes('：休息')) {
+            plan.push({ template: null, enabled: false })
+            currentDay = null
+          } else if (line.includes('（') && line.includes('）')) {
+            const templateName = line.split('（')[1].split('）')[0]
+            plan.push({ template: templateName, enabled: true })
+            currentDay = plan.length - 1
+          } else if (currentDay !== null && line.includes('×')) {
+            // 解析动作数据（可选，用于验证）
+          }
+        }
+
+        return { mode, plan }
+      },
+      applyImportedPlan(parsed) {
+        if (!parsed || !parsed.plan) return
+        
+        this.localMode = parsed.mode
+        if (parsed.mode === 'cycle') {
+          this.localPlan = parsed.plan
+        } else {
+          this.localWeekPlan = parsed.plan
+        }
+      },
+      importPlan() {
+        if (!this.parsedPlan) {
+          uni.showToast({ title: '请先粘贴计划数据', icon: 'none' })
+          return
+        }
+        
+        this.applyImportedPlan(this.parsedPlan)
+        uni.showToast({ title: '导入成功', icon: 'success' })
+        this.closeImportExportPanel()
+      },
+      onImportTextInput() {
+        this.parsedPlan = this.parsePlanText(this.importText)
+      },
     },
   }
 </script>
