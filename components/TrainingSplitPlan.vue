@@ -75,6 +75,51 @@
       </view>
     </view>
   </view>
+
+  <view v-if="showImportExportPanel" class="popup-overlay" @click.self="closeImportExportPanel">
+    <view class="overlay-bg" @click="closeImportExportPanel"></view>
+    <view class="import-export-panel slide-up" @click.stop>
+      <view class="panel-header">
+        <text class="panel-title">导入/导出分化计划</text>
+        <text class="close-btn" @click="closeImportExportPanel">×</text>
+      </view>
+
+      <view class="tab-bar">
+        <view class="tab-item" :class="{ active: importExportTab === 'export' }" @click="importExportTab = 'export'">
+          <text>导出</text>
+        </view>
+        <view class="tab-item" :class="{ active: importExportTab === 'import' }" @click="importExportTab = 'import'">
+          <text>导入</text>
+        </view>
+      </view>
+
+      <view class="panel-body" v-if="importExportTab === 'export'">
+        <view class="export-preview">
+          <text class="preview-label">预览：</text>
+          <text class="preview-text">{{ exportPreview }}</text>
+        </view>
+      </view>
+
+      <view class="panel-body" v-else>
+        <view class="paste-btn-row">
+          <view class="paste-btn" @click="pasteFromClipboard">
+            <text>📋 粘贴</text>
+          </view>
+        </view>
+        <textarea v-model="importText" class="import-textarea" placeholder="在此粘贴分化计划数据" @input="onImportTextInput"></textarea>
+        <view v-if="parsedPlan" class="parse-result">
+          <text class="parse-success">✓ 识别到 {{ parsedPlan.mode === 'cycle' ? '按天数' : '按周' }} 计划</text>
+        </view>
+      </view>
+
+      <view class="panel-footer">
+        <view class="btn-cancel-popup" @click="closeImportExportPanel">取消</view>
+        <view class="btn-confirm-popup" @click="importExportTab === 'export' ? exportPlan() : importPlan()" :class="{ disabled: importExportTab === 'import' && !parsedPlan }">
+          <text>{{ importExportTab === 'export' ? '复制到剪贴板' : '确认导入' }}</text>
+        </view>
+      </view>
+    </view>
+  </view>
 </template>
 
 <script>
@@ -159,6 +204,25 @@
       isLightMode() {
         const daySettingsStore = useDaySettingsStore()
         return !daySettingsStore.isDarkMode
+      },
+      exportPreview() {
+        const plan = this.localMode === 'cycle' ? this.localPlan : this.localWeekPlan
+        const modeText = this.localMode === 'cycle' ? '按天数' : '按周'
+        const dayNames = this.localMode === 'cycle' 
+          ? plan.map((_, idx) => `第${idx + 1}天`)
+          : this.weekDayNames
+
+        let text = `分化计划（${modeText}）：\n`
+        
+        plan.forEach((day, idx) => {
+          if (day.enabled && day.template) {
+            text += `${dayNames[idx]}（${day.template}）\n`
+          } else {
+            text += `${dayNames[idx]}：休息\n`
+          }
+        })
+
+        return text
       },
     },
     watch: {
@@ -632,6 +696,203 @@
   }
 
   .btn-save:active {
+    transform: scale(0.95);
+    opacity: 0.9;
+  }
+
+  .import-export-panel {
+    position: relative;
+    width: 85vw;
+    max-width: 360px;
+    background-color: var(--bg-secondary);
+    border-radius: 16px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+    z-index: 10001;
+  }
+
+  .slide-up {
+    animation: slideUp 0.3s ease-out;
+  }
+
+  @keyframes slideUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .panel-header {
+    padding: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  .panel-title {
+    font-size: 16px;
+    font-weight: bold;
+    color: var(--text-primary);
+  }
+
+  .close-btn {
+    font-size: 20px;
+    color: var(--text-secondary);
+    width: 40px;
+    height: 40px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .tab-bar {
+    display: flex;
+    padding: 8px 16px;
+    gap: 8px;
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  .tab-item {
+    flex: 1;
+    height: 36px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 8px;
+    background-color: var(--bg-tertiary);
+    transition: all 0.2s;
+  }
+
+  .tab-item.active {
+    background-color: rgba(55, 155, 255, 0.2);
+  }
+
+  .tab-item text {
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+
+  .tab-item.active text {
+    color: var(--primary);
+    font-weight: 500;
+  }
+
+  .panel-body {
+    padding: 12px 16px;
+    max-height: 50vh;
+    overflow-y: auto;
+  }
+
+  .export-preview {
+    background-color: var(--bg-tertiary);
+    border-radius: 8px;
+    padding: 12px;
+  }
+
+  .preview-label {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+    display: block;
+  }
+
+  .preview-text {
+    font-size: 13px;
+    color: var(--text-primary);
+    white-space: pre-wrap;
+    line-height: 1.6;
+  }
+
+  .paste-btn-row {
+    margin-bottom: 12px;
+  }
+
+  .paste-btn {
+    background-color: rgba(55, 155, 255, 0.15);
+    border-radius: 8px;
+    padding: 10px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .paste-btn text {
+    font-size: 14px;
+    color: var(--primary);
+  }
+
+  .import-textarea {
+    width: 100%;
+    height: 120px;
+    background-color: var(--bg-tertiary);
+    border-radius: 8px;
+    padding: 12px;
+    font-size: 13px;
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    box-sizing: border-box;
+  }
+
+  .parse-result {
+    margin-top: 12px;
+    padding: 10px;
+    background-color: rgba(76, 175, 80, 0.15);
+    border-radius: 8px;
+  }
+
+  .parse-success {
+    font-size: 13px;
+    color: #4CAF50;
+  }
+
+  .panel-footer {
+    padding: 12px 16px;
+    display: flex;
+    gap: 12px;
+    border-top: 1px solid var(--border-color);
+  }
+
+  .btn-cancel-popup {
+    flex: 1;
+    height: 44px;
+    line-height: 44px;
+    text-align: center;
+    border-radius: 10px;
+    background-color: var(--border-color);
+    font-size: 15px;
+    color: var(--text-secondary);
+  }
+
+  .btn-confirm-popup {
+    flex: 1;
+    height: 44px;
+    line-height: 44px;
+    text-align: center;
+    border-radius: 10px;
+    background: linear-gradient(135deg, var(--primary), var(--primary));
+    box-shadow: 0 4px 12px rgba(55, 155, 255, 0.3);
+  }
+
+  .btn-confirm-popup text {
+    font-size: 15px;
+    font-weight: bold;
+    color: #fff;
+  }
+
+  .btn-confirm-popup.disabled {
+    opacity: 0.5;
+    pointer-events: none;
+  }
+
+  .btn-confirm-popup:active {
     transform: scale(0.95);
     opacity: 0.9;
   }
