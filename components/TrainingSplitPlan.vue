@@ -235,6 +235,39 @@
           weekPlan: this.localWeekPlan,
         })
       },
+      exportPlan() {
+        const plan = this.localMode === 'cycle' ? this.localPlan : this.localWeekPlan
+        const modeText = this.localMode === 'cycle' ? '按天数' : '按周'
+        const dayNames = this.localMode === 'cycle' 
+          ? plan.map((_, idx) => `第${idx + 1}天`)
+          : this.weekDayNames
+
+        let text = `分化计划（${modeText}）：\n`
+        
+        plan.forEach((day, idx) => {
+          if (day.enabled && day.template) {
+            const template = this.templates.find(t => t.name === day.template)
+            text += `${dayNames[idx]}（${day.template}）：\n`
+            if (template && template.actions) {
+              template.actions.forEach(action => {
+                const sets = (template.actionSets && template.actionSets[action]) || 4
+                text += `${action}×${sets}\n`
+              })
+            }
+          } else {
+            text += `${dayNames[idx]}：休息\n`
+          }
+          text += '\n'
+        })
+
+        uni.setClipboardData({
+          data: text,
+          success: () => {
+            uni.showToast({ title: '已复制到剪贴板', icon: 'success' })
+            this.closeImportExportPanel()
+          }
+        })
+      },
     },
   }
 </script>
