@@ -389,9 +389,11 @@
         
         this.localMode = parsed.mode
         if (parsed.mode === 'cycle') {
-          this.localPlan = parsed.plan
+          // 使用 splice 替换数组内容，确保 Vue 响应式系统检测到变化
+          this.localPlan.splice(0, this.localPlan.length, ...parsed.plan)
         } else {
-          this.localWeekPlan = parsed.plan
+          // 使用 splice 替换数组内容，确保 Vue 响应式系统检测到变化
+          this.localWeekPlan.splice(0, this.localWeekPlan.length, ...parsed.plan)
         }
       },
       importPlan() {
