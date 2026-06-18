@@ -2,6 +2,7 @@
 import {
   defineStore
 } from 'pinia'
+import { useDaySettingsStore } from './daySettings.js'
 
 const STORAGE_KEY = 'fitness_templates'
 const DAYDATA_PREFIX = 'fitness_daydata_'
@@ -100,12 +101,26 @@ export const useTemplateStore = defineStore('template', {
       })
       this.save()
     },
-    // 通过 id 更新名字（不触碰 dayData）
     renameTemplate(id, newName) {
       const tpl = this.templates.find(t => t.id === id)
-      if (!tpl) return
+      if (!tpl) return false
+      
+      const oldName = tpl.name
+      
+      // 检查重名
+      if (this.templates.some(t => t.name === newName && t.id !== id)) {
+        return false // 重名，阻止重命名
+      }
+      
+      // 更新分化计划中的引用
+      const daySettingsStore = useDaySettingsStore()
+      daySettingsStore.updateSplitPlanTemplateName(oldName, newName)
+      
+      // 更新模板名称
       tpl.name = newName
       this.save()
+      
+      return true
     },
     updateTemplate(id, payload) {
       const tpl = this.templates.find(t => t.id === id)
