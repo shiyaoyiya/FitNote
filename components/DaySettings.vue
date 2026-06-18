@@ -66,6 +66,10 @@
               <text class="action-icon">📤</text>
               <text class="action-label">复制数据</text>
             </view>
+            <view class="setting-action import-action" @click="handleImportData">
+              <text class="action-icon">📥</text>
+              <text class="action-label">导入数据</text>
+            </view>
           </view>
         </view>
       </view>
@@ -100,7 +104,7 @@
       },
     },
     emits: ['close', 'add-action', 'toggle-auto-timer', 'toggle-auto-fill', 'toggle-bubble-fill',
-      'set-heavy-timer', 'set-light-timer', 'export-data'
+      'set-heavy-timer', 'set-light-timer', 'export-data', 'import-data'
     ],
     data() {
       return {}
@@ -115,6 +119,9 @@
       },
       handleExportData() {
         this.$emit('export-data')
+      },
+      handleImportData() {
+        this.$emit('import-data')
       },
     },
   }
@@ -351,6 +358,28 @@
   }
 
   .action-label {
+    font-size: 15px;
+    color: var(--text-primary);
+  }
+
+  .import-action {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px 0;
+    gap: 8px;
+    background: var(--bg-tertiary);
+    border-radius: 10px;
+    border: 1rpx solid var(--border-color);
+  }
+
+  .import-action .action-icon {
+    font-size: 18px;
+    color: #34c759;
+  }
+
+  .import-action .action-label {
     font-size: 15px;
     color: var(--text-primary);
   }
