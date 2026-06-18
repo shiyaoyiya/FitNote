@@ -145,10 +145,11 @@
           const dd = uni.getStorageSync(fullKey) || {}
           const arr = Array.isArray(dd.entries?.[this.actionName]) ?
             dd.entries[this.actionName] : []
-          if (arr.length) {
+          const realEntries = Array.isArray(arr) ? arr.filter(e => !e.isPlaceholder) : []
+          if (realEntries.length > 0) {
             recs.push({
               dateStr,
-              totalToday: arr.reduce((s, e) => s + e.total, 0),
+              totalToday: Math.round(realEntries.reduce((s, e) => s + e.total, 0) * 100) / 100,
               details: arr,
             })
           }
@@ -165,7 +166,7 @@
           let diffValue = 0
           if (i < recs.length - 1) { // 如果不是最后一条（最早的记录）
             // 当前记录（较新的日期）减去下一条记录（较旧的日期）
-            diffValue = r.totalToday - recs[i + 1].totalToday
+            diffValue = Math.round((r.totalToday - recs[i + 1].totalToday) * 100) / 100
           }
 
           hist.push({
@@ -217,7 +218,7 @@
             for (const stage of stages) {
               const w = Number(stage.weight) || 0
               const r = Number(stage.reps) || 0
-              totalVolume += w * r
+              totalVolume += Math.round(w * r * 100) / 100
               if (w > maxWeight) {
                 maxWeight = w
                 maxRepsAtMaxWeight = r
@@ -249,19 +250,19 @@
     flex-shrink: 0;
     background: inherit;
     z-index: 10;
-    border-bottom: 1px solid #ccc;
+    border-bottom: 1px solid var(--border-color);
     display: flex;
     align-items: center;
     height: 44px;
   }
 
   .container.light .header-fixed {
-    border-bottom-color: #e0e0e0;
+    border-bottom-color: var(--border-color);
   }
 
   .container.dark .header-fixed {
-    border-color: #555;
-    color: #f7f7f7;
+    border-color: var(--text-placeholder);
+    color: var(--text-primary);
   }
 
   .text {
@@ -270,15 +271,15 @@
     font-size: 18px;
     margin-top: 5px;
     margin-left: 10px;
-    color: #888;
+    color: var(--text-muted);
   }
 
   .container.light .text {
-    color: #888888;
+    color: var(--text-muted);
   }
 
   .container.dark .text {
-    color: #bbb;
+    color: var(--text-secondary);
   }
 
   .action-name-input {
@@ -289,8 +290,8 @@
   }
 
   .container.dark .action-name-input {
-    border-color: #555;
-    color: #f7f7f7;
+    border-color: var(--text-placeholder);
+    color: var(--text-primary);
   }
 
   .container {
@@ -302,13 +303,13 @@
   }
 
   .container.light {
-    background-color: #f5f5f5;
-    color: #333333;
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
   }
 
   .container.dark {
-    background-color: #121212;
-    color: #f7f7f7;
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
   }
 
   /* 历史列表：scroll-view 负责滚动 */
@@ -331,11 +332,11 @@
     justify-content: space-between;
     align-items: flex-start;
     padding: 10px 10px;
-    border-bottom: 1px solid #e0e0e0;
+    border-bottom: 1px solid var(--border-color);
   }
 
   .container.dark .history-row {
-    border-color: #333333;
+    border-color: var(--border-color);
   }
 
   /* 左侧的两行：entries-text + diff */
@@ -354,11 +355,11 @@
   .total-diff-text {
     margin-top: 4px;
     font-size: 16px;
-    color: #888888;
+    color: var(--text-secondary);
   }
 
   .container.dark .total-diff-text {
-    color: #bbbbbb;
+    color: var(--text-secondary);
   }
 
   /* 括号里的"增减"要比总重量字体小一点 */
@@ -369,18 +370,15 @@
 
   /* 增减文本颜色 */
   .diff-positive {
-    color: #e5514f;
-    /* 红色+号 */
+    color: var(--danger);
   }
 
   .diff-negative {
-    color: #4fa052;
-    /* 绿色-号 */
+    color: var(--success);
   }
 
   .diff-neutral {
-    color: #757575;
-    /* 灰色0 */
+    color: var(--text-muted);
   }
 
   /* 右侧的日期 */
@@ -390,22 +388,22 @@
 
   .date-text {
     font-size: 14px;
-    color: #888888;
+    color: var(--text-secondary);
   }
 
   .container.dark .date-text {
-    color: #bbbbbb;
+    color: var(--text-secondary);
   }
 
   /* "暂无历史" 文本 */
   .no-data {
     margin-top: 50px;
     text-align: center;
-    color: #999999;
+    color: var(--text-secondary);
   }
 
   .container.dark .no-data {
-    color: #bbbbbb;
+    color: var(--text-secondary);
   }
 
   /* 加载更多提示 */
@@ -418,11 +416,11 @@
   .load-more-text,
   .no-more-text {
     font-size: 14px;
-    color: #999999;
+    color: var(--text-secondary);
   }
 
   .container.dark .load-more-text,
   .container.dark .no-more-text {
-    color: #bbbbbb;
+    color: var(--text-secondary);
   }
 </style>

@@ -26,19 +26,16 @@
       <view class="type-btn" :class="{ 'type-btn-active': entryType === 'normal' }" @click="selectType('normal')">
         <text :class="{ 'type-text-active': entryType === 'normal' }">正常组</text>
       </view>
-      <view class="type-btn" :class="{ 'type-btn-active': entryType === 'decreasing' }" @click="selectType('decreasing')">
-        <text :class="{ 'type-text-active': entryType === 'decreasing' }">递减组</text>
-      </view>
-      <view class="type-btn" :class="{ 'type-btn-active': entryType === 'paused' }" @click="selectType('paused')">
-        <text :class="{ 'type-text-active': entryType === 'paused' }">暂停组</text>
+      <view class="type-btn" :class="{ 'type-btn-active': entryType === 'composite' }" @click="selectType('composite')">
+        <text :class="{ 'type-text-active': entryType === 'composite' }">复合组</text>
       </view>
       <text class="expand-icon" @click="expanded = !expanded">{{ expanded ? '▲' : '▼' }}</text>
     </view>
 
-    <!-- 递减/暂停阶段（动态添加） -->
+    <!-- 次组数（动态添加） -->
     <view v-if="entryType !== 'normal'" class="extra-stages">
       <view v-for="(stage, i) in extraStages" :key="i" class="extra-stage-row">
-        <text class="stage-label">{{ entryType === 'decreasing' ? '递减' : '暂停' }}{{ i + 1 }}：</text>
+        <text class="stage-label">次组{{ i + 1 }}：</text>
         <view class="input-pair">
           <input type="digit" v-model="stage.reps" placeholder="次数" class="input-reps"
             @focus="onExtraInputFocus(i, 'reps')" @blur="onInputBlur" />
@@ -46,10 +43,11 @@
           <input type="digit" v-model="stage.weight" placeholder="kg" class="input-weight"
             @focus="onExtraInputFocus(i, 'weight')" @blur="onInputBlur" />
         </view>
+        <text class="stage-type-badge" :class="'stage-type-' + getSubStageType(stage)">{{ getSubStageTypeLabel(stage) }}</text>
         <text class="remove-stage-btn" @click="removeExtraStage(i)">×</text>
         <button class="extra-confirm-btn" @click="confirmExtraStages">✓️</button>
       </view>
-      <text class="add-stage-btn" @click="addExtraStage">+ 添加{{ entryType === 'decreasing' ? '递减' : '暂停' }}阶段</text>
+      <text class="add-stage-btn" @click="addExtraStage">+ 添加次组数</text>
     </view>
 
     <!-- 展开区域：历史记录 -->
@@ -88,7 +86,8 @@
     getEntryDisplayText,
     getTotalWeight,
     normalizeEntries,
-    isPlaceholderEntry
+    isPlaceholderEntry,
+    getCompositeType,
   } from '@/utils/dayHelper.js'
 
   export default {
@@ -147,6 +146,7 @@
       getTotalWeight,
       normalizeEntries,
       isPlaceholderEntry,
+      getCompositeType,
 
       loadExpandedState() {
         try {
@@ -193,13 +193,23 @@
         const parts = entry.stages
           .filter(s => s.reps > 0)
           .map(s => s.weight > 0 ? `${s.reps}×${s.weight}kg` : `${s.reps}`)
-        const typeSuffix = entry.type === 'decreasing' ? ' 递减' :
-                           entry.type === 'paused' ? ' 暂停' : ''
-        const displayText = `上次：${parts.join('+')}${typeSuffix}，点击填入`
+        const hasSubStages = entry.stages.length > 1
+        let displayText
+        if (hasSubStages) {
+          const compType = getCompositeType(entry.stages)
+          let typeLabel = ''
+          if (compType === 'decreasing') typeLabel = '(🔻递减)'
+          else if (compType === 'paused') typeLabel = '(⏸暂停)'
+          else if (compType === 'increasing') typeLabel = '(🔺递增)'
+          else if (compType === 'mixed') typeLabel = '(🔗复合)'
+          displayText = `上次：${parts.join('+')}${typeLabel}，点击填入`
+        } else {
+          displayText = `上次：${parts.join('+')}，点击填入`
+        }
 
         return {
           stages: entry.stages,
-          type: entry.type || 'normal',
+          type: hasSubStages ? ENTRY_TYPE.COMPOSITE : ENTRY_TYPE.NORMAL,
           displayText,
         }
       },
@@ -210,7 +220,7 @@
           if (!history) return
           const stage = this.extraStages[this.focusedStageIndex]
           if (!stage) { this.showBubble = false; this.focusedStageIndex = -1; return }
-          this.entryType = history.type || ENTRY_TYPE.NORMAL
+          this.entryType = history.type !== ENTRY_TYPE.NORMAL ? ENTRY_TYPE.COMPOSITE : ENTRY_TYPE.NORMAL
           if (this.focusedField === 'reps' && !stage.reps) stage.reps = String(history.reps)
           if (this.focusedField === 'weight' && !stage.weight) stage.weight = String(history.weight)
           this.showBubble = false
@@ -227,9 +237,9 @@
         if (!this.mainReps) this.mainReps = String(stages[0].reps)
         if (!this.mainWeight) this.mainWeight = String(stages[0].weight)
 
-        // 如果历史有额外阶段（递减/暂停），自动创建并填充
+        // 如果历史有额外阶段，自动创建并填充
         if (stages.length > 1) {
-          this.entryType = type || ENTRY_TYPE.NORMAL
+          this.entryType = type || ENTRY_TYPE.COMPOSITE
           this.extraStages = stages.slice(1).map(s => ({
             reps: String(s.reps),
             weight: s.weight > 0 ? String(s.weight) : ''
@@ -249,8 +259,7 @@
         if (currentVal) return
         const history = this.getHistoryDataForExtraStage(stageIndex)
         if (!history) return
-        const typeLabel = history.type === 'decreasing' ? '递减' : '暂停'
-        this.bubbleContent = `上次${typeLabel}${stageIndex + 1}：${history.reps}×${history.weight}kg，点击填入`
+        this.bubbleContent = `上次次组${stageIndex + 1}：${history.reps}×${history.weight}kg，点击填入`
         this.showBubble = true
       },
       getHistoryDataForExtraStage(stageIndex) {
@@ -279,6 +288,21 @@
       removeExtraStage(index) {
         this.extraStages.splice(index, 1)
       },
+      getSubStageType(stage) {
+        const mainWeight = Number(this.mainWeight)
+        if (!mainWeight || !stage.weight) return ''
+        const subWeight = Number(stage.weight)
+        if (subWeight === mainWeight) return 'paused'
+        if (subWeight < mainWeight) return 'decreasing'
+        return 'increasing'
+      },
+      getSubStageTypeLabel(stage) {
+        const type = this.getSubStageType(stage)
+        if (type === 'paused') return '暂停'
+        if (type === 'decreasing') return '递减'
+        if (type === 'increasing') return '递增'
+        return ''
+      },
       selectType(val) {
         this.entryType = val
         if (val === ENTRY_TYPE.NORMAL) {
@@ -306,7 +330,7 @@
         const newStages = validStages.map(s => ({
           reps: Number(s.reps),
           weight: s.weight ? Number(s.weight) : 0,
-          total: s.weight ? Number(s.reps) * Number(s.weight) : Number(s.reps),
+          total: s.weight ? Math.round(Number(s.reps) * Number(s.weight) * 100) / 100 : Number(s.reps),
         }))
         const mergedStages = [...(lastEntry.stages || []), ...newStages]
         const total = mergedStages.reduce((sum, s) => sum + s.total, 0)
@@ -417,14 +441,14 @@
     top: 42px;
     right: 60px;
     z-index: 50;
-    background: #379bff;
+    background: var(--primary);
     border-radius: 8px;
     padding: 6px 12px;
     box-shadow: 0 4px 12px rgba(55, 155, 255, 0.4);
   }
   .bubble-text {
     font-size: 12px;
-    color: #fff;
+    color: #ffffff;
     white-space: nowrap;
   }
 
@@ -479,11 +503,11 @@
 
   .type-btn-active {
     background: rgba(55, 155, 255, 0.15);
-    border-color: #379bff;
+    border-color: var(--primary);
   }
 
   .type-text-active {
-    color: #379bff;
+    color: var(--primary);
   }
 
   /* 输入区域 */
@@ -530,14 +554,36 @@
 
   .remove-stage-btn {
     font-size: 20px;
-    color: #ff5a5d;
+    color: var(--danger);
     padding: 4px 8px;
   }
 
   .add-stage-btn {
     padding: 4px 0;
     font-size: 12px;
-    color: #379bff;
+    color: var(--primary);
+  }
+
+  .stage-type-badge {
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    flex-shrink: 0;
+  }
+
+  .stage-type-decreasing {
+    background: rgba(255, 71, 87, 0.1);
+    color: var(--danger);
+  }
+
+  .stage-type-paused {
+    background: rgba(55, 155, 255, 0.1);
+    color: var(--primary);
+  }
+
+  .stage-type-increasing {
+    background: rgba(46, 213, 115, 0.1);
+    color: var(--success);
   }
 
   .extra-confirm-btn {
@@ -618,11 +664,11 @@
   }
 
   .diff-up {
-    color: #ff4757;
+    color: var(--danger);
   }
 
   .diff-down {
-    color: #2ed573;
+    color: var(--success);
   }
 
   .diff-neutral {

@@ -113,12 +113,12 @@
           </view>
           <view class="action-grid-inner">
             <view v-for="(act, idx) in filteredActions" :key="idx" class="action-grid-item"
-              :class="{ 'action-selected': selectedActionIdx === idx, 'action-already-added': chosenActions.includes(act) }"
+              :class="{ 'action-selected': selectedActionIdxs.includes(idx), 'action-already-added': chosenActions.includes(act) }"
               @click="selectAction(idx)">
               <view class="act-name-container">
                 <text class="act-name">{{ act }}</text>
               </view>
-              <view v-if="selectedActionIdx === idx" class="select-check">✓</view>
+              <view v-if="selectedActionIdxs.includes(idx)" class="select-check">✓</view>
             </view>
             <view v-if="filteredActions.length === 0" class="no-data-v2">
               <text class="no-data-icon">🤷‍♂️</text>
@@ -127,7 +127,7 @@
             </view>
             <view class="list-bottom-guard"></view>
           </view>
-          <view class="confirm-add-btn" @click="addSelectedAction">确认添加</view>
+          <view class="confirm-add-btn" @click="addSelectedAction">确认添加{{ selectedActionIdxs.length ? ' (' + selectedActionIdxs.length + ')' : '' }}</view>
         </view>
       </view>
     </view>
@@ -305,7 +305,7 @@
         setSelectorIdx: -1,
         setSelectorValue: 4,
         filteredActions: [],
-        selectedActionIdx: null,
+        selectedActionIdxs: [],
         showColorPopup: false,
         showCustomColorPopup: false,
         newColorName: '',
@@ -855,34 +855,35 @@
         }
       },
       addSelectedAction() {
-        if (this.selectedActionIdx === null) {
+        if (this.selectedActionIdxs.length === 0) {
           uni.showToast({
-            title: '请选择一个动作',
+            title: '请选择至少一个动作',
             icon: 'none'
           });
           return;
         }
-        const actName = this.filteredActions[this.selectedActionIdx];
-
-        if (this.chosenActions.includes(actName)) {
-          uni.showToast({
-            title: '动作已在模板中',
-            icon: 'none'
-          });
-          return;
-        }
-
-        this.chosenActions.push(actName);
-        this.chosenActionSets[actName] = 4;
-        this.tplStore.addAction(this.templateName, actName);
+        let added = 0;
+        let skipped = 0;
+        this.selectedActionIdxs.forEach(idx => {
+          const actName = this.filteredActions[idx];
+          if (!this.chosenActions.includes(actName)) {
+            this.chosenActions.push(actName);
+            this.chosenActionSets[actName] = 4;
+            this.tplStore.addAction(this.templateName, actName);
+            added++;
+          } else {
+            skipped++;
+          }
+        });
         this.saveToStore();
         this.loadTemplateDetail(true);
         this.showAddActionPopup = false;
-
-        uni.showToast({
-          title: `已添加：${actName}`,
-          icon: 'success'
-        });
+        if (added > 0) {
+          const msg = skipped > 0 ? `已添加 ${added} 个动作（跳过 ${skipped} 个重复）` : `已添加 ${added} 个动作`;
+          uni.showToast({ title: msg, icon: 'success', duration: 1500 });
+        } else {
+          uni.showToast({ title: '所选动作已在模板中', icon: 'none' });
+        }
       },
       selectColor(c) {
         this.tplStore.setColor(this.templateName, c)
@@ -1014,7 +1015,7 @@
       openAddActionPopup() {
         this.showAddActionPopup = true
         this.filterActions()
-        this.selectedActionIdx = null
+        this.selectedActionIdxs = []
         this.searchKeyword = ''
         this.$nextTick(() => {
           this.searchFocus = true
@@ -1023,18 +1024,24 @@
       closeAddActionPopup() {
         this.showAddActionPopup = false
         this.searchFocus = false
-        this.selectedActionIdx = null
+        this.selectedActionIdxs = []
         this.searchKeyword = ''
       },
       selectAction(idx) {
-        if (this.chosenActions.includes(this.filteredActions[idx])) {
+        const act = this.filteredActions[idx]
+        if (this.chosenActions.includes(act)) {
           uni.showToast({
             title: '动作已在列表中',
             icon: 'none'
           })
           return
         }
-        this.selectedActionIdx = idx
+        const i = this.selectedActionIdxs.indexOf(idx)
+        if (i === -1) {
+          this.selectedActionIdxs.push(idx)
+        } else {
+          this.selectedActionIdxs.splice(i, 1)
+        }
       },
       filterActions() {
         const kw = this.searchKeyword.trim().toLowerCase()
@@ -1046,7 +1053,7 @@
             act.toLowerCase().includes(kw)
           )
         }
-        this.selectedActionIdx = null
+        this.selectedActionIdxs = []
       },
       clearSearch() {
         this.searchKeyword = ''
@@ -1213,8 +1220,8 @@
 <style scoped>
   /* 整体 & 深色模式 */
   .container {
-    background-color: #f5f5f5;
-    color: #333;
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
     /* 新增：flex垂直布局，占满视口高度 */
     display: flex;
     flex-direction: column;
@@ -1223,13 +1230,13 @@
   }
 
   .container.dark {
-    background-color: #121212;
-    color: #f7f7f7;
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
   }
 
   .container.light {
-    background-color: #f5f5f5;
-    color: #333333;
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
   }
 
   /* 顶部固定 输入框 */
@@ -1243,12 +1250,12 @@
     z-index: 10;
     display: flex;
     align-items: center;
-    border-bottom: 1rpx solid #eee;
+    border-bottom: 1rpx solid var(--border-color);
     flex-shrink: 0;
   }
 
   .container.dark .header-fixed {
-    border-bottom-color: #333;
+    border-bottom-color: var(--border-color);
   }
 
   .input-wrapper {
@@ -1261,11 +1268,11 @@
   .pen-icon {
     font-size: 18px;
     margin-right: 8px;
-    color: #888;
+    color: var(--text-muted);
   }
 
   .container.dark .pen-icon {
-    color: #bbb;
+    color: var(--text-secondary);
   }
 
   .template-name-input {
@@ -1279,11 +1286,11 @@
   }
 
   .template-name-input::placeholder {
-    color: #aaa;
+    color: var(--text-placeholder);
   }
 
   .container.dark .template-name-input::placeholder {
-    color: #666;
+    color: var(--text-muted);
   }
 
   /* 中间滚动区域 */
@@ -1303,12 +1310,12 @@
   .no-data-mid {
     padding-top: 100rpx;
     text-align: center;
-    color: #999;
+    color: var(--text-muted);
     font-size: 26rpx;
   }
 
   .container.dark .no-data-mid {
-    color: #555;
+    color: var(--text-placeholder);
   }
 
   /* 底部固定 区域 */
@@ -1322,12 +1329,12 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    border-top: 1px solid #e0e0e0;
+    border-top: 1px solid var(--border-color);
     z-index: 10;
   }
 
   .container.dark .footer-fixed {
-    border-top-color: #333;
+    border-top-color: var(--border-color);
   }
 
   .color-display {
@@ -1342,22 +1349,22 @@
     width: 32px;
     height: 32px;
     border-radius: 16px;
-    border: 1px solid #ccc;
+    border: 1px solid var(--border-color);
   }
 
   .container.dark .color-circle-lg {
-    border-color: #555;
+    border-color: var(--text-placeholder);
   }
 
   .no-color-text,
   .color-text {
     font-size: 14px;
-    color: #999;
+    color: var(--text-muted);
   }
 
   .container.dark .no-color-text,
   .container.dark .color-text {
-    color: #bbb;
+    color: var(--text-secondary);
   }
 
   .footer-buttons {
@@ -1371,7 +1378,7 @@
   .btn-save {
     height: 36px;
     padding: 0 20px;
-    background-color: #379bff;
+    background-color: var(--primary);
     color: #fff;
     border-radius: 5px;
     font-size: 14px;
@@ -1386,28 +1393,6 @@
   .btn-add-action:active,
   .btn-save:active {
     opacity: 0.8;
-  }
-
-  /* 添加动作 弹窗 */
-  .popup-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 1000;
-    display: flex;
-    justify-content: center;
-    align-items: flex-end;
-  }
-
-  .overlay-bg {
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background-color: rgba(0, 0, 0, 0.6);
   }
 
   /* ========== 选择动作弹窗 CSS（居中模态框）========== */
@@ -1440,7 +1425,7 @@
     display: flex;
     align-items: center;
     height: 48px;
-    background: #fff;
+    background: var(--bg-secondary);
     border-radius: 100px;
     padding: 0 16px;
     border: 1rpx solid rgba(200,200,200,0.3);
@@ -1448,7 +1433,7 @@
   }
 
   .container.dark .search-bar-inner {
-    background: #1a1a1a;
+    background: var(--bg-tertiary);
     border-color: rgba(255,255,255,0.12);
   }
 
@@ -1458,7 +1443,7 @@
 
   .search-icon {
     font-size: 16px;
-    color: #999;
+    color: var(--text-muted);
     margin-right: 10px;
   }
 
@@ -1471,7 +1456,7 @@
 
   .clear-icon {
     font-size: 20px;
-    color: #999;
+    color: var(--text-muted);
     padding: 5px;
   }
 
@@ -1493,7 +1478,7 @@
     position: relative;
     width: calc(50% - 8px);
     height: 54px;
-    background: #fff;
+    background: var(--bg-secondary);
     border-radius: 14px;
     margin-bottom: 12px;
     display: flex;
@@ -1506,7 +1491,7 @@
   }
 
   .container.dark .action-grid-item {
-    background: #2e2e2e;
+    background: var(--bg-tertiary);
     border-color: rgba(255,255,255,0.08);
   }
 
@@ -1529,11 +1514,11 @@
   /* 选中状态 */
   .action-selected {
     background: rgba(55, 155, 255, 0.2) !important;
-    border: 2px solid #379bff !important;
+    border: 2px solid var(--primary) !important;
   }
 
   .action-selected .act-name {
-    color: #379bff !important;
+    color: var(--primary) !important;
     font-weight: bold;
   }
 
@@ -1542,7 +1527,7 @@
   }
 
   .action-already-added .act-name {
-    color: #888 !important;
+    color: var(--text-muted) !important;
   }
 
   .select-check {
@@ -1551,7 +1536,7 @@
     right: -6px;
     width: 18px;
     height: 18px;
-    background: #379bff;
+    background: var(--primary);
     color: #fff;
     border-radius: 50%;
     font-size: 11px;
@@ -1566,22 +1551,15 @@
     align-items: center;
   }
 
-  /* 模态框容器 */
+  /* 模态框容器 - 页面特定覆盖 */
   .modal-panel {
-    position: relative;
     width: 80vw;
     max-height: 70vh;
-    background-color: #1e1e1e;
     border: 1rpx solid rgba(255,255,255,0.1);
-    border-radius: 10px;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-    z-index: 1001;
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
   }
 
   .container.light .modal-panel {
-    background-color: #ffffff;
     border-color: rgba(200,200,200,0.3);
   }
 
@@ -1603,9 +1581,6 @@
   .modal-header {
     position: relative;
     padding: 12px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
   }
 
   .modal-title {
@@ -1618,12 +1593,6 @@
   .close-icon {
     width: 40px;
     height: 40px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    font-size: 20px;
-    border-radius: 50%;
-    color: #888;
   }
 
   .modal-body {
@@ -1644,7 +1613,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #fff;
+    color: var(--text-primary);
     font-size: 15px;
     font-weight: 400;
     backdrop-filter: blur(20px) saturate(150%);
@@ -1658,7 +1627,7 @@
   .container.light .confirm-add-btn {
     background: rgba(255, 255, 255, 0.6);
     border-color: rgba(200, 200, 200, 0.35);
-    color: #333;
+    color: var(--text-primary);
     box-shadow:
       0 0 0 0.5px rgba(255, 255, 255, 0.5) inset,
       0 1px 3px rgba(255, 255, 255, 0.4) inset,
@@ -1694,7 +1663,7 @@
 
   .no-data-sub {
     font-size: 13px;
-    color: #888;
+    color: var(--text-muted);
   }
 
   /* 颜色弹窗遮罩层 - 核心修改：改为垂直居中对齐 */
@@ -1717,7 +1686,7 @@
   .color-picker-card {
     width: 85vw;
     max-height: 80vh;
-    background-color: #1e1e1e;
+    background-color: var(--bg-secondary);
     /* 关键：使用 px 单位保证圆角稳定，同时明确四个角的圆角值 */
     border-radius: 40rpx !important;
     /* 加 !important 提升优先级 */
@@ -1736,7 +1705,7 @@
   }
 
   .container.dark .color-picker-card {
-    background-color: #1e1e1e;
+    background-color: var(--bg-secondary);
     /* 同步深色模式的圆角，保持一致 */
     border-radius: 40rpx !important;
     -webkit-border-radius: 40rpx !important;
@@ -1744,17 +1713,17 @@
   }
 
   .container.light .color-picker-card {
-    background-color: #ffffff;
+    background-color: var(--bg-secondary);
     box-shadow: 0 10rpx 40rpx rgba(0, 0, 0, 0.15);
   }
 
   .container.light .cp-footer {
-    background-color: #ffffff !important;
+    background-color: var(--bg-secondary) !important;
   }
 
   .container.light .btn-custom-add {
     background: rgba(55, 155, 255, 0.1);
-    color: #379bff;
+    color: var(--primary);
   }
 
   /* 头部样式 */
@@ -1769,7 +1738,7 @@
 
 
   .container.dark .cp-header {
-    border-bottom-color: #333;
+    border-bottom-color: var(--border-color);
   }
 
   .cp-header::after {
@@ -1780,11 +1749,11 @@
     transform: translateX(-50%);
     width: 72vw;
     height: 1px;
-    background-color: #eee;
+    background-color: var(--border-color);
   }
 
   .container.dark .cp-header::after {
-    background-color: #555;
+    background-color: var(--text-placeholder);
   }
 
   .cp-title {
@@ -1794,7 +1763,7 @@
 
   .cp-close {
     font-size: 40rpx;
-    color: #999;
+    color: var(--text-muted);
     padding: 10rpx;
   }
 
@@ -1852,7 +1821,7 @@
 
   .color-name {
     font-size: 22rpx;
-    color: #666;
+    color: var(--text-secondary);
     width: 100%;
     text-align: center;
     white-space: nowrap;
@@ -1861,22 +1830,22 @@
   }
 
   .color-name-dark {
-    color: #bbb;
+    color: var(--text-secondary);
   }
 
   /* 特殊状态：空/选中 */
   .empty-icon {
-    background-color: #f8f8f8;
-    border: 2rpx dashed #ccc;
+    background-color: var(--bg-tertiary);
+    border: 2rpx dashed var(--border-color);
   }
 
   .empty-icon-dark {
-    background: #333;
-    border-color: #555;
+    background: var(--bg-tertiary);
+    border-color: var(--text-placeholder);
   }
 
   .slash {
-    color: #ff5a5d;
+    color: var(--danger);
     font-weight: bold;
   }
 
@@ -1891,7 +1860,7 @@
   .cp-footer {
     padding: 10px 30px;
     /* 关键：背景色和弹窗主体一致，且不设置圆角（继承父级） */
-    background-color: #1e1e1e !important;
+    background-color: var(--bg-secondary) !important;
     width: 100%;
     box-sizing: border-box;
     flex-shrink: 0;
@@ -1908,7 +1877,7 @@
     height: 90rpx;
     line-height: 90rpx;
     background-color: #1a334d;
-    color: #379bff;
+    color: var(--primary);
     /* 按钮自身圆角不要超过弹窗圆角，避免溢出 */
     border-radius: 20rpx !important;
     font-size: 30rpx;
@@ -1920,7 +1889,7 @@
 
   .container.dark .btn-custom-add {
     background: #1e3a5a;
-    color: #379bff;
+    color: var(--primary);
   }
 
   @keyframes modalShow {
@@ -1938,7 +1907,7 @@
   /* 自定义颜色 弹窗 样式 */
   .custom-color-card {
     width: 80vw;
-    background-color: #1e1e1e;
+    background-color: var(--bg-secondary);
     /* 保持与你主色调一致 */
     border-radius: 40rpx;
     overflow: hidden;
@@ -1964,33 +1933,33 @@
     transform: translateX(-50%);
     width: 72vw;
     height: 1px;
-    background-color: #eee;
+    background-color: var(--border-color);
   }
 
   .container.dark .custom-header::after {
-    background-color: #555;
+    background-color: var(--text-placeholder);
   }
 
   .container.light .custom-header::after {
-    background-color: #e0e0e0;
+    background-color: var(--border-color);
   }
 
   .container.light .custom-title {
-    color: #333333;
+    color: var(--text-primary);
   }
 
   .container.light .close-icon-new {
-    color: #666666;
+    color: var(--text-secondary);
   }
 
   .custom-title {
-    color: #fff;
+    color: var(--text-primary);
     font-size: 34rpx;
     font-weight: 600;
   }
 
   .close-icon-new {
-    color: #888;
+    color: var(--text-muted);
     font-size: 36rpx;
   }
 
@@ -2005,32 +1974,32 @@
 
   .input-label {
     display: block;
-    color: #aaa;
+    color: var(--text-placeholder);
     font-size: 24rpx;
     margin-bottom: 12rpx;
     margin-left: 10rpx;
   }
 
   .container.light .input-label {
-    color: #666666;
+    color: var(--text-secondary);
   }
 
   .modern-input {
     width: 100%;
     height: 90rpx;
-    background: #1a1a1a;
+    background: var(--bg-tertiary);
     border-radius: 20rpx;
     padding: 0 30rpx;
-    color: #fff;
+    color: var(--text-primary);
     font-size: 28rpx;
     box-sizing: border-box;
-    border: 1rpx solid #333;
+    border: 1rpx solid var(--border-color);
   }
 
   .container.light .modern-input {
-    background: #ffffff;
-    border: 1rpx solid #e0e0e0;
-    color: #333333;
+    background: var(--bg-secondary);
+    border: 1rpx solid var(--border-color);
+    color: var(--text-primary);
   }
 
   /* Hex 输入行与预览 */
@@ -2053,11 +2022,11 @@
   }
 
   .container.light .preview-box {
-    border: 1rpx solid #e0e0e0;
+    border: 1rpx solid var(--border-color);
   }
 
   .preview-tip {
-    color: #666;
+    color: var(--text-secondary);
     font-size: 30rpx;
   }
 
@@ -2079,22 +2048,22 @@
     flex: 1;
     height: 90rpx;
     line-height: 90rpx;
-    background: #333;
-    color: #ccc;
+    background: var(--bg-tertiary);
+    color: var(--text-secondary);
     border-radius: 20rpx;
     font-size: 28rpx;
   }
 
   .container.light .btn-cancel {
-    background: #e0e0e0;
-    color: #666666;
+    background: var(--bg-tertiary);
+    color: var(--text-secondary);
   }
 
   .btn-confirm-add {
     flex: 2;
     height: 90rpx;
     line-height: 90rpx;
-    background: linear-gradient(135deg, #379bff, #2d82d6);
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
     color: #fff;
     border-radius: 20rpx;
     font-size: 28rpx;
@@ -2102,7 +2071,7 @@
   }
 
   .error-msg {
-    color: #ff5a5d;
+    color: var(--danger);
     font-size: 24rpx;
     margin-top: 10rpx;
     text-align: center;
@@ -2136,7 +2105,7 @@
   .search-trigger {
     flex: 0 0 auto;
     margin-right: 6px;
-    color: #888;
+    color: var(--text-muted);
     margin-left: 10px;
     width: 100px;
     height: 32px;
@@ -2147,7 +2116,7 @@
   .search-input {
     flex: 1 1 auto;
     height: 32px;
-    border: 1px solid #ccc;
+    border: 1px solid var(--border-color);
     border-radius: 4px;
     padding: 0 6px;
     box-sizing: border-box;
@@ -2156,7 +2125,7 @@
   .clear-search {
     flex: 0 0 auto;
     margin-left: 6px;
-    color: #999;
+    color: var(--text-muted);
     cursor: pointer;
   }
 
@@ -2202,7 +2171,7 @@
     top: 0;
     bottom: 0;
     width: 120rpx;
-    background-color: #ff5a5d;
+    background-color: var(--danger);
     border-radius: 12rpx;
     display: flex;
     align-items: center;
@@ -2216,7 +2185,7 @@
     z-index: 2;
     width: 100%;
     height: 100%;
-    background-color: #242424;
+    background-color: var(--bg-tertiary);
     border-radius: 12rpx;
     display: flex;
     align-items: center;
@@ -2229,7 +2198,7 @@
   }
 
   .container.light .action-card {
-    background-color: #ffffff;
+    background-color: var(--bg-secondary);
     box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.08);
   }
 
@@ -2244,14 +2213,14 @@
 
   .action-name {
     font-size: 30rpx;
-    color: #f7f7f7;
+    color: var(--text-primary);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
 
   .container.light .action-name {
-    color: #333333;
+    color: var(--text-primary);
   }
 
   .action-history-area {
@@ -2272,63 +2241,46 @@
 
   .arrow-icon {
     font-size: 20px;
-    color: #555;
+    color: var(--text-placeholder);
   }
 
   .container.light .arrow-icon {
-    color: #999999;
+    color: var(--text-muted);
   }
 
   .tag-label {
     flex: 1;
     text-align: center;
     font-size: 30rpx;
-    color: #333;
+    color: var(--text-primary);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
 
   .container.dark .tag-label {
-    color: #f7f7f7;
+    color: var(--text-primary);
   }
 
   .container.light .tag-label {
-    color: #333333;
+    color: var(--text-primary);
   }
 
   .is-dragging .action-card {
     transition: none;
     transform: scale(1.05) !important;
     box-shadow: 0 10rpx 30rpx rgba(0, 0, 0, 0.8);
-    border: 1rpx solid #555;
-  }
-
-  .popup-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    z-index: 9999;
-    display: flex;
-    justify-content: center;
-    align-items: flex-end;
+    border: 1rpx solid var(--text-placeholder);
   }
 
   .popup-panel {
-    width: 100%;
     max-width: 100%;
-    border-radius: 16px 16px 0 0;
-    background-color: #1e1e1e;
     box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.3);
-    position: relative;
-    z-index: 1;
     animation: slideUp 0.25s ease-out;
   }
 
-  .container.light .popup-panel {
-    background-color: #ffffff;
+  .popup-overlay {
+    align-items: flex-end;
   }
 
   @keyframes slideUp {
@@ -2350,15 +2302,15 @@
   }
 
   .container.light .panel-header {
-    border-bottom-color: #e0e0e0;
+    border-bottom-color: var(--border-color);
   }
 
   .container.light .panel-title {
-    color: #333333;
+    color: var(--text-primary);
   }
 
   .container.light .close-btn {
-    color: #666666;
+    color: var(--text-secondary);
   }
 
   .panel-title {
@@ -2369,7 +2321,7 @@
 
   .close-btn {
     font-size: 22px;
-    color: #888;
+    color: var(--text-muted);
     padding: 4px 8px;
   }
 
@@ -2390,18 +2342,18 @@
   .form-label {
     display: block;
     font-size: 14px;
-    color: #aaa;
+    color: var(--text-placeholder);
     margin-bottom: 8px;
   }
 
   .container.light .form-label {
-    color: #666666;
+    color: var(--text-secondary);
   }
 
   .form-input {
     width: 100%;
     height: 44px;
-    background-color: #2a2a2a;
+    background-color: var(--bg-tertiary);
     border: none;
     border-radius: 10px;
     padding: 0 14px;
@@ -2411,17 +2363,17 @@
   }
 
   .container.dark .form-input {
-    background-color: #2a2a2a;
+    background-color: var(--bg-tertiary);
   }
 
   .container.light .form-input {
-    background-color: #ffffff;
-    border: 1rpx solid #e0e0e0;
-    color: #333333;
+    background-color: var(--bg-secondary);
+    border: 1rpx solid var(--border-color);
+    color: var(--text-primary);
   }
 
   .form-input::placeholder {
-    color: #666;
+    color: var(--text-secondary);
   }
 
   .category-selector {
@@ -2436,24 +2388,24 @@
     gap: 4px;
     padding: 8px 14px;
     border-radius: 20px;
-    background-color: #2a2a2a;
+    background-color: var(--bg-tertiary);
     font-size: 13px;
-    color: #aaa;
+    color: var(--text-placeholder);
   }
 
   .category-option.selected {
-    background: linear-gradient(135deg, #379bff, #0048ff);
+    background: linear-gradient(135deg, var(--primary), #0048ff);
     color: #fff;
   }
 
   .container.light .category-option {
-    background-color: #ffffff;
-    border: 1rpx solid #e0e0e0;
-    color: #666666;
+    background-color: var(--bg-secondary);
+    border: 1rpx solid var(--border-color);
+    color: var(--text-secondary);
   }
 
   .container.light .category-option.selected {
-    background: linear-gradient(135deg, #379bff, #0048ff);
+    background: linear-gradient(135deg, var(--primary), #0048ff);
     color: #ffffff;
   }
 
@@ -2471,21 +2423,21 @@
     align-items: center;
     gap: 12px;
     padding: 12px 14px;
-    background-color: #2a2a2a;
+    background-color: var(--bg-tertiary);
     border-radius: 10px;
     transition: background-color 0.2s ease;
   }
 
   .container.light .checkbox-row {
-    background-color: #ffffff;
-    border: 1rpx solid #e0e0e0;
+    background-color: var(--bg-secondary);
+    border: 1rpx solid var(--border-color);
   }
 
   .checkbox-box {
     width: 22px;
     height: 22px;
     border-radius: 6px;
-    border: 2px solid #555;
+    border: 2px solid var(--text-placeholder);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -2494,12 +2446,12 @@
   }
 
   .container.light .checkbox-box {
-    border-color: #999999;
+    border-color: var(--text-muted);
   }
 
   .checkbox-box.checked {
-    background: linear-gradient(135deg, #379bff, #0048ff);
-    border-color: #379bff;
+    background: linear-gradient(135deg, var(--primary), #0048ff);
+    border-color: var(--primary);
   }
 
   .checkbox-check {
@@ -2522,7 +2474,7 @@
 
   .checkbox-hint {
     font-size: 12px;
-    color: #888;
+    color: var(--text-muted);
   }
 
   .subcategory-section-form {
@@ -2531,7 +2483,7 @@
 
   .subcategory-form-label {
     font-size: 12px;
-    color: #888;
+    color: var(--text-muted);
     padding-left: 12px;
     margin-bottom: 6px;
   }
@@ -2546,29 +2498,29 @@
   .subcategory-option {
     padding: 5px 12px;
     border-radius: 14px;
-    background-color: #2a2a2a;
+    background-color: var(--bg-tertiary);
     font-size: 12px;
-    color: #999;
+    color: var(--text-muted);
     border: 1px solid transparent;
     transition: all 0.2s ease;
   }
 
   .subcategory-option.selected {
     background-color: rgba(55, 155, 255, 0.2);
-    border-color: #379bff;
-    color: #379bff;
+    border-color: var(--primary);
+    color: var(--primary);
   }
 
   .container.light .subcategory-option {
-    background-color: #ffffff;
-    border: 1rpx solid #e0e0e0;
-    color: #666666;
+    background-color: var(--bg-secondary);
+    border: 1rpx solid var(--border-color);
+    color: var(--text-secondary);
   }
 
   .container.light .subcategory-option.selected {
     background-color: rgba(55, 155, 255, 0.1);
-    border-color: #379bff;
-    color: #379bff;
+    border-color: var(--primary);
+    color: var(--primary);
   }
 
   .subcategory-option:active {
@@ -2591,13 +2543,13 @@
     padding: 12px 0;
     border-radius: 10px;
     font-size: 15px;
-    color: #aaa;
-    background-color: #2a2a2a;
+    color: var(--text-placeholder);
+    background-color: var(--bg-tertiary);
   }
 
   .container.light .btn-return {
-    background-color: #e0e0e0;
-    color: #666666;
+    background-color: var(--bg-tertiary);
+    color: var(--text-secondary);
   }
 
   .btn-return:active {
@@ -2611,7 +2563,7 @@
     border-radius: 10px;
     font-size: 15px;
     color: #fff;
-    background: linear-gradient(135deg, #379bff, #0048ff);
+    background: linear-gradient(135deg, var(--primary), #0048ff);
     box-shadow: 0 4px 12px rgba(55, 155, 255, 0.3);
   }
 
@@ -2621,44 +2573,32 @@
 
   .set-selector-panel {
     width: 100%;
-    max-width: 100%;
     height: auto;
     max-height: 70vh;
-    border-radius: 16px 16px 0 0;
-    background-color: #1e1e1e;
     box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.3);
-    position: relative;
-    z-index: 1;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-  }
-
-  .container.light .set-selector-panel {
-    background-color: #ffffff;
   }
 
   .container.light .set-selector-body {
-    background-color: #ffffff;
+    background-color: var(--bg-secondary);
   }
 
   .container.light .current-action-name {
-    background: #f5f5f5;
-    color: #333333;
+    background: var(--bg-primary);
+    color: var(--text-primary);
   }
 
   .container.light .preset-set-btn {
-    background: #f5f5f5;
+    background: var(--bg-primary);
   }
 
   .container.light .preset-set-btn text {
-    color: #666666;
+    color: var(--text-secondary);
   }
 
   .container.light .custom-set-input {
-    background: #f5f5f5;
-    color: #333333;
-    border: 1rpx solid #e0e0e0;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    border: 1rpx solid var(--border-color);
   }
 
   .set-selector-body {
@@ -2668,10 +2608,10 @@
   .current-action-name {
     text-align: center;
     font-size: 16px;
-    color: #fff;
+    color: var(--text-primary);
     margin-bottom: 20px;
     padding: 10px;
-    background: #2a2a2a;
+    background: var(--bg-tertiary);
     border-radius: 10px;
   }
 
@@ -2687,7 +2627,7 @@
     width: 50px;
     height: 50px;
     border-radius: 50%;
-    background: #379bff;
+    background: var(--primary);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -2712,13 +2652,13 @@
 
   .set-number {
     font-size: 40px;
-    color: #fff;
+    color: var(--text-primary);
     font-weight: bold;
   }
 
   .set-unit {
     font-size: 14px;
-    color: #888;
+    color: var(--text-muted);
   }
 
   .preset-sets {
@@ -2733,7 +2673,7 @@
     width: 50px;
     height: 40px;
     border-radius: 8px;
-    background: #2a2a2a;
+    background: var(--bg-tertiary);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -2741,16 +2681,16 @@
 
   .preset-set-btn text {
     font-size: 14px;
-    color: #aaa;
+    color: var(--text-placeholder);
   }
 
   .preset-set-btn.selected {
     background: rgba(55, 155, 255, 0.2);
-    border: 1px solid #379bff;
+    border: 1px solid var(--primary);
   }
 
   .preset-set-btn.selected text {
-    color: #379bff;
+    color: var(--primary);
   }
 
   .custom-set-row {
@@ -2762,29 +2702,29 @@
 
   .custom-set-label {
     font-size: 14px;
-    color: #888;
+    color: var(--text-muted);
   }
 
   .custom-set-input {
     width: 60px;
     height: 40px;
-    background: #2a2a2a;
+    background: var(--bg-tertiary);
     border: none;
     border-radius: 8px;
     text-align: center;
     font-size: 16px;
-    color: #fff;
+    color: var(--text-primary);
   }
 
   .custom-set-unit {
     font-size: 14px;
-    color: #888;
+    color: var(--text-muted);
   }
 
   .set-count-btn {
     padding: 4px 10px;
     background: rgba(55, 155, 255, 0.15);
-    border: 1px solid #379bff;
+    border: 1px solid var(--primary);
     border-radius: 12px;
     margin-right: 8px;
     flex-shrink: 0;
@@ -2793,7 +2733,7 @@
 
   .set-count-text {
     font-size: 12px;
-    color: #379bff;
+    color: var(--primary);
   }
 
   .container.light .set-count-btn {

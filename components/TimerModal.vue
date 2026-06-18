@@ -335,22 +335,22 @@
   }
 
   .quick-btn-active {
-    background: #379bff;
-    border-color: var(--theme-primary);
+    background: var(--primary);
+    border-color: var(--primary);
   }
 
   .quick-btn-active .quick-label {
-    color: var(--theme-primary);
+    color: var(--primary);
   }
 
   .quick-btn-active .quick-time {
-    color: var(--theme-primary);
+    color: var(--primary);
   }
 
   .quick-label {
     font-size: 15px;
     font-weight: bold;
-    color: var(--theme-primary);
+    color: var(--primary);
     line-height: 1.2;
   }
 
@@ -404,7 +404,7 @@
   }
 
   .done-btn {
-    background: linear-gradient(135deg, #379bff, #2d82d6) !important;
+    background: linear-gradient(135deg, var(--primary), #2d82d6) !important;
     color: #fff !important;
     font-weight: bold;
     border: none !important;

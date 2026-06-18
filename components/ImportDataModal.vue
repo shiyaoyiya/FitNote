@@ -7,7 +7,7 @@
         <text class="close-icon" @click="$emit('close')">×</text>
       </view>
       <view class="modal-body">
-        <!-- 剪贴板内容 -->
+        <!-- 剪贴板内�?-->
         <view class="clipboard-section">
           <text class="section-title">剪贴板内容：</text>
           <view class="clipboard-content">
@@ -17,12 +17,12 @@
         
         <!-- 解析结果 -->
         <view class="parsed-section" v-if="parsedData.length > 0">
-          <text class="section-title">解析结果：</text>
+          <text class="section-title">解析结果�?/text>
           <view class="parsed-list">
             <view v-for="(action, index) in parsedData" :key="index" class="parsed-item">
-              <text class="parsed-icon">✓</text>
+              <text class="parsed-icon">�?/text>
               <text class="parsed-name">{{ action.actionName }}</text>
-              <text class="parsed-count">- {{ action.entries.length }}组</text>
+              <text class="parsed-count">- {{ action.entries.length }}�?/text>
             </view>
           </view>
         </view>
@@ -88,12 +88,12 @@ export default {
             this.parseClipboardContent()
           },
           fail: () => {
-            this.errorMessage = '无法读取剪贴板内容'
+            this.errorMessage = '无法读取剪贴板内�?
           }
         })
         // #endif
       } catch (error) {
-        this.errorMessage = '无法读取剪贴板内容'
+        this.errorMessage = '无法读取剪贴板内�?
       }
     },
     parseClipboardContent() {

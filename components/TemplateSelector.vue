@@ -49,7 +49,7 @@
           </view>
           <view class="divider"></view>
           <view v-if="aerobicHistory.length > 0" class="aerobic-history">
-            <text class="subtitle">历史有氧</text>
+            <text class="subtitle">常用有氧</text>
             <view class="tag-container">
               <text v-for="(a, i) in aerobicHistory" :key="i" class="reason-tag" @click="aerobicName = a">
                 {{ a }}
@@ -137,9 +137,13 @@ export default {
       aerobicTime: null,
       restReason: '',
       commonReasons: ['休息日', '有事', '月经', '姨妈', '生病', '受伤'],
+      COMMON_REASONS_KEY: 'fitness_common_reasons',
       presetPacks: [],
       selectedPresets: [],
     }
+  },
+  created() {
+    this.loadCommonReasons()
   },
   computed: {
     aerobicHistory() {
@@ -153,6 +157,22 @@ export default {
         this.aerobicTime = 1
         uni.showToast({ title: '时长不能小于1分钟', icon: 'none' })
       }
+    },
+    loadCommonReasons() {
+      const saved = uni.getStorageSync(this.COMMON_REASONS_KEY)
+      if (Array.isArray(saved) && saved.length > 0) {
+        const defaults = ['休息日', '有事', '月经', '姨妈', '生病', '受伤']
+        const merged = [...new Set([...saved, ...defaults])]
+        this.commonReasons = merged.slice(0, 15)
+      }
+    },
+    addCommonReason(reason) {
+      const idx = this.commonReasons.indexOf(reason)
+      if (idx === 0) return
+      if (idx > 0) this.commonReasons.splice(idx, 1)
+      this.commonReasons.unshift(reason)
+      if (this.commonReasons.length > 15) this.commonReasons = this.commonReasons.slice(0, 15)
+      uni.setStorageSync(this.COMMON_REASONS_KEY, this.commonReasons)
     },
     saveAerobic() {
       if (!this.aerobicName || this.aerobicTime === null || this.aerobicTime < 1) {
@@ -168,6 +188,7 @@ export default {
         uni.showToast({ title: '请输入理由', icon: 'none' })
         return
       }
+      this.addCommonReason(this.restReason.trim())
       this.$emit('save-rest', this.restReason)
       this.restReason = ''
     },

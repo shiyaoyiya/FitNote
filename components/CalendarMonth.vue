@@ -141,8 +141,8 @@
   }
 
   .calendar-month.light {
-    background-color: #f5f5f5;
-    color: #333333;
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
   }
 
   .calendar-header {
@@ -154,7 +154,7 @@
   }
 
   .calendar-month.light .calendar-header {
-    border-bottom: 1px solid #e0e0e0;
+    border-bottom: 1px solid var(--border-color);
   }
 
   .month-title {
@@ -164,7 +164,7 @@
   }
 
   .calendar-month.light .month-title {
-    color: #333333;
+    color: var(--text-primary);
   }
 
   .icon-add-wrap {
@@ -194,11 +194,7 @@
     width: calc(100% / 7);
     text-align: center;
     font-size: 14px;
-    color: #666666;
-  }
-
-  .calendar-month.light .weekday {
-    color: #666666;
+    color: var(--text-muted);
   }
 
   .calendar-grid {
@@ -226,12 +222,12 @@
 
   .cell-text {
     font-size: 14px;
-    color: #f7f7f7;
+    color: var(--text-primary);
     font-weight: bold;
   }
 
   .calendar-month.light .cell-text {
-    color: #333333;
+    color: var(--text-primary);
   }
 
   .template-name {
@@ -260,11 +256,11 @@
     margin-bottom: -4px;
     text-align: center;
     width: 100%;
-    color: #aaa;
+    color: var(--text-secondary);
   }
 
   .calendar-month.light .weight-text {
-    color: #999999;
+    color: var(--text-secondary);
   }
 
   .more-btn-wrap {
@@ -295,10 +291,10 @@
   .template-name {
     font-size: 9px;
     margin: 0 4px;
-    color: #aaa;
+    color: var(--text-secondary);
   }
 
   .calendar-month.light .template-name {
-    color: #999999;
+    color: var(--text-secondary);
   }
 </style>

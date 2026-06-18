@@ -38,6 +38,13 @@
           </view>
           <view class="pulse-ring" v-if="isBackingUp"></view>
         </view>
+        
+        <!-- 进度显示 -->
+        <view v-if="isBackingUp" class="progress-container">
+          <progress :percent="backupProgress" stroke-width="4" activeColor="#007aff" />
+          <text class="progress-text">{{ backupProgress }}%</text>
+        </view>
+        
         <text class="hint-text">建议每个循环后备份，保障数据不丢失</text>
       </view>
 
@@ -122,10 +129,12 @@
     data() {
       return {
         daySettingsStore: useDaySettingsStore(),
+        dayDataCacheStore: useDayDataCacheStore(),
         backupPath: '',
         lastBackupTime: '',
         isBackingUp: false,
         isRestoring: false,
+        backupProgress: 0,
         backupStatus: {
           type: '',
           message: ''
@@ -167,14 +176,17 @@
         if (this.isBackingUp) return
 
         this.isBackingUp = true
+        this.backupProgress = 0
         this.setStatus('', '')
         // 震动反馈 (增强操作感)
         uni.vibrateShort();
         // 使用 nextTick 让 UI 先渲染出 loading 状态
         this.$nextTick(async () => {
           try {
-            // 默认强制全备份
-            await backupData('full')
+            // 默认强制全备份，传入 dayDataCacheStore 和进度回调
+            await backupData('full', this.dayDataCacheStore, (progress) => {
+              this.backupProgress = progress
+            })
             const now = this.getNowFormatDate();
             this.lastBackupTime = now;
             uni.setStorageSync('last_backup_time', now);
@@ -782,48 +794,25 @@
     display: flex;
     flex-direction: column;
     height: 100vh;
-    background-color: #f4f7f9;
+    background-color: var(--bg-primary);
     padding: 20px;
     box-sizing: border-box;
   }
 
-  .container.dark {
-    background-color: #121212;
-  }
-
-  .container.light {
-    background-color: #f5f5f5;
-    color: #333333;
-  }
-
   /* 卡片样式优化 */
   .card {
-    background: #ffffff;
+    background: var(--bg-secondary);
     padding: 20px;
     border-radius: 24px;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.03);
   }
 
-  .container.dark .card {
-    background: #1c1c1e;
-    /* iOS 风格的深灰卡片色 */
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
-  }
-
   .label-text {
-    color: #888;
-  }
-
-  .container.dark .label-text {
-    color: #999;
+    color: var(--text-secondary);
   }
 
   .path-filename-text {
-    color: #333;
-  }
-
-  .container.dark .path-filename-text {
-    color: #f2f2f7;
+    color: var(--text-primary);
   }
 
   .path-header {
@@ -847,13 +836,6 @@
     border-radius: 4px;
   }
 
-  .container.dark .path-badge {
-    background: #1a2a44;
-    /* 深蓝色背景 */
-    color: #58a6ff;
-    /* 更亮的蓝色文字 */
-  }
-
   .path-display-area {
     display: flex;
     align-items: center;
@@ -863,15 +845,11 @@
   .folder-circle {
     width: 44px;
     height: 44px;
-    background: #f0f4ff;
+    background: var(--bg-tertiary);
     border-radius: 12px;
     display: flex;
     align-items: center;
     justify-content: center;
-  }
-
-  .container.dark .folder-circle {
-    background: #2c2c2e;
   }
 
   .path-info {
@@ -883,12 +861,8 @@
 
   .last-time-text {
     font-size: 12px;
-    color: #bbb;
+    color: var(--text-muted);
     margin-top: 4px;
-  }
-
-  .container.dark .last-time-text {
-    color: #636366;
   }
 
   /* 核心备份球体 */
@@ -936,21 +910,25 @@
     font-weight: bold;
   }
 
-  .container.dark .backup-orb {
-    box-shadow: 0 0 30px rgba(0, 122, 255, 0.4);
-  }
-
   .hint-text {
     font-size: 13px;
-    color: #999;
+    color: var(--text-muted);
   }
 
-  .container.dark .hint-text {
-    color: #48484a;
+  /* 进度条 */
+  .progress-container {
+    width: 80%;
+    max-width: 300px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
   }
 
-  .container.light .hint-text {
-    color: #999999;
+  .progress-text {
+    font-size: 14px;
+    color: #007aff;
+    font-weight: 500;
   }
 
   /* 底部操作 */
@@ -962,8 +940,8 @@
   }
 
   .btn-secondary {
-    background: white;
-    border: 1px solid #eee;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
     border-radius: 16px;
     height: 56px;
     display: flex;
@@ -971,13 +949,7 @@
     justify-content: center;
     gap: 10px;
     font-size: 15px;
-    color: #444;
-  }
-
-  .container.dark .btn-secondary {
-    background: #1c1c1e;
-    border-color: #3a3a3c;
-    color: #ebebf5;
+    color: var(--text-primary);
   }
 
   /* 状态横幅 */
@@ -1015,14 +987,8 @@
 
   /* --- 链接文字适配 --- */
   .action-link {
-    color: #007aff;
-    /* 浅色模式下的蓝色 */
+    color: var(--primary);
     transition: color 0.3s ease;
-  }
-
-  .container.dark .action-link {
-    color: #58a6ff;
-    /* 深色模式下调亮蓝色，提高识别度 */
   }
 
   /* 增加点击态反馈 */
@@ -1083,14 +1049,10 @@
 
   .tab-bar {
     display: flex;
-    background: #ffffff;
+    background: var(--bg-secondary);
     border-radius: 12px;
     padding: 4px;
     margin-bottom: 20px;
-  }
-
-  .container.dark .tab-bar {
-    background: #1c1c1e;
   }
 
   .tab-item {
@@ -1098,22 +1060,14 @@
     text-align: center;
     padding: 10px 0;
     border-radius: 8px;
-    color: #666;
+    color: var(--text-muted);
     font-size: 14px;
     transition: all 0.3s;
   }
 
   .tab-item.active {
-    background: #007aff;
+    background: var(--primary);
     color: #ffffff;
-  }
-
-  /* .container.dark .tab-item {
-    color: #999;
-  } */
-
-  .container.dark .tab-item.active {
-    background: #58a6ff;
   }
 
   .tab-content {
@@ -1140,14 +1094,9 @@
     align-items: center;
     justify-content: center;
     padding: 20px;
-    background: #ffffff;
+    background: var(--bg-secondary);
     border-radius: 16px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-  }
-
-  .container.dark .action-btn {
-    background: #1c1c1e;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   }
 
   .cloud-upload .action-icon {
@@ -1162,11 +1111,7 @@
 
   .action-text {
     font-size: 14px;
-    color: #333;
-  }
-
-  .container.dark .action-text {
-    color: #f2f2f7;
+    color: var(--text-primary);
   }
 
   .backup-info {
@@ -1178,11 +1123,7 @@
 
   .info-text {
     font-size: 14px;
-    color: #666;
-  }
-
-  .container.dark .info-text {
-    color: #999;
+    color: var(--text-muted);
   }
 
   .backup-list {
@@ -1196,14 +1137,9 @@
     justify-content: space-between;
     align-items: center;
     padding: 16px;
-    background: #ffffff;
+    background: var(--bg-secondary);
     border-radius: 12px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-  }
-
-  .container.dark .backup-item {
-    background: #1c1c1e;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
   }
 
   .backup-info-left {
@@ -1223,16 +1159,12 @@
 
   .backup-time {
     font-size: 14px;
-    color: #333;
-  }
-
-  .container.dark .backup-time {
-    color: #f2f2f7;
+    color: var(--text-primary);
   }
 
   .backup-size {
     font-size: 12px;
-    color: #999;
+    color: var(--text-secondary);
     margin-top: 4px;
   }
 
@@ -1242,11 +1174,11 @@
   }
 
   .action-text.download {
-    color: #007aff;
+    color: var(--primary);
   }
 
   .action-text.delete {
-    color: #ff3b30;
+    color: var(--danger);
   }
 
   .empty-state {
@@ -1263,16 +1195,12 @@
 
   .empty-text {
     font-size: 16px;
-    color: #666;
+    color: var(--text-muted);
     margin-bottom: 8px;
-  }
-
-  .container.dark .empty-text {
-    color: #999;
   }
 
   .empty-hint {
     font-size: 14px;
-    color: #999;
+    color: var(--text-secondary);
   }
 </style>

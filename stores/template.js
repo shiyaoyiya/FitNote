@@ -85,6 +85,21 @@ export const useTemplateStore = defineStore('template', {
       })
       this.save()
     },
+    addAerobic(name) {
+      if (!name) return
+      const existing = this.templates.find(t => t.name === name && t.isAerobic)
+      if (existing) return
+      this.templates.push({
+        id: String(Date.now()) + Math.random().toString(36).slice(2),
+        name,
+        actions: [],
+        actionSets: {},
+        color: '',
+        customColors: [],
+        isAerobic: true
+      })
+      this.save()
+    },
     // 通过 id 更新名字（不触碰 dayData）
     renameTemplate(id, newName) {
       const tpl = this.templates.find(t => t.id === id)

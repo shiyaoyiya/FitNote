@@ -508,29 +508,29 @@
 
 <style scoped>
   .chart-wrapper {
-    background-color: #121212;
+    background-color: var(--bg-primary);
     padding-top: 12px;
     position: sticky;
     top: 0;
     z-index: 10;
-    border-bottom: 1px solid #555;
+    border-bottom: 1px solid var(--border-color);
   }
 
   .chart-wrapper.light {
-    background-color: #f5f5f5;
-    border-bottom-color: #e0e0e0;
+    background-color: var(--bg-primary);
+    border-bottom-color: var(--border-color);
   }
 
   .chart-title {
     font-size: 15px;
     font-weight: bold;
-    color: #f7f7f7;
+    color: var(--text-primary);
     display: block;
     margin-left: 10px;
   }
 
   .chart-wrapper.light .chart-title {
-    color: #333333;
+    color: var(--text-primary);
   }
 
   .chart-header {
@@ -548,7 +548,7 @@
 
   .collapse-btn {
     font-size: 10px;
-    color: #888;
+    color: var(--text-muted);
     padding: 4px 2px 4px 8px;
   }
 
@@ -558,29 +558,29 @@
     gap: 2px;
     padding: 2px 8px;
     border-radius: 6px;
-    background: #2a2a2a;
+    background: var(--bg-tertiary);
     margin-right: 10px;
   }
 
   .chart-wrapper.light .mode-toggle {
-    background: #ffffff;
-    border: 1px solid #e0e0e0;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
   }
 
   .mode-text {
     font-size: 12px;
-    color: #666;
+    color: var(--text-muted);
     padding: 2px 4px;
   }
 
   .mode-text.active {
-    color: var(--theme-primary);
+    color: var(--primary);
     font-weight: bold;
   }
 
   .mode-sep {
     font-size: 12px;
-    color: #555;
+    color: var(--text-placeholder);
   }
 
   .range-btns {
@@ -594,19 +594,19 @@
     padding: 4px 12px;
     font-size: 12px;
     border-radius: 6px;
-    background: #2a2a2a;
-    color: #aaa;
+    background: var(--bg-tertiary);
+    color: var(--text-secondary);
     transition: all 0.2s;
   }
 
   .chart-wrapper.light .range-btn {
-    background: #ffffff;
-    color: #666666;
-    border: 1px solid #e0e0e0;
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
   }
 
   .range-btn.active {
-    background: var(--theme-primary);
+    background: var(--primary);
     color: #fff;
   }
 
@@ -619,11 +619,11 @@
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    color: #666;
+    color: var(--text-muted);
     font-size: 14px;
   }
 
   .chart-wrapper.light .no-data-overlay {
-    color: #999999;
+    color: var(--text-muted);
   }
 </style>

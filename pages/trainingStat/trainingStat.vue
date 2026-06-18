@@ -361,43 +361,6 @@ watch([currentYear, currentMonth], ([newYear, newMonth], [oldYear, oldMonth]) =>
 .container {
   height: 100vh;
   overflow-y: auto;
-  --card-bg: #ffffff;
-  --text-primary: #333333;
-  --text-secondary: #999999;
-  --section-title: #1a1a1a;
-  --chip-bg: #f0f0f0;
-  --chip-text: #333333;
-  --chart-text: #666666;
-  --chart-label: #999999;
-  --empty-text: #999999;
-}
-
-.container.light {
-  background-color: #f5f5f5;
-  color: #333333;
-  --card-bg: #ffffff;
-  --text-primary: #333333;
-  --text-secondary: #666666;
-  --section-title: #333333;
-  --chip-bg: #e0e0e0;
-  --chip-text: #333333;
-  --chart-text: #666666;
-  --chart-label: #999999;
-  --empty-text: #999999;
-}
-
-.container.dark {
-  background-color: #121212;
-  color: #f7f7f7;
-  --card-bg: #1c1c1e;
-  --text-primary: #f7f7f7;
-  --text-secondary: #888888;
-  --section-title: #ffffff;
-  --chip-bg: #3a3a3a;
-  --chip-text: #cccccc;
-  --chart-text: #aaaaaa;
-  --chart-label: #888888;
-  --empty-text: #777777;
 }
 
 .content-area {
@@ -422,7 +385,7 @@ watch([currentYear, currentMonth], ([newYear, newMonth], [oldYear, oldMonth]) =>
   font-size: 14px;
   border-radius: 8px;
   background: transparent;
-  color: #888;
+  color: var(--text-muted);
   transition: all 0.3s ease;
 }
 

@@ -89,7 +89,7 @@
 
 /* Tab Bar 悬浮（仅液态玻璃下�?*/
 .container.liquid-glass .tab-bar-fixed {
-  bottom: 20px !important;
+  bottom: calc(20px + env(safe-area-inset-bottom, 0px)) !important;
   left: 16px !important;
   right: 16px !important;
   width: auto !important;
@@ -103,6 +103,9 @@
     0 1px 4px var(--glass-shadow-outer) !important;
   -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
   backdrop-filter: blur(12px) saturate(140%) !important;
+  padding-bottom: 0 !important;
+  height: 75px !important;
+  min-height: 75px !important;
 }
 
 /* Tab Bar 内部 tab-item �?液态玻璃下清除原始背景 */
@@ -988,4 +991,83 @@ html .container.liquid-glass.light .custom-color-card {
 
 .container.liquid-glass .action-input::placeholder {
   color: var(--glass-placeholder) !important;
+}
+
+/* ===== 导入导出弹窗样式 ===== */
+.container.liquid-glass .import-export-panel,
+.container.liquid-glass .conflict-panel {
+  background: var(--glass-bg) !important;
+  border: none !important;
+  box-shadow:
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 3px var(--glass-shadow-inner) inset,
+    0 1px 4px var(--glass-shadow-outer) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
+  backdrop-filter: blur(12px) saturate(140%) !important;
+}
+
+.container.liquid-glass .tab-item {
+  color: var(--glass-text);
+  opacity: 0.6;
+}
+
+.container.liquid-glass .tab-item.active {
+  color: #379bff;
+  opacity: 1;
+}
+
+.container.liquid-glass .select-all-btn,
+.container.liquid-glass .btn-cancel-popup {
+  background: var(--glass-btn-bg) !important;
+  color: var(--glass-text) !important;
+  border: none !important;
+  box-shadow:
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 3px var(--glass-shadow-inner) inset,
+    0 1px 4px var(--glass-shadow-outer) !important;
+}
+
+.container.liquid-glass .import-textarea {
+  background: var(--glass-bg) !important;
+  border: none !important;
+  color: var(--glass-text) !important;
+  box-shadow:
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 3px var(--glass-shadow-inner) inset,
+    0 1px 4px var(--glass-shadow-outer) !important;
+}
+
+.container.liquid-glass .import-textarea::placeholder {
+  color: var(--glass-placeholder) !important;
+}
+
+.container.liquid-glass .conflict-option {
+  background: var(--glass-btn-bg) !important;
+  color: var(--glass-text) !important;
+  border: none !important;
+  box-shadow:
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 3px var(--glass-shadow-inner) inset,
+    0 1px 4px var(--glass-shadow-outer) !important;
+}
+
+.container.liquid-glass .conflict-option.active {
+  background: rgba(55, 155, 255, 0.6) !important;
+  color: #fff !important;
+}
+
+.container.liquid-glass .btn-import-export {
+  background: var(--glass-bg) !important;
+  border: none !important;
+  color: var(--glass-text) !important;
+  box-shadow:
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 3px var(--glass-shadow-inner) inset,
+    0 1px 4px var(--glass-shadow-outer) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
+  backdrop-filter: blur(12px) saturate(140%) !important;
+}
+
+.container.liquid-glass .btn-import-export:active {
+  transform: scale(0.96) !important;
 }

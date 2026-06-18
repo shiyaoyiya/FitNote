@@ -1,7 +1,7 @@
 <template>
   <view class="container"
     :class="{ dark: settingsStore.isDarkMode, light: !settingsStore.isDarkMode, 'liquid-glass': settingsStore.liquidGlassEnabled }">
-    <!-- 休息日状态展示 -->
+    <!-- 休息日状态展�?-->
     <view v-if="isRestDay" class="rest-day-header">
       <text class="rest-day-text">📅 今日标记为休息日：{{ restReasonStored }}</text>
     </view>
@@ -21,19 +21,19 @@
       <view class="list-bottom-space"></view>
     </scroll-view>
 
-    <!-- 底部按钮行 -->
+    <!-- 底部按钮�?-->
     <view class="save-row" v-if="!isRestDay && !showChooseTpl">
       <view class="minimal-timer-btn" @click="timerDuration = settingsStore.heavyTimerDuration; showTimer = true">
-        <text class="mini-icon">⏱</text>
-        <text class="mini-text">开始计时休息</text>
+        <text class="mini-icon">�?/text>
+        <text class="mini-text">开始计时休�?/text>
       </view>
       <view class="minimal-settings-btn" @click="showSettings = true">
-        <text class="mini-icon">⚙</text>
+        <text class="mini-icon">�?/text>
         <text class="mini-text">设置</text>
       </view>
     </view>
 
-    <!-- 计时器组件 -->
+    <!-- 计时器组�?-->
     <TimerModal :visible="showTimer" :default-duration="timerDuration" :quick-settings="quickTimerSettings"
       @close="showTimer = false" @complete="showTimer = false" />
 
@@ -64,7 +64,7 @@
         </view>
         <view class="modal-body edit-body">
           <view class="edit-badge">
-            <text>第 {{ editEntryInfo.entryIdx + 1 }} 组</text>
+            <text>�?{{ editEntryInfo.entryIdx + 1 }} �?/text>
             <text v-if="editEntryType !== 'normal'" class="entry-type-tag">
               {{ getEditEntryTypeLabel() }}
             </text>
@@ -72,7 +72,7 @@
           <view v-if="editEntryStages.length <= 1" class="edit-main-row">
             <view class="input-item">
               <input type="digit" v-model="editEntryStages[0].reps" class="big-input" focus />
-              <text class="unit-label">次</text>
+              <text class="unit-label">�?/text>
             </view>
             <text class="x-mark">×</text>
             <view class="input-item">
@@ -82,10 +82,10 @@
           </view>
           <view v-else class="edit-stages-wrap">
             <view v-for="(stage, si) in editEntryStages" :key="si" class="edit-stage-row">
-              <text class="stage-label">{{ si === 0 ? '第1组' : '第' + (si + 1) + '组' }}</text>
+              <text class="stage-label">{{ si === 0 ? '�?�? : '�? + (si + 1) + '�? }}</text>
               <view class="input-item">
                 <input type="digit" v-model="stage.reps" class="small-input" />
-                <text class="unit-label">次</text>
+                <text class="unit-label">�?/text>
               </view>
               <text class="x-mark">×</text>
               <view class="input-item">
@@ -153,7 +153,7 @@
         DAYDATA_PREFIX: 'fitness_daydata_',
         TEMPLATES_KEY: 'fitness_templates',
         templates: [],
-        // 页面状态
+        // 页面状�?
         showChooseTpl: true,
         isRestDay: false,
         restReasonStored: '',
@@ -163,7 +163,7 @@
         actionEntries: [],
         diffs: [],
         availableActionNames: [],
-        // 弹窗状态
+        // 弹窗状�?
         showTimer: false,
         timerDuration: 180,
         showSettings: false,
@@ -177,7 +177,7 @@
           weight: ''
         }],
         editEntryType: 'normal',
-        // 导入数据状态
+        // 导入数据状�?
         showImportModal: false,
         importedData: [],
         // 差异缓存
@@ -206,7 +206,7 @@
         const h = this.settingsStore.heavyTimerDuration
         const l = this.settingsStore.lightTimerDuration
         return [{
-            label: '胸背腿',
+            label: '胸背�?,
             seconds: h,
             timeText: fmt(h)
           },
@@ -221,7 +221,7 @@
     watch: {},
     onLoad(options) {
       uni.showLoading({
-        title: '加载中...',
+        title: '加载�?..',
         mask: true
       })
       this.dayDataCacheStore.loadIndex()
@@ -286,7 +286,7 @@
         const names = Object.keys(dayData.templates)
 
         if (names.length === 0 && !this.isRestDay) {
-          // 没有模板数据，但如果传入了 tpl 参数，自动应用
+          // 没有模板数据，但如果传入�?tpl 参数，自动应�?
           if (this.pendingTplName) {
             this.onSelectTemplate(this.pendingTplName)
             this.pendingTplName = ''
@@ -303,7 +303,7 @@
           return
         }
 
-        // 加载模板和动作数据
+        // 加载模板和动作数�?
         const tplName = names[names.length - 1]
         this.chosenTplName = tplName
         const tplIdx = this.templates.findIndex(t => t.name === tplName)
@@ -320,7 +320,7 @@
           if (Array.isArray(arr) && arr.length > 0) {
             return normalizeEntries(arr)
           }
-          // entries 为空或不存在，根据模板 actionSets 生成占位符（仅内存，不持久化）
+          // entries 为空或不存在，根据模�?actionSets 生成占位符（仅内存，不持久化�?
           const targetSets = templateActionSets[name] || defaultSetCount
           const placeholders = []
           for (let i = 0; i < targetSets; i++) {
@@ -350,7 +350,7 @@
           this.actionLatestRecordCache[actName] = record
           if (!record) {
             this.$set(this.diffs, idx, {
-              text: '无历史记录',
+              text: '无历史记�?,
               class: 'diff-neutral'
             })
           } else {
@@ -373,7 +373,7 @@
         }
         if (!record) {
           this.$set(this.diffs, idx, {
-            text: '无历史记录',
+            text: '无历史记�?,
             class: 'diff-neutral'
           })
         } else {
@@ -460,7 +460,7 @@
         const entry = buildEntry(type, stages, isUnilateral)
         if (!entry) {
           uni.showToast({
-            title: '请输入次数',
+            title: '请输入次�?,
             icon: 'none'
           })
           return
@@ -508,7 +508,7 @@
       handleDeleteAction(idx) {
         uni.showModal({
           title: '删除动作',
-          content: `确定要删除 "${this.chosenActions[idx]}" 吗？此操作仅删除当天动作，不会影响模板。`,
+          content: `确定要删�?"${this.chosenActions[idx]}" 吗？此操作仅删除当天动作，不会影响模板。`,
           success: (res) => {
             if (res.confirm) this.removeActionFromDay(idx)
           },
@@ -518,7 +518,7 @@
         const entry = this.actionEntries[aIdx]?.[eIdx]
         if (!entry) return
         const isPlaceholder = isPlaceholderEntry(entry)
-        const content = isPlaceholder ? `确定删除 第${eIdx + 1}组 占位符？` : `确定删除 第${eIdx + 1}组 记录？`
+        const content = isPlaceholder ? `确定删除 �?{eIdx + 1}�?占位符？` : `确定删除 �?{eIdx + 1}�?记录？`
         uni.showModal({
           title: '删除记录',
           content,
@@ -531,7 +531,7 @@
         const removed = this.actionEntries[aIdx].splice(eIdx, 1)[0]
         const isPlaceholder = isPlaceholderEntry(removed)
         // 移除删除占位符后再添加新占位符的逻辑
-        // 原来的逻辑是: if (isPlaceholder) { this.$set(this.actionEntries, aIdx, [...this.actionEntries[aIdx], createPlaceholderEntry()]) }
+        // 原来的逻辑�? if (isPlaceholder) { this.$set(this.actionEntries, aIdx, [...this.actionEntries[aIdx], createPlaceholderEntry()]) }
         this.debounceSaveToStorage(aIdx)
         this.debounceCalcDiffs()
         const msg = isPlaceholder ? `已删除占位符` : `已删除：${removed.input}`
@@ -624,7 +624,7 @@
       },
       getEditEntryTypeLabel() {
         if (this.editEntryType === 'decreasing') return '🔻 递减'
-        if (this.editEntryType === 'paused') return '⏸ 暂停'
+        if (this.editEntryType === 'paused') return '�?暂停'
         if (this.editEntryType === 'composite') {
           const stages = this.editEntryStages.map(s => ({
             reps: Number(s.reps) || 0,
@@ -632,7 +632,7 @@
           }))
           const compType = getCompositeType(stages)
           if (compType === 'decreasing') return '(🔻递减)'
-          if (compType === 'paused') return '(⏸暂停)'
+          if (compType === 'paused') return '(⏸暂�?'
           if (compType === 'increasing') return '(🔺递增)'
           if (compType === 'mixed') return '(🔗复合)'
           return '复合'
@@ -647,7 +647,7 @@
         const stages = this.editEntryStages
         if (!stages[0].reps || Number(stages[0].reps) <= 0) {
           uni.showToast({
-            title: '请输入次数',
+            title: '请输入次�?,
             icon: 'none'
           })
           return
@@ -672,9 +672,9 @@
         const idx = this.templates.findIndex(t => t.name === name)
         if (idx === -1) return
 
-        console.log('【选择模板】', name)
-        console.log('【模板数据】', JSON.stringify(this.templates[idx]))
-        console.log('【动作组数】', JSON.stringify(this.templates[idx].actionSets))
+        console.log('【选择模板�?, name)
+        console.log('【模板数据�?, JSON.stringify(this.templates[idx]))
+        console.log('【动作组数�?, JSON.stringify(this.templates[idx].actionSets))
 
         this.chosenTplName = this.templates[idx].name
         this.chosenTplColor = this.templates[idx].color
@@ -692,7 +692,7 @@
         }
         dayTpl.actionWeights = dayTpl.actionWeights || {}
         const templateActionSets = this.templates[idx].actionSets || {}
-        console.log('【获取到的动作组数】', JSON.stringify(templateActionSets))
+        console.log('【获取到的动作组数�?, JSON.stringify(templateActionSets))
 
         dayData.templates[this.chosenTplName] = {
           ...dayTpl,
@@ -703,7 +703,7 @@
         this.diffs = available.map(() => null)
 
         const defaultSetCount = 4
-        console.log('【默认组数】', defaultSetCount)
+        console.log('【默认组数�?, defaultSetCount)
 
         if (this.settingsStore.autoFillData) {
           this.actionEntries = available.map(actName => {
@@ -740,7 +740,7 @@
         } else {
           this.actionEntries = available.map(actName => {
             const targetSets = templateActionSets[actName] || defaultSetCount
-            console.log('【生成占位符】动作:', actName, '组数:', targetSets)
+            console.log('【生成占位符】动�?', actName, '组数:', targetSets)
             const placeholders = []
             for (let i = 0; i < targetSets; i++) {
               placeholders.push(createPlaceholderEntry())
@@ -788,7 +788,7 @@
         uni.setStorageSync(key, dayData)
         this.templateStore.addAerobic(name)
         uni.showToast({
-          title: '已添加有氧',
+          title: '已添加有�?,
           icon: 'success'
         })
         this.showChooseTpl = false
@@ -819,7 +819,7 @@
 
       onCloseTemplateSelector() {
         this.showChooseTpl = false
-        // 只有在没有选择任何模板且没有数据时才返回首页
+        // 只有在没有选择任何模板且没有数据时才返回首�?
         const raw = this.dayDataCacheStore.getDayData(this.date)
         const hasData = raw.templates && Object.keys(raw.templates).length > 0
         if (!hasData && !this.chosenTplName) {
@@ -862,7 +862,7 @@
         }
         this.chosenActions.push(actName)
         this.diffs.push({
-          text: '未记录',
+          text: '未记�?,
           class: 'diff-neutral'
         })
         this.actionEntries.push([])
@@ -902,7 +902,7 @@
             this.chosenActions.push(name)
             this.actionEntries.push([])
             this.diffs.push({
-              text: '未记录',
+              text: '未记�?,
               class: 'diff-neutral'
             })
             // 持久化新动作
@@ -930,7 +930,7 @@
           }
         })
 
-        // 按 newOrder 重排
+        // �?newOrder 重排
         const orderMap = newOrder.map(name => this.chosenActions.indexOf(name))
         console.log('[day.vue] orderMap:', orderMap)
         this.chosenActions = [...newOrder]
@@ -942,7 +942,7 @@
         this.persistOrder()
         this.showSettings = false
         uni.showToast({
-          title: '排序已保存',
+          title: '排序已保�?,
           icon: 'success',
           duration: 1000
         })
@@ -956,7 +956,7 @@
           return
         }
         const d = new Date(this.date)
-        const dateLine = `${d.getMonth() + 1}月${d.getDate()}日${this.chosenTplName ? '：' + this.chosenTplName : ''}`
+        const dateLine = `${d.getMonth() + 1}�?{d.getDate()}�?{this.chosenTplName ? '�? + this.chosenTplName : ''}`
         let exportText = dateLine + '\n'
         this.chosenActions.forEach((actName, actionIdx) => {
           const entries = this.actionEntries[actionIdx] || []
@@ -968,7 +968,7 @@
             if (stage) {
               const reps = stage.reps
               const weight = stage.weight
-              exportText += `第${entryIdx + 1}组：${reps}次 × ${weight}kg\n`
+              exportText += `�?{entryIdx + 1}组：${reps}�?× ${weight}kg\n`
             }
           })
           exportText += '\n'
@@ -984,7 +984,7 @@
           data: exportText.trim(),
           success: () => {
             uni.showToast({
-              title: '已复制到剪贴板',
+              title: '已复制到剪贴�?,
               icon: 'success'
             })
           },
@@ -1012,7 +1012,7 @@
         }
 
         // 调用合并函数
-        const { mergeImportData, getNewActions } = require('@/utils/dataMerger')
+        import { mergeImportData, getNewActions } from '@/utils/dataMerger.js'
         
         const existingData = {
           entries: {},
@@ -1036,8 +1036,8 @@
         if (newActions.length > 0) {
           // 询问是否添加新动作到模板
           uni.showModal({
-            title: '发现新动作',
-            content: `发现新动作：${newActions.join('、')}，是否添加到模板？`,
+            title: '发现新动�?,
+            content: `发现新动作：${newActions.join('�?)}，是否添加到模板？`,
             success: (res) => {
               if (res.confirm) {
                 // 添加新动作到模板
@@ -1063,7 +1063,7 @@
           }
         })
         
-        // 保存到本地存储
+        // 保存到本地存�?
         this.chosenActions.forEach((actName, idx) => {
           this.saveEntryToStorage(idx)
         })
@@ -1108,7 +1108,7 @@
     pointer-events: none;
   }
 
-  /* ========== 底部按钮行 ========== */
+  /* ========== 底部按钮�?========== */
   .save-row {
     position: absolute;
     bottom: 0;
@@ -1156,7 +1156,7 @@
     background: var(--bg-tertiary);
   }
 
-  /* ========== 休息日 ========== */
+  /* ========== 休息�?========== */
   .rest-day-header {
     padding: 40px 20px;
     text-align: center;

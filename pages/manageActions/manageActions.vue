@@ -62,12 +62,12 @@
           </view>
           <view class="action-grid-inner">
             <view v-for="(act, idx) in filteredActions" :key="idx" class="action-grid-item"
-              :class="{ 'action-selected': selectedActionIdx === idx, 'action-already-added': sortedActions.includes(act) }"
+              :class="{ 'action-selected': selectedActionIdxs.includes(idx), 'action-already-added': sortedActions.includes(act) }"
               @click="selectAction(idx)">
               <view class="act-name-container">
                 <text class="act-name">{{ act }}</text>
               </view>
-              <view v-if="selectedActionIdx === idx" class="select-check">✓</view>
+              <view v-if="selectedActionIdxs.includes(idx)" class="select-check">✓</view>
             </view>
             <view v-if="filteredActions.length === 0" class="no-data-v2">
               <text class="no-data-icon">🤷‍♂️</text>
@@ -76,7 +76,7 @@
             </view>
             <view class="list-bottom-guard"></view>
           </view>
-          <view class="confirm-add-btn" @click="addSelectedAction">确认添加</view>
+          <view class="confirm-add-btn" @click="addSelectedAction">确认添加{{ selectedActionIdxs.length ? ' (' + selectedActionIdxs.length + ')' : '' }}</view>
         </view>
       </view>
     </view>
@@ -96,7 +96,7 @@
       return {
         searchKeyword: '',
         filteredActions: [],
-        selectedActionIdx: null,
+        selectedActionIdxs: [],
         searchFocus: false,
         showAddPopup: false,
         sortedActions: [],
@@ -117,6 +117,7 @@
       }
     },
     onLoad(e) {
+      console.log('[manageActions] page loaded')
       this.daySettingsStore = useDaySettingsStore()
       this.actionStore = useActionStore()
       try {
@@ -141,26 +142,32 @@
             act.toLowerCase().includes(kw)
           )
         }
-        this.selectedActionIdx = null
+        this.selectedActionIdxs = []
       },
       clearSearch() {
         this.searchKeyword = ''
         this.filterActions()
       },
       selectAction(idx) {
-        if (this.sortedActions.includes(this.filteredActions[idx])) {
+        const act = this.filteredActions[idx]
+        if (this.sortedActions.includes(act)) {
           uni.showToast({
             title: '动作已在列表中',
             icon: 'none'
           })
           return
         }
-        this.selectedActionIdx = idx
+        const i = this.selectedActionIdxs.indexOf(idx)
+        if (i === -1) {
+          this.selectedActionIdxs.push(idx)
+        } else {
+          this.selectedActionIdxs.splice(i, 1)
+        }
       },
       openAddPopup() {
         this.showAddPopup = true
         this.filterActions()
-        this.selectedActionIdx = null
+        this.selectedActionIdxs = []
         this.searchKeyword = ''
         this.$nextTick(() => {
           this.searchFocus = true
@@ -169,33 +176,36 @@
       closeAddPopup() {
         this.showAddPopup = false
         this.searchFocus = false
-        this.selectedActionIdx = null
+        this.selectedActionIdxs = []
         this.searchKeyword = ''
       },
       addSelectedAction() {
-        if (this.selectedActionIdx === null) {
+        if (this.selectedActionIdxs.length === 0) {
           uni.showToast({
-            title: '请选择一个动作',
+            title: '请选择至少一个动作',
             icon: 'none'
           })
           return
         }
-        const actName = this.filteredActions[this.selectedActionIdx]
-        if (this.sortedActions.includes(actName)) {
-          uni.showToast({
-            title: '动作已在列表中',
-            icon: 'none'
-          })
-          return
-        }
-        this.sortedActions.push(actName)
+        let added = 0
+        let skipped = 0
+        this.selectedActionIdxs.forEach(idx => {
+          const actName = this.filteredActions[idx]
+          if (!this.sortedActions.includes(actName)) {
+            this.sortedActions.push(actName)
+            added++
+          } else {
+            skipped++
+          }
+        })
         this.$nextTick(() => this.initSortPositions())
         this.closeAddPopup()
-        uni.showToast({
-          title: `已添加：${actName}`,
-          icon: 'success',
-          duration: 1000
-        })
+        if (added > 0) {
+          const msg = skipped > 0 ? `已添加 ${added} 个动作（跳过 ${skipped} 个重复）` : `已添加 ${added} 个动作`
+          uni.showToast({ title: msg, icon: 'success', duration: 1500 })
+        } else {
+          uni.showToast({ title: '所选动作已在列表中', icon: 'none' })
+        }
       },
       initSortPositions() {
         let windowWidth = 375
@@ -274,9 +284,21 @@
         this.initSortPositions()
         this.isDragTriggered = false
       },
-      saveManageActions() {
-        uni.setStorageSync('_pendingManageActions', JSON.stringify([...this.sortedActions]))
-        uni.navigateBack()
+      saveManageActions(e) {
+        console.log('[manageActions] saveManageActions called, sortedActions:', [...this.sortedActions])
+        const dataToSave = JSON.stringify([...this.sortedActions])
+        uni.setStorage({
+          key: '_pendingManageActions',
+          data: dataToSave,
+          success: () => {
+            console.log('[manageActions] storage async set success')
+            uni.navigateBack()
+          },
+          fail: (err) => {
+            console.error('[manageActions] storage set fail:', err)
+            uni.navigateBack()
+          }
+        })
       },
       onSortSlideStart(e, idx) {
         this.closeAllSlides(idx)
@@ -342,19 +364,12 @@
 
 <style scoped>
   .container {
-    --grid-item-bg: #2c2c2e;
     height: 100vh;
     overflow: hidden;
     display: flex;
     flex-direction: column;
-    background-color: #121212;
-    color: #f7f7f7;
-  }
-
-  .container.light {
-    --grid-item-bg: #ffffff;
-    background-color: #f5f5f5;
-    color: #333333;
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
   }
 
   .manage-container {
@@ -451,7 +466,7 @@
   }
 
   .manage-delete-btn {
-    background: #ff5a5d;
+    background: var(--danger);
     color: #fff;
     font-size: 12px;
     padding: 10px 14px;
@@ -529,6 +544,8 @@
     background: var(--bg-secondary);
     border-top: 1rpx solid var(--border-color);
     flex-shrink: 0;
+    z-index: 100;
+    position: relative;
   }
 
   .manage-btn-add {
@@ -554,40 +571,6 @@
     text-align: center;
   }
 
-  .popup-overlay {
-    position: fixed;
-    top: 0;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    z-index: 1000;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-  }
-
-  .overlay-bg {
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background-color: rgba(0, 0, 0, 0.3);
-  }
-
-  .modal-panel {
-    position: relative;
-    width: 80vw;
-    max-height: 70vh;
-    background-color: var(--bg-secondary);
-    border: 1rpx solid var(--border-color);
-    border-radius: 10px;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-    z-index: 1001;
-  }
-
   .fade-in {
     animation: fadeIn 0.2s ease-out;
   }
@@ -604,48 +587,18 @@
     }
   }
 
-  .modal-header {
-    position: relative;
-    padding: 12px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-
-  .modal-title {
-    font-size: 16px;
-    font-weight: bold;
-    margin-left: 2vw;
-    color: var(--text-primary);
-  }
-
   .close-icon {
     width: 40px;
     height: 40px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    font-size: 20px;
-    border-radius: 50%;
-    color: var(--text-secondary);
-  }
-
-  .modal-body {
-    flex: 1;
-    overflow-y: auto;
-    padding: 12px 16px;
-  }
-
-  .modal-footer {
-    padding: 10px 16px;
-    display: flex;
-    justify-content: center;
-    position: relative;
   }
 
   .no-border::after,
   .no-border::before {
     display: none !important;
+  }
+
+  .popup-overlay {
+    align-items: center;
   }
 
   .action-picker-panel {
@@ -761,11 +714,11 @@
 
   .action-selected {
     background: rgba(55, 155, 255, 0.2) !important;
-    border: 2px solid #379bff !important;
+    border: 2px solid var(--primary) !important;
   }
 
   .action-selected .act-name {
-    color: #379bff !important;
+    color: var(--primary) !important;
     font-weight: bold;
   }
 
@@ -783,7 +736,7 @@
     right: -6px;
     width: 18px;
     height: 18px;
-    background: #379bff;
+    background: var(--primary);
     color: #fff;
     border-radius: 50%;
     font-size: 11px;

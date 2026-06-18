@@ -542,18 +542,87 @@
     height: 100%;
   }
 
+  /* ===== 全局 Design Token（深色模式默认） ===== */
+  .container.dark {
+    --bg-primary: #121212;
+    --bg-secondary: #1e1e1e;
+    --bg-tertiary: #242424;
+    --bg-card: #242424;
+    --bg-input: #1a1a1a;
+    --bg-btn: #121212;
+    --border-color: #333333;
+    --border-light: rgba(255, 255, 255, 0.1);
+    --text-primary: #f7f7f7;
+    --text-secondary: #999999;
+    --text-muted: #666666;
+    --text-placeholder: #555555;
+    --text-btn: #f5f5f5;
+    --icon-bg: #ffffff;
+    --icon-color: #191919;
+    --divider-color: #555555;
+    --tag-bg: #242424;
+    --shadow-color: rgba(0, 0, 0, 0.2);
+    --primary: #379bff;
+    --primary-dark: #2d82d6;
+    --primary-deep: #0048ff;
+    --success: #2ed573;
+    --danger: #ff5a5d;
+    --warning: #f0ad4e;
+    --card-bg: #1c1c1e;
+    --section-title: #ffffff;
+    --chip-bg: #3a3a3a;
+    --chip-text: #cccccc;
+    --chart-text: #aaaaaa;
+    --chart-label: #888888;
+    --empty-text: #777777;
+    --grid-item-bg: #2c2c2e;
+  }
+
+  /* ===== 全局 Design Token（浅色模式） ===== */
+  .container.light {
+    --bg-primary: #f5f5f5;
+    --bg-secondary: #ffffff;
+    --bg-tertiary: #f0f0f0;
+    --bg-card: #ffffff;
+    --bg-input: #f8f8f8;
+    --bg-btn: #ffffff;
+    --border-color: #e2e8f0;
+    --border-light: #e2e8f0;
+    --text-primary: #1a1a1a;
+    --text-secondary: #475569;
+    --text-muted: #64748b;
+    --text-placeholder: #94a3b8;
+    --text-btn: #1a1a1a;
+    --icon-bg: #ffffff;
+    --icon-color: #ffffff;
+    --divider-color: #e2e8f0;
+    --tag-bg: #ffffff;
+    --shadow-color: rgba(0, 0, 0, 0.08);
+    --primary: #379bff;
+    --primary-dark: #2d82d6;
+    --primary-deep: #0048ff;
+    --success: #2ed573;
+    --danger: #ff5a5d;
+    --warning: #f0ad4e;
+    --card-bg: #ffffff;
+    --section-title: #1a1a1a;
+    --chip-bg: #e2e8f0;
+    --chip-text: #1a1a1a;
+    --chart-text: #475569;
+    --chart-label: #64748b;
+    --empty-text: #64748b;
+    --grid-item-bg: #ffffff;
+  }
+
   /* 统一各页面的最外层容器 */
   .container {
     display: flex;
     flex-direction: column;
     height: 100vh;
-    background-color: #f8f9fa;
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
     box-sizing: border-box;
     overflow: hidden;
-  }
-
-  .container {
-    background-color: #121212;
   }
 
   .guide-overlay {
@@ -710,5 +779,117 @@
   .guide-confirm-btn:active {
     opacity: 0.9;
     transform: scale(0.98);
+  }
+
+  /* ===== 全局弹窗基础样式 ===== */
+
+  /* 遮罩层 */
+  .popup-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 9999;
+    display: flex;
+    justify-content: center;
+  }
+
+  .overlay-bg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.6);
+  }
+
+  /* 居中弹窗 */
+  .modal-panel {
+    position: relative;
+    width: 85vw;
+    max-width: 360px;
+    max-height: 80vh;
+    background-color: var(--bg-secondary);
+    border-radius: 16px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    z-index: 1;
+    animation: modalFadeIn 0.25s ease;
+  }
+
+  /* 底部弹窗 */
+  .popup-panel {
+    position: relative;
+    width: 100%;
+    max-height: 85vh;
+    background-color: var(--bg-secondary);
+    border-radius: 16px 16px 0 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    z-index: 1;
+    animation: modalSlideUp 0.25s ease;
+  }
+
+  /* 弹窗头部 */
+  .modal-header {
+    height: 56px;
+    padding: 0 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border-color);
+    flex-shrink: 0;
+  }
+
+  .modal-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  /* 弹窗内容 */
+  .modal-body {
+    flex: 1;
+    padding: 16px;
+    overflow-y: auto;
+  }
+
+  /* 弹窗底部 */
+  .modal-footer {
+    padding: 12px 16px;
+    padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+    border-top: 1px solid var(--border-color);
+    flex-shrink: 0;
+  }
+
+  /* 关闭按钮 */
+  .close-icon {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    font-size: 20px;
+    color: var(--text-muted);
+    background: transparent;
+  }
+
+  .close-icon:active {
+    background-color: var(--bg-tertiary);
+  }
+
+  /* 动画 */
+  @keyframes modalFadeIn {
+    from { opacity: 0; transform: scale(0.92); }
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  @keyframes modalSlideUp {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
   }
 </style>

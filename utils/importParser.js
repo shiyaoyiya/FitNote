@@ -1,8 +1,6 @@
 /**
- * 解析导入的文本数据
- * @param {string} text - 原始文本
- * @returns {Array} 解析后的动作和组数数组
- */
+ * 解析导入的文本数�? * @param {string} text - 原始文本
+ * @returns {Array} 解析后的动作和组数数�? */
 export function parseImportText(text) {
   if (!text || typeof text !== 'string') {
     return []
@@ -13,8 +11,7 @@ export function parseImportText(text) {
   let currentAction = null
 
   for (const line of lines) {
-    // 尝试解析动作名
-    const actionName = parseActionName(line)
+    // 尝试解析动作�?    const actionName = parseActionName(line)
     if (actionName) {
       if (currentAction) {
         result.push(currentAction)
@@ -43,11 +40,8 @@ export function parseImportText(text) {
 }
 
 /**
- * 使用动作库进行模糊匹配
- * @param {string} text - 原始文本
- * @param {Array} actionNames - 现有动作名数组
- * @returns {Array} 解析后的动作和组数数组
- */
+ * 使用动作库进行模糊匹�? * @param {string} text - 原始文本
+ * @param {Array} actionNames - 现有动作名数�? * @returns {Array} 解析后的动作和组数数�? */
 export function parseImportTextWithActions(text, actionNames = []) {
   if (!text || typeof text !== 'string') {
     return []
@@ -58,12 +52,10 @@ export function parseImportTextWithActions(text, actionNames = []) {
   let currentAction = null
 
   for (const line of lines) {
-    // 尝试解析动作名
-    let actionName = parseActionName(line)
+    // 尝试解析动作�?    let actionName = parseActionName(line)
     let entriesPart = line
     
-    // 如果没有解析到动作名，尝试模糊匹配
-    if (!actionName && actionNames.length > 0) {
+    // 如果没有解析到动作名，尝试模糊匹�?    if (!actionName && actionNames.length > 0) {
       const matchResult = fuzzyMatchActionWithPosition(line, actionNames)
       if (matchResult) {
         actionName = matchResult.actionName
@@ -80,8 +72,7 @@ export function parseImportTextWithActions(text, actionNames = []) {
         entries: []
       }
       
-      // 如果同一行还有组数数据，解析它
-      if (entriesPart !== line) {
+      // 如果同一行还有组数数据，解析�?      if (entriesPart !== line) {
         const entries = parseEntries(entriesPart)
         if (entries.length > 0) {
           currentAction.entries.push(...entries)
@@ -107,24 +98,21 @@ export function parseImportTextWithActions(text, actionNames = []) {
 }
 
 /**
- * 解析动作名
- * @param {string} line - 文本行
- * @returns {string|null} 动作名或null
+ * 解析动作�? * @param {string} line - 文本�? * @returns {string|null} 动作名或null
  */
 function parseActionName(line) {
-  // 格式1：数字编号开头，如"1. 卧推"
+  // 格式1：数字编号开头，�?1. 卧推"
   const numberedMatch = line.match(/^\d+\.\s*(.+)/)
   if (numberedMatch) {
     return numberedMatch[1].trim()
   }
 
-  // 格式2：动作名后跟冒号，如"卧推："
-  // 排除"第X组："这种格式，因为它应该是组数数据
-  const colonMatch = line.match(/^([^：:]+)[：:]/)
+  // 格式2：动作名后跟冒号，如"卧推�?
+  // 排除"第X组："这种格式，因为它应该是组数数�?  const colonMatch = line.match(/^([^�?]+)[�?]/)
   if (colonMatch) {
     const potentialAction = colonMatch[1].trim()
-    // 如果匹配到"第X组"格式，返回null
-    if (/^第\d+组$/.test(potentialAction)) {
+    // 如果匹配�?第X�?格式，返回null
+    if (/^第\d+�?/.test(potentialAction)) {
       return null
     }
     return potentialAction
@@ -137,14 +125,13 @@ function parseActionName(line) {
 
 /**
  * 解析组数
- * @param {string} line - 文本行
- * @returns {Array} 解析后的组数数组
+ * @param {string} line - 文本�? * @returns {Array} 解析后的组数数组
  */
 function parseEntries(line) {
   const entries = []
 
-  // 格式1：第X组：数字次 × 重量kg
-  const stageFormat1 = line.match(/第(\d+)组[：:]\s*(\d+)\s*次?\s*[×xX*]\s*(\d+(?:\.\d+)?)\s*kg?/)
+  // 格式1：第X组：数字�?× 重量kg
+  const stageFormat1 = line.match(/�?\d+)组[�?]\s*(\d+)\s*�?\s*[×xX*]\s*(\d+(?:\.\d+)?)\s*kg?/)
   if (stageFormat1) {
     entries.push({
       reps: parseInt(stageFormat1[2]),
@@ -153,8 +140,7 @@ function parseEntries(line) {
     return entries
   }
 
-  // 格式2：数字×重量（多个）
-  const stageFormat2 = line.match(/(\d+)\s*[×xX*]\s*(\d+(?:\.\d+)?)/g)
+  // 格式2：数字×重量（多个�?  const stageFormat2 = line.match(/(\d+)\s*[×xX*]\s*(\d+(?:\.\d+)?)/g)
   if (stageFormat2) {
     for (const match of stageFormat2) {
       const parts = match.match(/(\d+)\s*[×xX*]\s*(\d+(?:\.\d+)?)/)
@@ -183,7 +169,7 @@ function parseEntries(line) {
     return entries
   }
 
-  // 格式4：数字组 数字次 重量kg
+  // 格式4：数字组 数字�?重量kg
   const stageFormat4 = line.match(/(\d+)\s*组\s*(\d+)\s*次\s*(\d+(?:\.\d+)?)\s*kg/)
   if (stageFormat4) {
     const sets = parseInt(stageFormat4[1])
@@ -199,25 +185,26 @@ function parseEntries(line) {
 }
 
 /**
- * 模糊匹配动作名
- * @param {string} text - 文本
- * @param {Array} actionNames - 动作名数组
- * @returns {string|null} 匹配的动作名或null
+ * 模糊匹配动作�? * @param {string} text - 文本
+ * @param {Array} actionNames - 动作名数�? * @returns {string|null} 匹配的动作名或null
  */
 export function fuzzyMatchAction(text, actionNames) {
-  // 移除空格和标点
-  const cleanText = text.replace(/[\s：:、，,。.]/g, '').toLowerCase()
+  // �Ƴ��ո�ͱ��
+  const cleanText = text.replace(/[\s��:����,��.]/g, '').toLowerCase()
   
-  for (const actionName of actionNames) {
-    const cleanAction = actionName.replace(/[\s：:、，,。.]/g, '').toLowerCase()
+  // ��������������������ƥ������Ķ�����
+  const sortedActions = [...actionNames].sort((a, b) => b.length - a.length)
+  
+  for (const actionName of sortedActions) {
+    const cleanAction = actionName.replace(/[\s��:����,��.]/g, '').toLowerCase()
     
-    // 完全匹配
+    // ��ȫƥ��
     if (cleanText === cleanAction) {
       return actionName
     }
     
-    // 包含匹配
-    if (cleanText.includes(cleanAction) || cleanAction.includes(cleanText)) {
+    // ����ƥ�䣨ֻ�е����������ȴ��ڵ���2ʱ��������
+    if (cleanAction.length >= 2 && (cleanText.includes(cleanAction) || cleanAction.includes(cleanText))) {
       return actionName
     }
   }
@@ -228,8 +215,7 @@ export function fuzzyMatchAction(text, actionNames) {
 /**
  * 模糊匹配动作名并返回位置信息
  * @param {string} text - 文本
- * @param {Array} actionNames - 动作名数组
- * @returns {Object|null} { actionName, remaining } 或 null
+ * @param {Array} actionNames - 动作名数�? * @returns {Object|null} { actionName, remaining } �?null
  */
 function fuzzyMatchActionWithPosition(text, actionNames) {
   for (const actionName of actionNames) {
@@ -256,3 +242,4 @@ function fuzzyMatchActionWithPosition(text, actionNames) {
   
   return null
 }
+

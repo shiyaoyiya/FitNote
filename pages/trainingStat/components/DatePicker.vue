@@ -273,7 +273,7 @@
     position: relative;
     width: 80vw;
     max-width: 320px;
-    background-color: #ffffff;
+    background-color: var(--card-bg);
     border-radius: 16px;
     overflow: hidden;
     display: flex;
@@ -298,28 +298,12 @@
     }
   }
 
-  .container.light .picker-panel {
-    background-color: #ffffff;
-  }
-
-  .container.dark .picker-panel {
-    background-color: #1e1e1e;
-  }
-
   .picker-header {
     padding: 16px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    border-bottom: 1px solid #e0e0e0;
-  }
-
-  .container.light .picker-header {
-    border-bottom: 1px solid #e0e0e0;
-  }
-
-  .container.dark .picker-header {
-    border-bottom: 1px solid #333;
+    border-bottom: 1px solid var(--border-color);
   }
 
   .picker-title {
@@ -330,7 +314,7 @@
 
   .close-icon {
     font-size: 22px;
-    color: #999;
+    color: var(--text-muted);
     padding: 0 4px;
   }
 
@@ -349,15 +333,7 @@
   }
 
   .picker-col:first-child {
-    border-right: 1px solid #e0e0e0;
-  }
-
-  .container.light .picker-col:first-child {
-    border-right: 1px solid #e0e0e0;
-  }
-
-  .container.dark .picker-col:first-child {
-    border-right: 1px solid #333;
+    border-right: 1px solid var(--border-color);
   }
 
   .picker-item {
@@ -374,12 +350,8 @@
   }
 
   .picker-item.disabled {
-    color: #ccc;
+    color: var(--text-placeholder);
     pointer-events: none;
-  }
-
-  .container.light .picker-item.disabled {
-    color: #cccccc;
   }
 
   .container.dark .picker-item.disabled {
@@ -390,15 +362,7 @@
     padding: 12px 16px;
     display: flex;
     justify-content: center;
-    border-top: 1px solid #e0e0e0;
-  }
-
-  .container.light .picker-footer {
-    border-top: 1px solid #e0e0e0;
-  }
-
-  .container.dark .picker-footer {
-    border-top: 1px solid #333;
+    border-top: 1px solid var(--border-color);
   }
 
   .btn-confirm {

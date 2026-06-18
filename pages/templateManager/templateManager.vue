@@ -1,5 +1,6 @@
 <template>
-  <view class="container" :class="{ dark: daySettingsStore.isDarkMode, light: !daySettingsStore.isDarkMode, 'liquid-glass': daySettingsStore.liquidGlassEnabled }">
+  <view class="container"
+    :class="{ dark: daySettingsStore.isDarkMode, light: !daySettingsStore.isDarkMode, 'liquid-glass': daySettingsStore.liquidGlassEnabled }">
 
     <view v-if="loading" class="loading-container">
       <view class="loading-spinner"></view>
@@ -43,6 +44,10 @@
     </view>
 
     <view class="bottom-bar">
+      <view class="btn-import-export" @click="openImportExportPanel">
+        <text class="btn-icon">📤</text>
+        <text class="btn-label">导入/导出</text>
+      </view>
       <view class="btn-create" @click="openCreatePanel">
         <text class="btn-create-icon">+</text>
         <text class="btn-create-label">新建模板</text>
@@ -110,6 +115,92 @@
 
         <view class="panel-footer">
           <button class="btn-confirm" @click="confirmCreate">确认创建</button>
+        </view>
+      </view>
+    </view>
+
+    <view v-if="showImportExportPanel" class="popup-overlay" @click.self="closeImportExportPanel">
+      <view class="overlay-bg" @click="closeImportExportPanel"></view>
+      <view class="popup-panel import-export-panel slide-up" @click.stop>
+        <view class="panel-header">
+          <text class="panel-title">导入/导出模板</text>
+          <text class="close-btn" @click="closeImportExportPanel">×</text>
+        </view>
+
+        <view class="tab-bar">
+          <view class="tab-item" :class="{ active: importExportTab === 'export' }" @click="importExportTab = 'export'">
+            <text>导出</text>
+          </view>
+          <view class="tab-item" :class="{ active: importExportTab === 'import' }" @click="importExportTab = 'import'">
+            <text>导入</text>
+          </view>
+        </view>
+
+        <view class="panel-body" v-if="importExportTab === 'export'">
+          <view class="select-all-row">
+            <view class="select-all-btn" @click="toggleSelectAll">
+              <text v-if="selectedExportTemplates.length === filteredTemplates.length">✓ 取消全选</text>
+              <text v-else>☐ 全选</text>
+            </view>
+          </view>
+          <scroll-view class="template-list" scroll-y="true">
+            <view v-for="(tpl, idx) in filteredTemplates" :key="tpl.id" class="template-checkbox-item"
+              @click="toggleTemplateSelect(tpl)">
+              <view class="checkbox-box" :class="{ checked: isTemplateSelected(tpl) }">
+                <text v-if="isTemplateSelected(tpl)" class="checkbox-check">✓</text>
+              </view>
+              <view class="template-info">
+                <text class="template-name">{{ tpl.name }}</text>
+                <text class="template-count">{{ tpl.actions ? tpl.actions.length : 0 }}个动作</text>
+              </view>
+            </view>
+          </scroll-view>
+        </view>
+
+        <view class="panel-body" v-else>
+          <view class="paste-btn-row">
+            <view class="paste-btn" @click="pasteFromClipboard">
+              <text>📋 粘贴</text>
+            </view>
+          </view>
+          <textarea v-model="importText" class="import-textarea" placeholder="在此粘贴模板数据，格式：模板名：动作名×组数" @input="onImportTextInput"></textarea>
+          <view v-if="parsedTemplates.length > 0" class="parse-result">
+            <text class="parse-success">✓ 识别到 {{ parsedTemplates.length }} 个模板</text>
+          </view>
+        </view>
+
+        <view class="panel-footer">
+          <view class="btn-cancel-popup" @click="closeImportExportPanel">取消</view>
+          <view class="btn-confirm-popup" @click="confirmImportExport" :class="{ disabled: !canConfirmImportExport }">
+            <text>{{ importExportTab === 'export' ? '确认导出' : '确认导入' }}</text>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <view v-if="showConflictPanel" class="popup-overlay" @click.self="closeConflictPanel">
+      <view class="overlay-bg" @click="closeConflictPanel"></view>
+      <view class="popup-panel conflict-panel slide-up" @click.stop>
+        <view class="panel-header">
+          <text class="panel-title">模板名称冲突</text>
+          <text class="close-btn" @click="closeConflictPanel">×</text>
+        </view>
+        <view class="panel-body">
+          <view v-for="(item, idx) in conflictItems" :key="idx" class="conflict-item">
+            <text class="conflict-name">{{ item.name }}</text>
+            <view class="conflict-options">
+              <view class="conflict-option" :class="{ active: item.action === 'overwrite' }"
+                @click="setConflictAction(idx, 'overwrite')">覆盖</view>
+              <view class="conflict-option" :class="{ active: item.action === 'rename' }"
+                @click="setConflictAction(idx, 'rename')">重命名</view>
+              <view class="conflict-option" :class="{ active: item.action === 'skip' }"
+                @click="setConflictAction(idx, 'skip')">跳过</view>
+            </view>
+          </view>
+        </view>
+        <view class="panel-footer">
+          <view class="btn-cancel-popup" @click="closeConflictPanel">取消</view>
+          <view class="btn-confirm-popup" @click="confirmConflictResolve">确认</view>
         </view>
       </view>
     </view>
@@ -209,6 +300,13 @@
             value: '#f8f4ed'
           },
         ],
+        showImportExportPanel: false,
+        importExportTab: 'export',
+        selectedExportTemplates: [],
+        importText: '',
+        parsedTemplates: [],
+        showConflictPanel: false,
+        conflictItems: []
       }
     },
 
@@ -224,6 +322,13 @@
       },
       filteredTemplates() {
         return (this.templates || []).filter(t => !t.isAerobic)
+      },
+      canConfirmImportExport() {
+        if (this.importExportTab === 'export') {
+          return this.selectedExportTemplates.length > 0
+        } else {
+          return this.parsedTemplates.length > 0
+        }
       },
       categories() {
         return [{
@@ -291,6 +396,13 @@
     },
 
     methods: {
+      openImportExportPanel() {
+        this.showImportExportPanel = true
+        this.importExportTab = 'export'
+        this.selectedExportTemplates = []
+        this.importText = ''
+        this.parsedTemplates = []
+      },
       loadData() {
         this.loading = true
         this.actionStore.load()
@@ -590,7 +702,321 @@
         })
         this.closeCreatePanel()
       },
-    },
+      closeImportExportPanel() {
+        this.showImportExportPanel = false
+      },
+      isTemplateSelected(tpl) {
+        return this.selectedExportTemplates.some(t => t.id === tpl.id)
+      },
+      toggleTemplateSelect(tpl) {
+        const idx = this.selectedExportTemplates.findIndex(t => t.id === tpl.id)
+        if (idx === -1) {
+          this.selectedExportTemplates.push(tpl)
+        } else {
+          this.selectedExportTemplates.splice(idx, 1)
+        }
+      },
+      toggleSelectAll() {
+        if (this.selectedExportTemplates.length === this.filteredTemplates.length) {
+          this.selectedExportTemplates = []
+        } else {
+          this.selectedExportTemplates = [...this.filteredTemplates]
+        }
+      },
+      exportTemplates() {
+        if (this.selectedExportTemplates.length === 0) {
+          uni.showToast({
+            title: '请选择要导出的模板',
+            icon: 'none'
+          })
+          return
+        }
+
+        let text = ''
+        this.selectedExportTemplates.forEach((tpl, idx) => {
+          if (idx > 0) text += '\n\n'
+          text += `${tpl.name}：\n`
+          if (tpl.actions && tpl.actions.length > 0) {
+            tpl.actions.forEach(act => {
+              const sets = (tpl.actionSets && tpl.actionSets[act]) || 4
+              text += `${act}×${sets}\n`
+            })
+          }
+        })
+
+        uni.setClipboardData({
+          data: text,
+          success: () => {
+            uni.showToast({
+              title: '已复制到剪贴板',
+              icon: 'success'
+            })
+            this.closeImportExportPanel()
+          }
+        })
+      },
+      pasteFromClipboard() {
+        uni.getClipboardData({
+          success: (res) => {
+            if (res && res.data) {
+              this.importText = res.data
+              const parsed = this.parseTemplateText(res.data)
+              this.parsedTemplates = parsed
+              if (parsed.length === 0) {
+                uni.showToast({ title: '未能识别到模板数据', icon: 'none' })
+              }
+            } else {
+              uni.showToast({ title: '剪贴板为空', icon: 'none' })
+            }
+          },
+          fail: () => {
+            uni.showToast({ title: '获取剪贴板失败', icon: 'none' })
+          }
+        })
+      },
+      parseTemplateText(text) {
+        const templates = []
+        if (!text || !text.trim()) return templates
+        
+        const normalizedText = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n')
+        
+        const tplBlocks = normalizedText.trim().split(/\n\s*\n/)
+        
+        if (tplBlocks.length === 0) {
+          return this.trySingleTemplateParse(normalizedText)
+        }
+        
+        tplBlocks.forEach(block => {
+          const trimmedBlock = block.trim()
+          if (!trimmedBlock) return
+          
+          const lines = trimmedBlock.split('\n')
+          if (!lines.length) return
+          
+          const nameLine = lines[0].trim()
+          let name = ''
+          if (nameLine.endsWith('：')) {
+            name = nameLine.slice(0, -1).trim()
+          } else if (nameLine.endsWith(':')) {
+            name = nameLine.slice(0, -1).trim()
+          } else {
+            const colonIndex = nameLine.lastIndexOf('：')
+            if (colonIndex > 0) {
+              name = nameLine.slice(0, colonIndex).trim()
+            } else {
+              const colonIndexEn = nameLine.lastIndexOf(':')
+              if (colonIndexEn > 0) {
+                name = nameLine.slice(0, colonIndexEn).trim()
+              }
+            }
+          }
+          if (!name) return
+          
+          const actions = []
+          const actionSets = {}
+          
+          for (let i = 1; i < lines.length; i++) {
+            const line = lines[i].trim()
+            if (!line) continue
+            
+            const match = line.match(/^(.+?)[\u00D7\u0078\u00D7×x*](\d+)\s*$/)
+            if (match) {
+              const actName = match[1].trim()
+              const sets = parseInt(match[2])
+              if (actName && sets > 0) {
+                actions.push(actName)
+                actionSets[actName] = sets
+              }
+            } else {
+              const simpleMatch = line.match(/^(.+?)\s*[\u00D7×x*]\s*(\d+)/)
+              if (simpleMatch) {
+                const actName = simpleMatch[1].trim()
+                const sets = parseInt(simpleMatch[2])
+                if (actName && sets > 0) {
+                  actions.push(actName)
+                  actionSets[actName] = sets
+                }
+              }
+            }
+          }
+          
+          if (actions.length > 0) {
+            templates.push({
+              id: String(Date.now()) + Math.random().toString(36).slice(2),
+              name,
+              actions,
+              actionSets,
+              actionOrder: [...actions],
+              actionWeights: {},
+              color: '',
+              customColors: [],
+              isAerobic: false
+            })
+          }
+        })
+        
+        return templates.length > 0 ? templates : this.trySingleTemplateParse(normalizedText)
+      },
+      trySingleTemplateParse(text) {
+        const templates = []
+        const lines = text.trim().split('\n')
+        if (lines.length < 2) return templates
+        
+        const nameLine = lines[0].trim()
+        let name = ''
+        if (nameLine.endsWith('：')) {
+          name = nameLine.slice(0, -1).trim()
+        } else if (nameLine.endsWith(':')) {
+          name = nameLine.slice(0, -1).trim()
+        }
+        if (!name) return templates
+        
+        const actions = []
+        const actionSets = {}
+        
+        for (let i = 1; i < lines.length; i++) {
+          const line = lines[i].trim()
+          if (!line) continue
+          
+          const match = line.match(/^(.+?)[\u00D7\u0078\u00D7×x*](\d+)\s*$/)
+          if (match) {
+            const actName = match[1].trim()
+            const sets = parseInt(match[2])
+            if (actName && sets > 0) {
+              actions.push(actName)
+              actionSets[actName] = sets
+            }
+          } else {
+            const simpleMatch = line.match(/^(.+?)\s*[\u00D7×x*]\s*(\d+)/)
+            if (simpleMatch) {
+              const actName = simpleMatch[1].trim()
+              const sets = parseInt(simpleMatch[2])
+              if (actName && sets > 0) {
+                actions.push(actName)
+                actionSets[actName] = sets
+              }
+            }
+          }
+        }
+        
+        if (actions.length > 0) {
+          templates.push({
+            id: String(Date.now()) + Math.random().toString(36).slice(2),
+            name,
+            actions,
+            actionSets,
+            actionOrder: [...actions],
+            actionWeights: {},
+            color: '',
+            customColors: [],
+            isAerobic: false
+          })
+        }
+        
+        return templates
+      },
+      onImportTextInput() {
+        this.parsedTemplates = this.parseTemplateText(this.importText)
+      },
+      checkConflicts(templates) {
+        const conflicts = []
+        templates.forEach(tpl => {
+          const exists = this.templateStore.templates.some(t => t.name === tpl.name)
+          if (exists) {
+            conflicts.push({
+              name: tpl.name,
+              action: 'skip',
+              template: tpl
+            })
+          }
+        })
+        return conflicts
+      },
+      resolveConflictsAndImport() {
+        this.conflictItems.forEach(item => {
+          if (item.action === 'skip') return
+
+          let newName = item.name
+          if (item.action === 'rename') {
+            let idx = 1
+            while (this.templateStore.templates.some(t => t.name === `${newName} (${idx})`)) {
+              idx++
+            }
+            newName = `${newName} (${idx})`
+          } else if (item.action === 'overwrite') {
+            const existingIdx = this.templateStore.templates.findIndex(t => t.name === item.name)
+            if (existingIdx !== -1) {
+              this.templateStore.templates.splice(existingIdx, 1)
+            }
+          }
+
+          const tpl = {
+            ...item.template
+          }
+          tpl.id = String(Date.now()) + Math.random().toString(36).slice(2)
+          tpl.name = newName
+          this.templateStore.templates.push(tpl)
+        })
+
+        this.templateStore.save()
+        uni.showToast({
+          title: '导入成功',
+          icon: 'success'
+        })
+        this.closeConflictPanel()
+        this.closeImportExportPanel()
+      },
+      confirmImportExport() {
+        if (this.importExportTab === 'export') {
+          this.exportTemplates()
+        } else {
+          this.startImport()
+        }
+      },
+      startImport() {
+        if (this.parsedTemplates.length === 0) {
+          uni.showToast({
+            title: '未能识别到模板数据',
+            icon: 'none'
+          })
+          return
+        }
+
+        const conflicts = this.checkConflicts(this.parsedTemplates)
+
+        if (conflicts.length > 0) {
+          this.conflictItems = conflicts
+          this.showConflictPanel = true
+        } else {
+          this.parsedTemplates.forEach(tpl => {
+            this.templateStore.templates.push(tpl)
+          })
+          this.templateStore.save()
+          uni.showToast({
+            title: '导入成功',
+            icon: 'success'
+          })
+          this.closeImportExportPanel()
+        }
+      },
+      closeConflictPanel() {
+        this.showConflictPanel = false
+        this.conflictItems = []
+      },
+      setConflictAction(idx, action) {
+        this.conflictItems[idx].action = action
+      },
+      confirmConflictResolve() {
+        const conflictTplNames = this.conflictItems.map(c => c.name)
+        const nonConflictTpls = this.parsedTemplates.filter(t => !conflictTplNames.includes(t.name))
+
+        nonConflictTpls.forEach(tpl => {
+          this.templateStore.templates.push(tpl)
+        })
+
+        this.resolveConflictsAndImport()
+      },
+    }
   }
 </script>
 
@@ -599,13 +1025,8 @@
     display: flex;
     flex-direction: column;
     height: 100vh;
-    background-color: #121212;
-    color: #f7f7f7;
-  }
-
-  .container.light {
-    background-color: #f5f5f5;
-    color: #333333;
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
   }
 
   .mid-scroll {
@@ -627,8 +1048,8 @@
   .loading-spinner {
     width: 60rpx;
     height: 60rpx;
-    border: 4rpx solid #333;
-    border-top-color: #379bff;
+    border: 4rpx solid var(--border-color);
+    border-top-color: var(--primary);
     border-radius: 50%;
     animation: spin 0.8s linear infinite;
   }
@@ -642,7 +1063,7 @@
   .loading-text {
     margin-top: 20rpx;
     font-size: 28rpx;
-    color: #999;
+    color: var(--text-secondary);
   }
 
   /* 拖拽容器（与 templateDetail.vue 一致） */
@@ -704,7 +1125,7 @@
   .delete-btn {
     width: 130rpx;
     height: 100rpx;
-    background-color: #ff5a5d;
+    background-color: var(--danger);
     border-radius: 14rpx;
     display: flex;
     align-items: center;
@@ -723,16 +1144,16 @@
     display: flex;
     flex-direction: row;
     align-items: center;
-    background: #1e1e1e;
+    background: var(--bg-secondary);
     border-radius: 16rpx;
     overflow: hidden;
-    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.3);
+    box-shadow: 0 4rpx 12rpx var(--shadow-color);
     transition: transform 0.2s ease;
   }
 
   .container.light .action-card {
-    background: #ffffff;
-    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.1);
+    background: var(--bg-secondary);
+    box-shadow: 0 4rpx 12rpx var(--shadow-color);
   }
 
   .card-color-bar {
@@ -753,31 +1174,31 @@
   .card-name {
     font-size: 30rpx;
     font-weight: 600;
-    color: #f7f7f7;
+    color: var(--text-primary);
   }
 
   .card-count {
     font-size: 24rpx;
-    color: #999;
+    color: var(--text-secondary);
   }
 
   .container.light .card-name {
-    color: #333333;
+    color: var(--text-primary);
   }
 
   .container.light .card-count {
-    color: #666666;
+    color: var(--text-muted);
   }
 
   .card-arrow {
     font-size: 36rpx;
-    color: #555;
+    color: var(--text-placeholder);
     padding: 28rpx 24rpx;
     flex-shrink: 0;
   }
 
   .container.light .card-arrow {
-    color: #999999;
+    color: var(--text-secondary);
   }
 
   /* 拖拽高亮（与 templateDetail.vue 一致） */
@@ -785,7 +1206,7 @@
     transition: none;
     transform: scale(1.05) !important;
     box-shadow: 0 10rpx 30rpx rgba(0, 0, 0, 0.8);
-    border: 1rpx solid #555;
+    border: 1rpx solid var(--border-color);
   }
 
   .is-dragging .card-arrow {
@@ -810,11 +1231,11 @@
 
   .empty-text {
     font-size: 28rpx;
-    color: #666;
+    color: var(--text-muted);
   }
 
   .container.light .empty-text {
-    color: #999999;
+    color: var(--text-secondary);
   }
 
   /* 底部新建按钮 */
@@ -823,22 +1244,52 @@
     bottom: 0;
     left: 0;
     right: 0;
+    display: flex;
+    gap: 20rpx;
     padding: 20rpx 30rpx 40rpx;
-    background: linear-gradient(transparent, #121212 40rpx);
+    background: linear-gradient(transparent, var(--bg-primary) 40rpx);
     z-index: 10;
   }
 
   .container.light .bottom-bar {
-    background: linear-gradient(transparent, #f5f5f5 40rpx);
+    background: linear-gradient(transparent, var(--bg-primary) 40rpx);
+  }
+
+  .btn-import-export {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10rpx;
+    height: 88rpx;
+    background: var(--bg-tertiary);
+    border-radius: 44rpx;
+    color: var(--text-primary);
+    font-size: 28rpx;
+    font-weight: 600;
+  }
+
+  .container.light .btn-import-export {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+  }
+
+  .btn-icon {
+    font-size: 32rpx;
+  }
+
+  .btn-label {
+    font-size: 28rpx;
   }
 
   .btn-create {
+    flex: 1;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 12rpx;
     height: 88rpx;
-    background: #379bff;
+    background: var(--primary);
     border-radius: 44rpx;
     color: #fff;
     font-size: 30rpx;
@@ -859,63 +1310,20 @@
     font-size: 30rpx;
   }
 
-  /* 弹窗样式 */
-  .popup-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 1000;
-    display: flex;
-    align-items: flex-end;
-    justify-content: center;
-  }
-
-  .overlay-bg {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.6);
-  }
-
-  .popup-panel {
-    position: relative;
-    width: 100%;
-    max-height: 85vh;
-    background: #1c1c1e;
-    border-radius: 32rpx 32rpx 0 0;
-    display: flex;
-    flex-direction: column;
-    animation: slideUp 0.3s ease-out;
-  }
-
-  .container.light .popup-panel {
-    background: #ffffff;
-  }
-
   .container.light .panel-header {
-    border-bottom-color: #e0e0e0;
+    border-bottom-color: var(--border-color);
   }
 
   .container.light .panel-title {
-    color: #333333;
+    color: var(--text-primary);
   }
 
   .container.light .close-btn {
-    color: #666666;
+    color: var(--text-muted);
   }
 
-  @keyframes slideUp {
-    from {
-      transform: translateY(100%);
-    }
-
-    to {
-      transform: translateY(0);
-    }
+  .popup-overlay {
+    align-items: flex-end;
   }
 
   .panel-header {
@@ -923,19 +1331,19 @@
     align-items: center;
     justify-content: space-between;
     padding: 28rpx 32rpx;
-    border-bottom: 1rpx solid #333;
+    border-bottom: 1rpx solid var(--border-color);
     flex-shrink: 0;
   }
 
   .panel-title {
     font-size: 34rpx;
     font-weight: 700;
-    color: #f7f7f7;
+    color: var(--text-primary);
   }
 
   .close-btn {
     font-size: 40rpx;
-    color: #999;
+    color: var(--text-secondary);
     padding: 8rpx;
   }
 
@@ -946,15 +1354,10 @@
     padding-bottom: 0;
   }
 
-  .panel-footer {
-    padding: 20rpx 32rpx 40rpx;
-    flex-shrink: 0;
-  }
-
   .btn-confirm {
     width: 100%;
     height: 88rpx;
-    background: #379bff;
+    background: var(--primary);
     border-radius: 44rpx;
     color: #fff;
     font-size: 30rpx;
@@ -977,37 +1380,37 @@
   .form-label {
     display: block;
     font-size: 28rpx;
-    color: #ccc;
+    color: var(--text-secondary);
     margin-bottom: 12rpx;
   }
 
   .container.light .form-label {
-    color: #666666;
+    color: var(--text-muted);
   }
 
   .form-input {
     width: 100%;
     height: 72rpx;
-    background: #2c2c2e;
+    background: var(--bg-tertiary);
     border-radius: 16rpx;
     padding: 0 24rpx;
     font-size: 28rpx;
-    color: #f7f7f7;
+    color: var(--text-primary);
     box-sizing: border-box;
   }
 
   .form-input::placeholder {
-    color: #666;
+    color: var(--text-muted);
   }
 
   .container.light .form-input {
-    background: #ffffff;
-    border: 1rpx solid #e0e0e0;
-    color: #333333;
+    background: var(--bg-secondary);
+    border: 1rpx solid var(--border-color);
+    color: var(--text-primary);
   }
 
   .container.light .form-input::placeholder {
-    color: #999999;
+    color: var(--text-secondary);
   }
 
   .search-bar {
@@ -1018,14 +1421,14 @@
     display: flex;
     align-items: center;
     height: 64rpx;
-    background: #2c2c2e;
+    background: var(--bg-tertiary);
     border-radius: 32rpx;
     padding: 0 24rpx;
   }
 
   .container.light .search-bar-inner {
-    background: #ffffff;
-    border: 1rpx solid #e0e0e0;
+    background: var(--bg-secondary);
+    border: 1rpx solid var(--border-color);
   }
 
   .search-icon {
@@ -1034,30 +1437,30 @@
   }
 
   .container.light .search-icon {
-    color: #999999;
+    color: var(--text-secondary);
   }
 
   .search-input {
     flex: 1;
     font-size: 26rpx;
-    color: #f7f7f7;
+    color: var(--text-primary);
   }
 
   .search-input::placeholder {
-    color: #666;
+    color: var(--text-muted);
   }
 
   .container.light .search-input {
-    color: #333333;
+    color: var(--text-primary);
   }
 
   .container.light .search-input::placeholder {
-    color: #999999;
+    color: var(--text-secondary);
   }
 
   .clear-icon {
     font-size: 32rpx;
-    color: #666;
+    color: var(--text-muted);
     padding: 8rpx;
   }
 
@@ -1073,25 +1476,25 @@
     gap: 8rpx;
     padding: 12rpx 24rpx;
     margin-right: 16rpx;
-    background: #2c2c2e;
+    background: var(--bg-tertiary);
     border-radius: 24rpx;
     font-size: 24rpx;
-    color: #999;
+    color: var(--text-secondary);
   }
 
   .category-tab.active {
-    background: #379bff;
+    background: var(--primary);
     color: #fff;
   }
 
   .container.light .category-tab {
-    background: #ffffff;
-    color: #666666;
-    border: 1rpx solid #e0e0e0;
+    background: var(--bg-secondary);
+    color: var(--text-muted);
+    border: 1rpx solid var(--border-color);
   }
 
   .container.light .category-tab.active {
-    background: #379bff;
+    background: var(--primary);
     color: #ffffff;
   }
 
@@ -1120,18 +1523,18 @@
     align-items: center;
     gap: 8rpx;
     padding: 16rpx 24rpx;
-    background: #2c2c2e;
+    background: var(--bg-tertiary);
     border-radius: 16rpx;
     font-size: 26rpx;
-    color: #f7f7f7;
+    color: var(--text-primary);
     border: 2rpx solid transparent;
     transition: all 0.2s;
   }
 
   .action-item.selected {
-    background: #1a3a5c;
-    border-color: #379bff;
-    color: #379bff;
+    background: rgba(55, 155, 255, 0.15);
+    border-color: var(--primary);
+    color: var(--primary);
   }
 
   .action-item:active {
@@ -1139,15 +1542,15 @@
   }
 
   .container.light .action-item {
-    background: #ffffff;
-    color: #333333;
-    border: 1rpx solid #e0e0e0;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    border: 1rpx solid var(--border-color);
   }
 
   .container.light .action-item.selected {
     background: rgba(55, 155, 255, 0.1);
-    border-color: #379bff;
-    color: #379bff;
+    border-color: var(--primary);
+    color: var(--primary);
   }
 
   .action-name {
@@ -1156,13 +1559,13 @@
 
   .check-mark {
     font-size: 20rpx;
-    color: #379bff;
+    color: var(--primary);
   }
 
   .no-actions {
     text-align: center;
     padding: 40rpx 0;
-    color: #666;
+    color: var(--text-muted);
     font-size: 26rpx;
   }
 
@@ -1170,14 +1573,14 @@
     text-align: center;
     padding: 12rpx 0;
     font-size: 24rpx;
-    color: #999;
-    border-top: 1rpx solid #333;
+    color: var(--text-secondary);
+    border-top: 1rpx solid var(--border-color);
     margin-bottom: 16rpx;
   }
 
   .container.light .selected-count {
-    border-top-color: #e0e0e0;
-    color: #666666;
+    border-top-color: var(--border-color);
+    color: var(--text-muted);
   }
 
   .color-section {
@@ -1187,7 +1590,7 @@
   .color-label {
     display: block;
     font-size: 28rpx;
-    color: #ccc;
+    color: var(--text-secondary);
     margin-bottom: 16rpx;
   }
 
@@ -1209,7 +1612,7 @@
   }
 
   .color-item.active {
-    border-color: #379bff;
+    border-color: var(--primary);
     background: rgba(55, 155, 255, 0.1);
   }
 
@@ -1222,7 +1625,240 @@
 
   .color-name {
     font-size: 20rpx;
-    color: #999;
+    color: var(--text-secondary);
     text-align: center;
+  }
+
+  .tab-bar {
+    display: flex;
+    border-bottom: 1rpx solid var(--border-color);
+  }
+
+  .container.light .tab-bar {
+    border-bottom-color: var(--border-color);
+  }
+
+  .tab-item {
+    flex: 1;
+    text-align: center;
+    padding: 20rpx 0;
+    font-size: 28rpx;
+    color: var(--text-secondary);
+    border-bottom: 3rpx solid transparent;
+  }
+
+  .tab-item.active {
+    color: var(--primary);
+    border-bottom-color: var(--primary);
+  }
+
+  .select-all-row {
+    padding: 10rpx 0;
+  }
+
+  .select-all-btn {
+    display: inline-flex;
+    align-items: center;
+    padding: 8rpx 16rpx;
+    background: var(--bg-tertiary);
+    border-radius: 8rpx;
+    font-size: 24rpx;
+    color: var(--text-primary);
+  }
+
+  .container.light .select-all-btn {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+  }
+
+  .template-list {
+    max-height: 500rpx;
+  }
+
+  .template-checkbox-item {
+    display: flex;
+    align-items: center;
+    gap: 16rpx;
+    padding: 20rpx 0;
+    border-bottom: 1rpx solid var(--border-color);
+  }
+
+  .container.light .template-checkbox-item {
+    border-bottom-color: var(--border-color);
+  }
+
+  .checkbox-box {
+    width: 40rpx;
+    height: 40rpx;
+    border: 2rpx solid var(--text-muted);
+    border-radius: 8rpx;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .checkbox-box.checked {
+    background: var(--primary);
+    border-color: var(--primary);
+  }
+
+  .checkbox-check {
+    color: #fff;
+    font-size: 24rpx;
+    font-weight: bold;
+  }
+
+  .template-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4rpx;
+  }
+
+  .template-name {
+    font-size: 28rpx;
+    color: var(--text-primary);
+  }
+
+  .container.light .template-name {
+    color: var(--text-primary);
+  }
+
+  .template-count {
+    font-size: 22rpx;
+    color: var(--text-secondary);
+  }
+
+  .paste-btn-row {
+    margin-bottom: 16rpx;
+  }
+
+  .paste-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8rpx;
+    padding: 12rpx 24rpx;
+    background: var(--primary);
+    border-radius: 8rpx;
+    font-size: 26rpx;
+    color: #fff;
+  }
+
+  .import-textarea {
+    width: 100%;
+    height: 300rpx;
+    background: var(--bg-tertiary);
+    border-radius: 16rpx;
+    padding: 20rpx;
+    font-size: 26rpx;
+    color: var(--text-primary);
+    box-sizing: border-box;
+  }
+
+  .container.light .import-textarea {
+    background: var(--bg-secondary);
+    border: 1rpx solid var(--border-color);
+    color: var(--text-primary);
+  }
+
+  .import-textarea::placeholder {
+    color: var(--text-muted);
+  }
+
+  .parse-result {
+    margin-top: 16rpx;
+    padding: 12rpx;
+    background: rgba(55, 155, 255, 0.1);
+    border-radius: 8rpx;
+  }
+
+  .parse-success {
+    color: var(--primary);
+    font-size: 24rpx;
+  }
+
+  .panel-footer {
+    display: flex;
+    gap: 16rpx;
+    padding: 20rpx 32rpx 40rpx;
+  }
+
+  .btn-cancel-popup {
+    flex: 1;
+    height: 80rpx;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-tertiary);
+    border-radius: 40rpx;
+    color: var(--text-primary);
+    font-size: 28rpx;
+  }
+
+  .container.light .btn-cancel-popup {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+  }
+
+  .btn-confirm-popup {
+    flex: 1;
+    height: 80rpx;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--primary);
+    border-radius: 40rpx;
+    color: #fff;
+    font-size: 28rpx;
+    font-weight: 600;
+  }
+
+  .btn-confirm-popup.disabled {
+    opacity: 0.5;
+  }
+
+  .conflict-item {
+    padding: 20rpx 0;
+    border-bottom: 1rpx solid var(--border-color);
+  }
+
+  .container.light .conflict-item {
+    border-bottom-color: var(--border-color);
+  }
+
+  .conflict-name {
+    font-size: 28rpx;
+    color: var(--text-primary);
+    display: block;
+    margin-bottom: 12rpx;
+  }
+
+  .container.light .conflict-name {
+    color: var(--text-primary);
+  }
+
+  .conflict-options {
+    display: flex;
+    gap: 12rpx;
+  }
+
+  .conflict-option {
+    flex: 1;
+    padding: 12rpx;
+    text-align: center;
+    background: var(--bg-tertiary);
+    border-radius: 8rpx;
+    font-size: 24rpx;
+    color: var(--text-primary);
+  }
+
+  .container.light .conflict-option {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+  }
+
+  .conflict-option.active {
+    background: var(--primary);
+    color: #fff;
   }
 </style>

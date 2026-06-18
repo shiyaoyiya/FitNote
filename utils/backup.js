@@ -72,6 +72,50 @@ function collectFullData() {
   }
 }
 
+// 带进度的全量数据收集（优化版本）
+async function collectFullDataWithProgress(dayDataCacheStore, onProgress) {
+  const templates = uni.getStorageSync(TEMPLATE_KEY) || []
+  const actions = uni.getStorageSync(ACTION_KEY) || []
+  // 收集纪念日数据
+  const rawAnnivs = uni.getStorageSync(ANNIV_KEY) || '[]'
+  let annivs = []
+  try {
+    annivs = JSON.parse(rawAnnivs)
+    if (!Array.isArray(annivs)) annivs = []
+  } catch (e) {
+    annivs = []
+  }
+  
+  // 使用 dayDataCacheStore 的索引，避免遍历所有键
+  dayDataCacheStore.loadIndex()
+  const dates = dayDataCacheStore.getDates()
+  
+  const daydata = {}
+  const batchSize = 50 // 每批处理50个日期
+  const totalDates = dates.length
+  
+  for (let i = 0; i < totalDates; i += batchSize) {
+    const batch = dates.slice(i, i + batchSize)
+    batch.forEach(date => {
+      daydata[date] = uni.getStorageSync(DAYDATA_PREFIX + date) || {}
+    })
+    
+    // 进度回调（数据收集占总进度的70%）
+    const progress = Math.round((i + batchSize) / totalDates * 70)
+    if (onProgress) onProgress(progress)
+    
+    // 让出主线程，避免阻塞UI
+    await new Promise(r => setTimeout(r, 0))
+  }
+  
+  return {
+    fitness_templates: Array.isArray(templates) ? templates : [],
+    fitness_actions: Array.isArray(actions) ? actions : [],
+    fitness_annivs: Array.isArray(annivs) ? annivs : [],
+    fitness_daydata: daydata
+  }
+}
+
 
 
 function parseDateString(dateStr) {
@@ -774,14 +818,27 @@ export function loadBackupConfig() {
 
 
 
-export async function backupData(backupType) {
+export async function backupData(backupType, dayDataCacheStore, onProgress) {
   const cfg = getBackupConfig()
   const nowIso = new Date().toISOString()
   const type = backupType === 'incremental' ? 'incremental' : 'full'
-  const data = type === 'incremental' ?
-    collectIncrementalData(cfg.lastBackupTime) :
-    collectFullData()
-
+  
+  // 使用带进度的数据收集
+  let data
+  if (type === 'incremental') {
+    data = collectIncrementalData(cfg.lastBackupTime)
+  } else {
+    // 如果提供了 dayDataCacheStore，使用带进度的版本
+    if (dayDataCacheStore) {
+      data = await collectFullDataWithProgress(dayDataCacheStore, onProgress)
+    } else {
+      data = collectFullData()
+    }
+  }
+  
+  // 进度：数据收集完成，开始序列化（70% -> 80%）
+  if (onProgress) onProgress(75)
+  
   const payload = {
     version: BACKUP_VERSION,
     backupType: type,
@@ -793,6 +850,9 @@ export async function backupData(backupType) {
       deviceInfo: ''
     }
   }
+  
+  // 进度：开始写入文件（80% -> 100%）
+  if (onProgress) onProgress(80)
 
   try {
     // 尝试备份到SAF路径
@@ -802,6 +862,7 @@ export async function backupData(backupType) {
     if (cfg.defaultPath && cfg.defaultPath.startsWith('content://')) {
       try {
         safPath = await writeBackupFile(payload, cfg.defaultPath)
+        if (onProgress) onProgress(100)
       } catch (safErr) {
         console.warn('SAF备份失败:', safErr.message)
       }

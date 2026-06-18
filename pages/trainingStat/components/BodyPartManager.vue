@@ -364,20 +364,14 @@
     width: 100%;
     display: flex;
     align-items: center;
-    background-color: #ffffff;
+    background-color: var(--card-bg);
     border-radius: 10px;
     padding: 8px 14px;
     position: relative;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   }
 
-  .container.light .sort-card {
-    background-color: #ffffff;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  }
-
   .container.dark .sort-card {
-    background-color: #2a2a2a;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
   }
 
@@ -422,17 +416,9 @@
   .sort-card-name {
     flex: 1;
     font-size: 15px;
-    color: #333333;
+    color: var(--text-primary);
     font-weight: 500;
     pointer-events: none;
-  }
-
-  .container.light .sort-card-name {
-    color: #333333;
-  }
-
-  .container.dark .sort-card-name {
-    color: #f7f7f7;
   }
 
   .container.liquid-glass .sort-card-name {

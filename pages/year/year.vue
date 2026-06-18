@@ -105,6 +105,8 @@
       });
 
       this.dayDataCacheStore = useDayDataCacheStore();
+      // 清空 store 缓存，防止跨页面缓存污染导致读取到旧数据
+      this.dayDataCacheStore.clearCache();
       this.dayDataCacheStore.loadIndex();
 
       uni.setNavigationBarTitle({
@@ -126,11 +128,13 @@
     onShow() {
       // 重新加载索引（强制刷新，确保显示最新数据）
       if (this.dayDataCacheStore) {
+        // 清空 store 的日数据缓存，强制重新从 storage 读取
+        this.dayDataCacheStore.clearCache();
         // 强制重建索引，而不是使用缓存的索引
         this.dayDataCacheStore.buildIndex();
         // 每次回来都清空颜色缓存，确保显示最新数据
         this.templateColorCache.clear();
-        console.log('年页面 onShow，重建索引，清空颜色缓存');
+        console.log('年页面 onShow，清空数据缓存，重建索引，清空颜色缓存');
 
         // 更新最早年份（可能变化）
         const newEarliestYear = this.dayDataCacheStore.getEarliestYear();
@@ -343,6 +347,10 @@
               if (globalTpl && globalTpl.color) {
                 color = globalTpl.color;
               }
+              // 有氧模板默认色（马尔斯绿），用户自定义颜色优先
+              if (!color && tplData && tplData.isAerobic) {
+                color = '#01847f';
+              }
             }
           }
         }
@@ -435,7 +443,7 @@
 <style lang="scss" scoped>
   .year-container {
     min-height: 100vh;
-    background: #121212;
+    background: var(--bg-primary);
     padding-bottom: env(safe-area-inset-bottom);
   }
 
@@ -445,7 +453,7 @@
 
   .year-section {
     height: 100vh;
-    border-bottom: 2rpx solid rgba(255, 255, 255, 0.1);
+    border-bottom: 2rpx solid var(--border-color);
   }
 
   .year-header {
@@ -456,7 +464,7 @@
   .year-title {
     font-size: 32rpx;
     font-weight: bold;
-    color: #FFFFFF;
+    color: var(--text-primary);
   }
 
   .year-grid {
@@ -482,7 +490,7 @@
   .month-text {
     font-size: 28rpx;
     font-weight: bold;
-    color: rgba(255, 255, 255, 1);
+    color: var(--text-primary);
     pointer-events: none;
   }
 
@@ -495,7 +503,7 @@
 
   .weekday-sm {
     font-size: 16rpx;
-    color: rgba(255, 255, 255, 0.5);
+    color: var(--text-muted);
     width: 36rpx;
     text-align: center;
     pointer-events: none;
@@ -520,81 +528,81 @@
 
   .day-text-sm {
     font-size: 18rpx;
-    color: rgba(255, 255, 255, 1);
+    color: var(--text-primary);
     pointer-events: none;
   }
 
   .dark {
     .year-title {
-      color: #FFFFFF;
+      color: var(--text-primary);
     }
 
     .month-text {
-      color: rgba(255, 255, 255, 0.8);
+      color: var(--text-primary);
     }
 
     .weekday-sm {
-      color: rgba(255, 255, 255, 0.5);
+      color: var(--text-muted);
     }
 
     .day-text-sm {
-      color: rgba(255, 255, 255, 0.7);
+      color: var(--text-secondary);
     }
   }
 
   .light {
-    background: linear-gradient(to bottom, #f5f5f5 0%, #ffffff 100%);
+    background: linear-gradient(to bottom, var(--bg-primary) 0%, var(--bg-secondary) 100%);
 
     .year-title {
-      color: #333333;
+      color: var(--text-primary);
     }
 
     .month-block {
-      background: rgba(0, 0, 0, 0.03);
+      background: var(--bg-tertiary);
     }
 
     .month-text {
-      color: rgba(0, 0, 0, 0.7);
+      color: var(--text-primary);
     }
 
     .weekday-sm {
-      color: rgba(0, 0, 0, 0.4);
+      color: var(--text-muted);
     }
 
     .day-text-sm {
-      color: rgba(0, 0, 0, 0.6);
+      color: var(--text-secondary);
     }
 
     .year-section {
-      border-bottom-color: #e0e0e0;
+      border-bottom-color: var(--border-color);
     }
   }
 
   .year-container.light {
-    background: #f5f5f5;
+    background: var(--bg-primary);
   }
 
   .year-container.light .year-title {
-    color: #333333;
+    color: var(--text-primary);
   }
 
   .year-container.light .month-text {
-    color: rgba(0, 0, 0, 0.7);
+    color: var(--text-primary);
   }
 
   .year-container.light .weekday-sm {
-    color: rgba(0, 0, 0, 0.4);
+    color: var(--text-muted);
   }
 
   .year-container.light .day-text-sm {
-    color: rgba(0, 0, 0, 0.6);
+    color: var(--text-secondary);
   }
 
   .year-container.light .year-section {
-    border-bottom-color: #e0e0e0;
+    border-bottom-color: var(--border-color);
   }
 
   .year-container.light .month-block {
-    background: rgba(0, 0, 0, 0.03);
+    background: var(--bg-tertiary);
   }
 </style>

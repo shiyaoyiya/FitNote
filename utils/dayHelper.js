@@ -5,6 +5,25 @@ export const ENTRY_TYPE = {
   NORMAL: 'normal',
   DECREASING: 'decreasing',
   PAUSED: 'paused',
+  COMPOSITE: 'composite',
+}
+
+/**
+ * 判断复合组的整体类型（子组与主组重量比较）
+ * @param {Array} stages - 阶段数组
+ * @returns {string} 'decreasing' | 'paused' | 'increasing' | 'mixed'
+ */
+export function getCompositeType(stages) {
+  if (!stages || stages.length < 2) return null
+  const mainWeight = stages[0].weight
+  const subTypes = stages.slice(1).map(s => {
+    if (s.weight === mainWeight) return 'paused'
+    if (s.weight < mainWeight) return 'decreasing'
+    return 'increasing'
+  })
+  const first = subTypes[0]
+  if (subTypes.every(t => t === first)) return first
+  return 'mixed'
 }
 
 /**
@@ -14,7 +33,7 @@ export function createStage(reps, weight, isUnilateral = false) {
   const repsNum = Number(reps)
   const weightNum = weight ? Number(weight) : 0
   const total = weightNum > 0
-    ? repsNum * weightNum * (isUnilateral ? 2 : 1)
+    ? Math.round(repsNum * weightNum * (isUnilateral ? 2 : 1) * 100) / 100
     : repsNum
   return { reps: repsNum, weight: weightNum, total }
 }
@@ -59,7 +78,14 @@ export function getEntryDisplayText(entry) {
   )
   let text = stageStrings.join('+')
   if (entry.type === ENTRY_TYPE.DECREASING) text += ' 🔻递减'
-  if (entry.type === ENTRY_TYPE.PAUSED) text += ' ⏸暂停'
+  else if (entry.type === ENTRY_TYPE.PAUSED) text += ' ⏸暂停'
+  else if (entry.type === ENTRY_TYPE.COMPOSITE) {
+    const compType = getCompositeType(entry.stages)
+    if (compType === 'decreasing') text += '(🔻递减)'
+    else if (compType === 'paused') text += '(⏸暂停)'
+    else if (compType === 'increasing') text += '(🔺递增)'
+    else if (compType === 'mixed') text += '(🔗复合)'
+  }
   return text
 }
 
@@ -68,7 +94,7 @@ export function getEntryDisplayText(entry) {
  */
 export function getTotalWeight(entries) {
   if (!entries || entries.length === 0) return 0
-  return entries.reduce((sum, item) => sum + (item.total || 0), 0)
+  return Math.round(entries.reduce((sum, item) => sum + (item.total || 0), 0) * 100) / 100
 }
 
 /**
