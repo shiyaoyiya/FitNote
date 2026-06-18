@@ -266,5 +266,25 @@ export const useDaySettingsStore = defineStore('daySettings', {
 
       return 0
     },
+
+    updateSplitPlanTemplateName(oldName, newName) {
+      if (this.splitPlan.cycleDays) {
+        this.splitPlan.cycleDays.forEach(day => {
+          if (day.template === oldName) {
+            day.template = newName
+          }
+        })
+      }
+
+      if (this.splitPlan.weekPlan) {
+        this.splitPlan.weekPlan.forEach(day => {
+          if (day.template === oldName) {
+            day.template = newName
+          }
+        })
+      }
+
+      this.save()
+    },
   },
 })
