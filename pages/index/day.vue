@@ -1,7 +1,7 @@
 <template>
   <view class="container"
     :class="{ dark: settingsStore.isDarkMode, light: !settingsStore.isDarkMode, 'liquid-glass': settingsStore.liquidGlassEnabled }">
-    <!-- 休息日状态展�?-->
+    <!-- 休息日状态展示 -->
     <view v-if="isRestDay" class="rest-day-header">
       <text class="rest-day-text">📅 今日标记为休息日：{{ restReasonStored }}</text>
     </view>
@@ -21,19 +21,19 @@
       <view class="list-bottom-space"></view>
     </scroll-view>
 
-    <!-- 底部按钮�?-->
+    <!-- 底部按钮行 -->
     <view class="save-row" v-if="!isRestDay && !showChooseTpl">
       <view class="minimal-timer-btn" @click="timerDuration = settingsStore.heavyTimerDuration; showTimer = true">
-        <text class="mini-icon">�?/text>
-        <text class="mini-text">开始计时休�?/text>
+        <text class="mini-icon">⏱</text>
+        <text class="mini-text">开始计时休息</text>
       </view>
       <view class="minimal-settings-btn" @click="showSettings = true">
-        <text class="mini-icon">�?/text>
+        <text class="mini-icon">⚙</text>
         <text class="mini-text">设置</text>
       </view>
     </view>
 
-    <!-- 计时器组�?-->
+    <!-- 计时器组件 -->
     <TimerModal :visible="showTimer" :default-duration="timerDuration" :quick-settings="quickTimerSettings"
       @close="showTimer = false" @complete="showTimer = false" />
 
@@ -47,8 +47,8 @@
       @import-data="onImportData" />
 
     <!-- 导入数据弹窗 -->
-    <ImportDataModal 
-      :visible="showImportModal" 
+    <ImportDataModal
+      :visible="showImportModal"
       :action-names="availableActionNames"
       @close="showImportModal = false"
       @confirm="onImportConfirm"
@@ -64,15 +64,15 @@
         </view>
         <view class="modal-body edit-body">
           <view class="edit-badge">
-            <text>�?{{ editEntryInfo.entryIdx + 1 }} �?/text>
+            <text>第 {{ editEntryInfo.entryIdx + 1 }} 组</text>
             <text v-if="editEntryType !== 'normal'" class="entry-type-tag">
-              {{ getEditEntryTypeLabel() }}
+              {{ editEntryType === 'decreasing' ? '🔻 递减' : '⏸ 暂停' }}
             </text>
           </view>
           <view v-if="editEntryStages.length <= 1" class="edit-main-row">
             <view class="input-item">
               <input type="digit" v-model="editEntryStages[0].reps" class="big-input" focus />
-              <text class="unit-label">�?/text>
+              <text class="unit-label">次</text>
             </view>
             <text class="x-mark">×</text>
             <view class="input-item">
@@ -82,10 +82,10 @@
           </view>
           <view v-else class="edit-stages-wrap">
             <view v-for="(stage, si) in editEntryStages" :key="si" class="edit-stage-row">
-              <text class="stage-label">{{ si === 0 ? '�?�? : '�? + (si + 1) + '�? }}</text>
+              <text class="stage-label">{{ si === 0 ? '第1组' : '第' + (si + 1) + '组' }}</text>
               <view class="input-item">
                 <input type="digit" v-model="stage.reps" class="small-input" />
-                <text class="unit-label">�?/text>
+                <text class="unit-label">次</text>
               </view>
               <text class="x-mark">×</text>
               <view class="input-item">
@@ -126,8 +126,7 @@
     getTotalWeight,
     ENTRY_TYPE,
     createPlaceholderEntry,
-    isPlaceholderEntry,
-    getCompositeType,
+    isPlaceholderEntry
   } from '@/utils/dayHelper.js'
   import TimerModal from '@/components/TimerModal.vue'
   import TemplateSelector from '@/components/TemplateSelector.vue'
@@ -153,7 +152,7 @@
         DAYDATA_PREFIX: 'fitness_daydata_',
         TEMPLATES_KEY: 'fitness_templates',
         templates: [],
-        // 页面状�?
+        // 页面状态
         showChooseTpl: true,
         isRestDay: false,
         restReasonStored: '',
@@ -163,11 +162,12 @@
         actionEntries: [],
         diffs: [],
         availableActionNames: [],
-        // 弹窗状�?
+        // 弹窗状态
         showTimer: false,
         timerDuration: 180,
         showSettings: false,
         showEditEntryPopup: false,
+        showImportModal: false,
         editEntryInfo: {
           actionIdx: -1,
           entryIdx: -1
@@ -177,9 +177,6 @@
           weight: ''
         }],
         editEntryType: 'normal',
-        // 导入数据状�?
-        showImportModal: false,
-        importedData: [],
         // 差异缓存
         actionLatestRecordCache: {},
         calcDiffTimer: null,
@@ -206,7 +203,7 @@
         const h = this.settingsStore.heavyTimerDuration
         const l = this.settingsStore.lightTimerDuration
         return [{
-            label: '胸背�?,
+            label: '胸背腿',
             seconds: h,
             timeText: fmt(h)
           },
@@ -221,7 +218,7 @@
     watch: {},
     onLoad(options) {
       uni.showLoading({
-        title: '加载�?..',
+        title: '加载中...',
         mask: true
       })
       this.dayDataCacheStore.loadIndex()
@@ -286,7 +283,7 @@
         const names = Object.keys(dayData.templates)
 
         if (names.length === 0 && !this.isRestDay) {
-          // 没有模板数据，但如果传入�?tpl 参数，自动应�?
+          // 没有模板数据，但如果传入了 tpl 参数，自动应用
           if (this.pendingTplName) {
             this.onSelectTemplate(this.pendingTplName)
             this.pendingTplName = ''
@@ -303,7 +300,7 @@
           return
         }
 
-        // 加载模板和动作数�?
+        // 加载模板和动作数据
         const tplName = names[names.length - 1]
         this.chosenTplName = tplName
         const tplIdx = this.templates.findIndex(t => t.name === tplName)
@@ -315,19 +312,28 @@
         this.diffs = this.chosenActions.map(() => null)
         const templateActionSets = (tplIdx !== -1 ? this.templates[tplIdx].actionSets : null) || {}
         const defaultSetCount = 4
+        let needSave = false
         this.actionEntries = this.chosenActions.map(name => {
           const arr = dayData.entries[name]
           if (Array.isArray(arr) && arr.length > 0) {
             return normalizeEntries(arr)
           }
-          // entries 为空或不存在，根据模�?actionSets 生成占位符（仅内存，不持久化�?
+          // entries 为空或不存在，根据模板 actionSets 生成占位符
           const targetSets = templateActionSets[name] || defaultSetCount
           const placeholders = []
           for (let i = 0; i < targetSets; i++) {
             placeholders.push(createPlaceholderEntry())
           }
+          dayData.entries[name] = placeholders
+          dayData.actions[name] = 0
+          needSave = true
           return placeholders
         })
+        if (needSave) {
+          const key = this.DAYDATA_PREFIX + this.date
+          uni.setStorageSync(key, dayData)
+          this.dayDataCacheStore.saveDayData(this.date, dayData)
+        }
 
         this.$nextTick(() => {
           // 如果有从首页传来的待选模板，且与当前不同，则自动切换
@@ -350,7 +356,7 @@
           this.actionLatestRecordCache[actName] = record
           if (!record) {
             this.$set(this.diffs, idx, {
-              text: '无历史记�?,
+              text: '无历史记录',
               class: 'diff-neutral'
             })
           } else {
@@ -373,7 +379,7 @@
         }
         if (!record) {
           this.$set(this.diffs, idx, {
-            text: '无历史记�?,
+            text: '无历史记录',
             class: 'diff-neutral'
           })
         } else {
@@ -385,12 +391,12 @@
         const todayTotal = getTotalWeight(this.actionEntries[idx])
         if (todayTotal > latestTotal) {
           this.$set(this.diffs, idx, {
-            text: `+${Math.round((todayTotal - latestTotal) * 100) / 100}`,
+            text: `+${todayTotal - latestTotal}`,
             class: 'diff-up'
           })
         } else if (todayTotal < latestTotal) {
           this.$set(this.diffs, idx, {
-            text: `-${Math.round((latestTotal - todayTotal) * 100) / 100}`,
+            text: `-${latestTotal - todayTotal}`,
             class: 'diff-down'
           })
         } else {
@@ -460,7 +466,7 @@
         const entry = buildEntry(type, stages, isUnilateral)
         if (!entry) {
           uni.showToast({
-            title: '请输入次�?,
+            title: '请输入次数',
             icon: 'none'
           })
           return
@@ -508,7 +514,7 @@
       handleDeleteAction(idx) {
         uni.showModal({
           title: '删除动作',
-          content: `确定要删�?"${this.chosenActions[idx]}" 吗？此操作仅删除当天动作，不会影响模板。`,
+          content: `确定要删除 "${this.chosenActions[idx]}" 吗？此操作仅删除当天动作，不会影响模板。`,
           success: (res) => {
             if (res.confirm) this.removeActionFromDay(idx)
           },
@@ -518,7 +524,7 @@
         const entry = this.actionEntries[aIdx]?.[eIdx]
         if (!entry) return
         const isPlaceholder = isPlaceholderEntry(entry)
-        const content = isPlaceholder ? `确定删除 �?{eIdx + 1}�?占位符？` : `确定删除 �?{eIdx + 1}�?记录？`
+        const content = isPlaceholder ? `确定删除 第${eIdx + 1}组 占位符？` : `确定删除 第${eIdx + 1}组 记录？`
         uni.showModal({
           title: '删除记录',
           content,
@@ -531,7 +537,7 @@
         const removed = this.actionEntries[aIdx].splice(eIdx, 1)[0]
         const isPlaceholder = isPlaceholderEntry(removed)
         // 移除删除占位符后再添加新占位符的逻辑
-        // 原来的逻辑�? if (isPlaceholder) { this.$set(this.actionEntries, aIdx, [...this.actionEntries[aIdx], createPlaceholderEntry()]) }
+        // 原来的逻辑是: if (isPlaceholder) { this.$set(this.actionEntries, aIdx, [...this.actionEntries[aIdx], createPlaceholderEntry()]) }
         this.debounceSaveToStorage(aIdx)
         this.debounceCalcDiffs()
         const msg = isPlaceholder ? `已删除占位符` : `已删除：${removed.input}`
@@ -622,23 +628,6 @@
         }]
         this.editEntryType = ENTRY_TYPE.NORMAL
       },
-      getEditEntryTypeLabel() {
-        if (this.editEntryType === 'decreasing') return '🔻 递减'
-        if (this.editEntryType === 'paused') return '�?暂停'
-        if (this.editEntryType === 'composite') {
-          const stages = this.editEntryStages.map(s => ({
-            reps: Number(s.reps) || 0,
-            weight: Number(s.weight) || 0,
-          }))
-          const compType = getCompositeType(stages)
-          if (compType === 'decreasing') return '(🔻递减)'
-          if (compType === 'paused') return '(⏸暂�?'
-          if (compType === 'increasing') return '(🔺递增)'
-          if (compType === 'mixed') return '(🔗复合)'
-          return '复合'
-        }
-        return ''
-      },
       saveEditedEntry() {
         const {
           actionIdx,
@@ -647,7 +636,7 @@
         const stages = this.editEntryStages
         if (!stages[0].reps || Number(stages[0].reps) <= 0) {
           uni.showToast({
-            title: '请输入次�?,
+            title: '请输入次数',
             icon: 'none'
           })
           return
@@ -672,9 +661,9 @@
         const idx = this.templates.findIndex(t => t.name === name)
         if (idx === -1) return
 
-        console.log('【选择模板�?, name)
-        console.log('【模板数据�?, JSON.stringify(this.templates[idx]))
-        console.log('【动作组数�?, JSON.stringify(this.templates[idx].actionSets))
+        console.log('【选择模板】', name)
+        console.log('【模板数据】', JSON.stringify(this.templates[idx]))
+        console.log('【动作组数】', JSON.stringify(this.templates[idx].actionSets))
 
         this.chosenTplName = this.templates[idx].name
         this.chosenTplColor = this.templates[idx].color
@@ -692,7 +681,7 @@
         }
         dayTpl.actionWeights = dayTpl.actionWeights || {}
         const templateActionSets = this.templates[idx].actionSets || {}
-        console.log('【获取到的动作组数�?, JSON.stringify(templateActionSets))
+        console.log('【获取到的动作组数】', JSON.stringify(templateActionSets))
 
         dayData.templates[this.chosenTplName] = {
           ...dayTpl,
@@ -703,7 +692,7 @@
         this.diffs = available.map(() => null)
 
         const defaultSetCount = 4
-        console.log('【默认组数�?, defaultSetCount)
+        console.log('【默认组数】', defaultSetCount)
 
         if (this.settingsStore.autoFillData) {
           this.actionEntries = available.map(actName => {
@@ -726,29 +715,29 @@
             }
             return placeholders
           })
+          dayData.entries = dayData.entries || {}
           dayData.actions = dayData.actions || {}
           available.forEach((actName, i) => {
-            const weight = getTotalWeight(this.actionEntries[i])
-            dayData.actions[actName] = weight
-            dayTpl.actionWeights[actName] = weight
-            if (weight > 0) {
-              dayData.entries[actName] = this.actionEntries[i]
-            }
+            dayData.entries[actName] = this.actionEntries[i]
+            dayData.actions[actName] = getTotalWeight(this.actionEntries[i])
+            dayTpl.actionWeights[actName] = dayData.actions[actName]
           })
           dayTpl.totalWeight = Object.values(dayTpl.actionWeights).reduce((a, b) => a + b, 0)
           dayData.templates[this.chosenTplName] = dayTpl
         } else {
           this.actionEntries = available.map(actName => {
             const targetSets = templateActionSets[actName] || defaultSetCount
-            console.log('【生成占位符】动�?', actName, '组数:', targetSets)
+            console.log('【生成占位符】动作:', actName, '组数:', targetSets)
             const placeholders = []
             for (let i = 0; i < targetSets; i++) {
               placeholders.push(createPlaceholderEntry())
             }
             return placeholders
           })
+          dayData.entries = dayData.entries || {}
           dayData.actions = dayData.actions || {}
-          available.forEach((actName) => {
+          available.forEach((actName, i) => {
+            dayData.entries[actName] = this.actionEntries[i]
             dayData.actions[actName] = 0
             dayTpl.actionWeights[actName] = 0
           })
@@ -786,9 +775,8 @@
           isAerobic: true
         }
         uni.setStorageSync(key, dayData)
-        this.templateStore.addAerobic(name)
         uni.showToast({
-          title: '已添加有�?,
+          title: '已添加有氧',
           icon: 'success'
         })
         this.showChooseTpl = false
@@ -819,7 +807,7 @@
 
       onCloseTemplateSelector() {
         this.showChooseTpl = false
-        // 只有在没有选择任何模板且没有数据时才返回首�?
+        // 只有在没有选择任何模板且没有数据时才返回首页
         const raw = this.dayDataCacheStore.getDayData(this.date)
         const hasData = raw.templates && Object.keys(raw.templates).length > 0
         if (!hasData && !this.chosenTplName) {
@@ -828,28 +816,14 @@
       },
 
       checkPendingManageActions() {
-        uni.getStorage({
-          key: '_pendingManageActions',
-          success: (res) => {
-            console.log('[day.vue] checkPendingManageActions, res.data:', res.data)
-            if (!res.data) return
-            uni.removeStorage({ key: '_pendingManageActions' })
-            try {
-              const newOrder = JSON.parse(res.data)
-              console.log('[day.vue] parsed newOrder:', newOrder)
-              if (Array.isArray(newOrder)) {
-                console.log('[day.vue] before onSaveSort, chosenActions:', this.chosenActions, 'chosenTplName:', this.chosenTplName)
-                this.onSaveSort(newOrder)
-                console.log('[day.vue] after onSaveSort, chosenActions:', this.chosenActions)
-              }
-            } catch (e) {
-              console.log('[day.vue] checkPendingManageActions error:', e)
-            }
-          },
-          fail: (err) => {
-            console.log('[day.vue] checkPendingManageActions getStorage fail:', err)
+        const raw = uni.removeStorageSync('_pendingManageActions')
+        if (!raw) return
+        try {
+          const newOrder = JSON.parse(raw)
+          if (Array.isArray(newOrder)) {
+            this.onSaveSort(newOrder)
           }
-        })
+        } catch (e) {}
       },
       /* ========== 设置组件事件 ========== */
       onAddAction(actName) {
@@ -862,7 +836,7 @@
         }
         this.chosenActions.push(actName)
         this.diffs.push({
-          text: '未记�?,
+          text: '未记录',
           class: 'diff-neutral'
         })
         this.actionEntries.push([])
@@ -892,9 +866,6 @@
         })
       },
       onSaveSort(newOrder) {
-        console.log('[day.vue] onSaveSort called, newOrder:', newOrder)
-        console.log('[day.vue] current chosenActions:', this.chosenActions)
-        console.log('[day.vue] current chosenTplName:', this.chosenTplName)
         // 先把新增的动作同步到 chosenActions / actionEntries / diffs
         const currentSet = new Set(this.chosenActions)
         newOrder.forEach(name => {
@@ -902,7 +873,7 @@
             this.chosenActions.push(name)
             this.actionEntries.push([])
             this.diffs.push({
-              text: '未记�?,
+              text: '未记录',
               class: 'diff-neutral'
             })
             // 持久化新动作
@@ -930,19 +901,17 @@
           }
         })
 
-        // �?newOrder 重排
+        // 按 newOrder 重排
         const orderMap = newOrder.map(name => this.chosenActions.indexOf(name))
-        console.log('[day.vue] orderMap:', orderMap)
         this.chosenActions = [...newOrder]
         this.actionEntries = orderMap.map(i => [...this.actionEntries[i]])
         this.diffs = orderMap.map(i => this.diffs[i] ? {
           ...this.diffs[i]
         } : null)
-        console.log('[day.vue] after reorder, chosenActions:', this.chosenActions)
         this.persistOrder()
         this.showSettings = false
         uni.showToast({
-          title: '排序已保�?,
+          title: '排序已保存',
           icon: 'success',
           duration: 1000
         })
@@ -955,9 +924,7 @@
           })
           return
         }
-        const d = new Date(this.date)
-        const dateLine = `${d.getMonth() + 1}�?{d.getDate()}�?{this.chosenTplName ? '�? + this.chosenTplName : ''}`
-        let exportText = dateLine + '\n'
+        let exportText = ''
         this.chosenActions.forEach((actName, actionIdx) => {
           const entries = this.actionEntries[actionIdx] || []
           const filledEntries = entries.filter(e => !e.isPlaceholder)
@@ -968,7 +935,7 @@
             if (stage) {
               const reps = stage.reps
               const weight = stage.weight
-              exportText += `�?{entryIdx + 1}组：${reps}�?× ${weight}kg\n`
+              exportText += `- 第${entryIdx + 1}组：${reps}次 × ${weight}kg\n`
             }
           })
           exportText += '\n'
@@ -984,7 +951,7 @@
           data: exportText.trim(),
           success: () => {
             uni.showToast({
-              title: '已复制到剪贴�?,
+              title: '已复制到剪贴板',
               icon: 'success'
             })
           },
@@ -996,13 +963,15 @@
           }
         })
       },
+
+      /* ========== 导入数据 ========== */
       onImportData() {
         this.showImportModal = true
       },
 
       onImportConfirm(importedData) {
         this.showImportModal = false
-        
+
         if (!importedData || importedData.length === 0) {
           uni.showToast({
             title: '没有可导入的数据',
@@ -1012,13 +981,13 @@
         }
 
         // 调用合并函数
-        import { mergeImportData, getNewActions } from '@/utils/dataMerger.js'
-        
+        const { mergeImportData, getNewActions } = require('@/utils/dataMerger')
+
         const existingData = {
           entries: {},
           actions: {}
         }
-        
+
         // 准备现有数据
         this.chosenActions.forEach((actName, idx) => {
           existingData.entries[actName] = this.actionEntries[idx] || []
@@ -1026,18 +995,18 @@
             (sum, entry) => sum + (entry.total || 0), 0
           )
         })
-        
+
         // 合并数据
         const mergedData = mergeImportData(existingData, importedData, this.availableActionNames)
-        
+
         // 检查新动作
         const newActions = getNewActions(mergedData, this.chosenActions)
-        
+
         if (newActions.length > 0) {
           // 询问是否添加新动作到模板
           uni.showModal({
-            title: '发现新动�?,
-            content: `发现新动作：${newActions.join('�?)}，是否添加到模板？`,
+            title: '发现新动作',
+            content: `发现新动作：${newActions.join('、')}，是否添加到模板？`,
             success: (res) => {
               if (res.confirm) {
                 // 添加新动作到模板
@@ -1062,15 +1031,15 @@
             this.$set(this.actionEntries, idx, mergedData.entries[actName])
           }
         })
-        
-        // 保存到本地存�?
+
+        // 保存到本地存储
         this.chosenActions.forEach((actName, idx) => {
           this.saveEntryToStorage(idx)
         })
-        
+
         // 重新计算差异
         this.calcAllDiffs()
-        
+
         uni.showToast({
           title: '导入成功',
           icon: 'success'
@@ -1081,16 +1050,72 @@
 </script>
 
 <style scoped>
-  .container.light .save-row {
-    background: var(--bg-primary) !important;
+  /* ========== CSS 变量定义（支持浅色模式） ========== */
+  .container {
+    --bg-primary: #121212;
+    --bg-secondary: #1e1e1e;
+    --bg-tertiary: #242424;
+    --bg-card: #242424;
+    --bg-input: #1a1a1a;
+    --bg-btn: #121212;
+    --border-color: #333;
+    --border-light: rgba(255, 255, 255, 0.1);
+    --text-primary: #f7f7f7;
+    --text-secondary: #999;
+    --text-muted: #666;
+    --text-placeholder: #555;
+    --text-btn: #f5f5f5;
+    --icon-bg: #ffffff;
+    --icon-color: #191919;
+    --divider-color: #555;
+    --tag-bg: #242424;
+    --shadow-color: rgba(0, 0, 0, 0.2);
   }
 
+  .container.light {
+    --bg-primary: #f5f5f5;
+    --bg-secondary: #ffffff;
+    --bg-tertiary: #f0f0f0;
+    --bg-card: #ffffff;
+    --bg-input: #ffffff;
+    --bg-btn: #ffffff;
+    --border-color: #e0e0e0;
+    --border-light: #e0e0e0;
+    --text-primary: #333333;
+    --text-secondary: #666666;
+    --text-muted: #999999;
+    --text-placeholder: #cccccc;
+    --text-btn: #333333;
+    --icon-bg: #ffffff;
+    --icon-color: #ffffff;
+    --divider-color: #e0e0e0;
+    --tag-bg: #ffffff;
+    --shadow-color: rgba(0, 0, 0, 0.08);
+  }
+
+  .container.light .save-row {
+    background: #f5f5f5 !important;
+  }
+
+  /* ========== 整体容器 & 深色模式 ========== */
   .container {
     position: relative;
     height: 100vh;
     overflow: hidden;
     display: flex;
     flex-direction: column;
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+  }
+
+  .container.dark {
+    background-color: #121212;
+    color: #f7f7f7;
+  }
+
+  .container.light {
+    background-color: #f5f5f5;
+    color: #333333;
   }
 
   /* ========== 动作列表 ========== */
@@ -1108,7 +1133,7 @@
     pointer-events: none;
   }
 
-  /* ========== 底部按钮�?========== */
+  /* ========== 底部按钮行 ========== */
   .save-row {
     position: absolute;
     bottom: 0;
@@ -1156,7 +1181,7 @@
     background: var(--bg-tertiary);
   }
 
-  /* ========== 休息�?========== */
+  /* ========== 休息日 ========== */
   .rest-day-header {
     padding: 40px 20px;
     text-align: center;
@@ -1169,10 +1194,36 @@
 
   /* ========== 通用弹窗 ========== */
   .popup-overlay {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    display: flex;
+    justify-content: center;
     align-items: center;
   }
 
+  .overlay-bg {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background-color: rgba(0, 0, 0, 0.3);
+  }
+
   .modal-panel {
+    position: relative;
+    width: 80vw;
+    max-height: 70vh;
+    background-color: var(--bg-secondary);
+    border: 1rpx solid var(--border-color);
+    border-radius: 10px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
     margin-top: -44px;
   }
 
@@ -1195,7 +1246,9 @@
   .modal-header {
     position: relative;
     padding: 12px;
-    border-bottom: none;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
   }
 
   .modal-header::after {
@@ -1219,18 +1272,25 @@
   .close-icon {
     width: 40px;
     height: 40px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
     font-size: 20px;
+    border-radius: 50%;
     color: var(--text-secondary);
   }
 
   .modal-body {
+    flex: 1;
+    overflow-y: auto;
     padding: 12px 16px;
   }
 
   .modal-footer {
     padding: 10px 16px;
-    padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+    display: flex;
     justify-content: center;
+    position: relative;
   }
 
   .no-border::after,
