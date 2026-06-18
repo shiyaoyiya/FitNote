@@ -373,6 +373,10 @@
       }
     },
     computed: {
+      templateId() {
+        const template = this.tplStore.templates.find(t => t.name === this.originalName)
+        return template ? template.id : null
+      },
       isValidHex() {
         // 简单的正则判断是否为合法的 Hex 颜色代码
         return /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(this.newColorCode);
@@ -791,41 +795,38 @@
         }
       },
       onNameBlur() {
-        const oldName = this.originalName.trim();
-        const newName = this.templateName.trim();
-
-        if (!newName || newName === oldName) return;
-
-        if (this.tplStore.templates.some(t => t.name === newName && t.name !== oldName)) {
+        const oldName = this.originalName.trim()
+        const newName = this.templateName.trim()
+        
+        if (!newName || newName === oldName) return
+        
+        // 调用模板存储的 renameTemplate 方法
+        const success = this.tplStore.renameTemplate(this.templateId, newName)
+        
+        if (!success) {
           uni.showToast({
             title: '模板名称已存在',
             icon: 'none'
-          });
-          this.templateName = oldName;
-          return;
+          })
+          this.templateName = oldName
+          return
         }
-
-        const template = this.tplStore.templates.find(t => t.name === oldName);
-        if (!template) {
-          this.templateName = oldName;
-          return;
-        }
-
-        this.preserveTemplateColorInHistory(oldName, template.color);
-
-        template.name = newName;
-        this.tplStore.save();
-
-        this.originalName = newName;
+        
+        // 更新原始名称
+        this.originalName = newName
+        
+        // 更新导航栏标题
         uni.setNavigationBarTitle({
           title: newName + ' 模板详情'
-        });
-        this.loadTemplateDetail();
-
+        })
+        
+        // 重新加载模板详情
+        this.loadTemplateDetail()
+        
         uni.showToast({
           title: '重命名成功',
           icon: 'success'
-        });
+        })
       },
       preserveTemplateColorInHistory(templateName, templateColor) {
         if (!templateColor) return;
