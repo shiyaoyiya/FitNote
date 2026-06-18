@@ -204,7 +204,7 @@ function parseEntries(line) {
  * @param {Array} actionNames - 动作名数组
  * @returns {string|null} 匹配的动作名或null
  */
-function fuzzyMatchAction(text, actionNames) {
+export function fuzzyMatchAction(text, actionNames) {
   // 移除空格和标点
   const cleanText = text.replace(/[\s：:、，,。.]/g, '').toLowerCase()
   
