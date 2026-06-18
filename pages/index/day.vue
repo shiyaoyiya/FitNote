@@ -43,7 +43,16 @@
       @toggle-auto-timer="settingsStore.toggleAutoStartTimer()" @toggle-auto-fill="settingsStore.toggleAutoFillData()"
       @toggle-bubble-fill="settingsStore.toggleBubbleFill()"
       @set-heavy-timer="(v) => settingsStore.setHeavyTimerDuration(v)"
-      @set-light-timer="(v) => settingsStore.setLightTimerDuration(v)" @export-data="onExportData" />
+      @set-light-timer="(v) => settingsStore.setLightTimerDuration(v)" @export-data="onExportData"
+      @import-data="onImportData" />
+
+    <!-- 导入数据弹窗 -->
+    <ImportDataModal 
+      :visible="showImportModal" 
+      :action-names="availableActionNames"
+      @close="showImportModal = false"
+      @confirm="onImportConfirm"
+    />
 
     <!-- 编辑记录弹窗 -->
     <view v-if="showEditEntryPopup" class="popup-overlay" @click.self="closeEditEntryPopup">
@@ -57,7 +66,7 @@
           <view class="edit-badge">
             <text>第 {{ editEntryInfo.entryIdx + 1 }} 组</text>
             <text v-if="editEntryType !== 'normal'" class="entry-type-tag">
-              {{ editEntryType === 'decreasing' ? '🔻 递减' : '⏸ 暂停' }}
+              {{ getEditEntryTypeLabel() }}
             </text>
           </view>
           <view v-if="editEntryStages.length <= 1" class="edit-main-row">
@@ -117,19 +126,22 @@
     getTotalWeight,
     ENTRY_TYPE,
     createPlaceholderEntry,
-    isPlaceholderEntry
+    isPlaceholderEntry,
+    getCompositeType,
   } from '@/utils/dayHelper.js'
   import TimerModal from '@/components/TimerModal.vue'
   import TemplateSelector from '@/components/TemplateSelector.vue'
   import ActionCard from '@/components/ActionCard.vue'
   import DaySettings from '@/components/DaySettings.vue'
+  import ImportDataModal from '@/components/ImportDataModal.vue'
 
   export default {
     components: {
       TimerModal,
       TemplateSelector,
       ActionCard,
-      DaySettings
+      DaySettings,
+      ImportDataModal
     },
     data() {
       return {
@@ -165,6 +177,9 @@
           weight: ''
         }],
         editEntryType: 'normal',
+        // 导入数据状态
+        showImportModal: false,
+        importedData: [],
         // 差异缓存
         actionLatestRecordCache: {},
         calcDiffTimer: null,
@@ -300,28 +315,19 @@
         this.diffs = this.chosenActions.map(() => null)
         const templateActionSets = (tplIdx !== -1 ? this.templates[tplIdx].actionSets : null) || {}
         const defaultSetCount = 4
-        let needSave = false
         this.actionEntries = this.chosenActions.map(name => {
           const arr = dayData.entries[name]
           if (Array.isArray(arr) && arr.length > 0) {
             return normalizeEntries(arr)
           }
-          // entries 为空或不存在，根据模板 actionSets 生成占位符
+          // entries 为空或不存在，根据模板 actionSets 生成占位符（仅内存，不持久化）
           const targetSets = templateActionSets[name] || defaultSetCount
           const placeholders = []
           for (let i = 0; i < targetSets; i++) {
             placeholders.push(createPlaceholderEntry())
           }
-          dayData.entries[name] = placeholders
-          dayData.actions[name] = 0
-          needSave = true
           return placeholders
         })
-        if (needSave) {
-          const key = this.DAYDATA_PREFIX + this.date
-          uni.setStorageSync(key, dayData)
-          this.dayDataCacheStore.saveDayData(this.date, dayData)
-        }
 
         this.$nextTick(() => {
           // 如果有从首页传来的待选模板，且与当前不同，则自动切换
@@ -379,12 +385,12 @@
         const todayTotal = getTotalWeight(this.actionEntries[idx])
         if (todayTotal > latestTotal) {
           this.$set(this.diffs, idx, {
-            text: `+${todayTotal - latestTotal}`,
+            text: `+${Math.round((todayTotal - latestTotal) * 100) / 100}`,
             class: 'diff-up'
           })
         } else if (todayTotal < latestTotal) {
           this.$set(this.diffs, idx, {
-            text: `-${latestTotal - todayTotal}`,
+            text: `-${Math.round((latestTotal - todayTotal) * 100) / 100}`,
             class: 'diff-down'
           })
         } else {
@@ -616,6 +622,23 @@
         }]
         this.editEntryType = ENTRY_TYPE.NORMAL
       },
+      getEditEntryTypeLabel() {
+        if (this.editEntryType === 'decreasing') return '🔻 递减'
+        if (this.editEntryType === 'paused') return '⏸ 暂停'
+        if (this.editEntryType === 'composite') {
+          const stages = this.editEntryStages.map(s => ({
+            reps: Number(s.reps) || 0,
+            weight: Number(s.weight) || 0,
+          }))
+          const compType = getCompositeType(stages)
+          if (compType === 'decreasing') return '(🔻递减)'
+          if (compType === 'paused') return '(⏸暂停)'
+          if (compType === 'increasing') return '(🔺递增)'
+          if (compType === 'mixed') return '(🔗复合)'
+          return '复合'
+        }
+        return ''
+      },
       saveEditedEntry() {
         const {
           actionIdx,
@@ -703,12 +726,14 @@
             }
             return placeholders
           })
-          dayData.entries = dayData.entries || {}
           dayData.actions = dayData.actions || {}
           available.forEach((actName, i) => {
-            dayData.entries[actName] = this.actionEntries[i]
-            dayData.actions[actName] = getTotalWeight(this.actionEntries[i])
-            dayTpl.actionWeights[actName] = dayData.actions[actName]
+            const weight = getTotalWeight(this.actionEntries[i])
+            dayData.actions[actName] = weight
+            dayTpl.actionWeights[actName] = weight
+            if (weight > 0) {
+              dayData.entries[actName] = this.actionEntries[i]
+            }
           })
           dayTpl.totalWeight = Object.values(dayTpl.actionWeights).reduce((a, b) => a + b, 0)
           dayData.templates[this.chosenTplName] = dayTpl
@@ -722,10 +747,8 @@
             }
             return placeholders
           })
-          dayData.entries = dayData.entries || {}
           dayData.actions = dayData.actions || {}
-          available.forEach((actName, i) => {
-            dayData.entries[actName] = this.actionEntries[i]
+          available.forEach((actName) => {
             dayData.actions[actName] = 0
             dayTpl.actionWeights[actName] = 0
           })
@@ -763,6 +786,7 @@
           isAerobic: true
         }
         uni.setStorageSync(key, dayData)
+        this.templateStore.addAerobic(name)
         uni.showToast({
           title: '已添加有氧',
           icon: 'success'
@@ -804,14 +828,28 @@
       },
 
       checkPendingManageActions() {
-        const raw = uni.removeStorageSync('_pendingManageActions')
-        if (!raw) return
-        try {
-          const newOrder = JSON.parse(raw)
-          if (Array.isArray(newOrder)) {
-            this.onSaveSort(newOrder)
+        uni.getStorage({
+          key: '_pendingManageActions',
+          success: (res) => {
+            console.log('[day.vue] checkPendingManageActions, res.data:', res.data)
+            if (!res.data) return
+            uni.removeStorage({ key: '_pendingManageActions' })
+            try {
+              const newOrder = JSON.parse(res.data)
+              console.log('[day.vue] parsed newOrder:', newOrder)
+              if (Array.isArray(newOrder)) {
+                console.log('[day.vue] before onSaveSort, chosenActions:', this.chosenActions, 'chosenTplName:', this.chosenTplName)
+                this.onSaveSort(newOrder)
+                console.log('[day.vue] after onSaveSort, chosenActions:', this.chosenActions)
+              }
+            } catch (e) {
+              console.log('[day.vue] checkPendingManageActions error:', e)
+            }
+          },
+          fail: (err) => {
+            console.log('[day.vue] checkPendingManageActions getStorage fail:', err)
           }
-        } catch (e) {}
+        })
       },
       /* ========== 设置组件事件 ========== */
       onAddAction(actName) {
@@ -854,6 +892,9 @@
         })
       },
       onSaveSort(newOrder) {
+        console.log('[day.vue] onSaveSort called, newOrder:', newOrder)
+        console.log('[day.vue] current chosenActions:', this.chosenActions)
+        console.log('[day.vue] current chosenTplName:', this.chosenTplName)
         // 先把新增的动作同步到 chosenActions / actionEntries / diffs
         const currentSet = new Set(this.chosenActions)
         newOrder.forEach(name => {
@@ -891,11 +932,13 @@
 
         // 按 newOrder 重排
         const orderMap = newOrder.map(name => this.chosenActions.indexOf(name))
+        console.log('[day.vue] orderMap:', orderMap)
         this.chosenActions = [...newOrder]
         this.actionEntries = orderMap.map(i => [...this.actionEntries[i]])
         this.diffs = orderMap.map(i => this.diffs[i] ? {
           ...this.diffs[i]
         } : null)
+        console.log('[day.vue] after reorder, chosenActions:', this.chosenActions)
         this.persistOrder()
         this.showSettings = false
         uni.showToast({
@@ -912,7 +955,9 @@
           })
           return
         }
-        let exportText = ''
+        const d = new Date(this.date)
+        const dateLine = `${d.getMonth() + 1}月${d.getDate()}日${this.chosenTplName ? '：' + this.chosenTplName : ''}`
+        let exportText = dateLine + '\n'
         this.chosenActions.forEach((actName, actionIdx) => {
           const entries = this.actionEntries[actionIdx] || []
           const filledEntries = entries.filter(e => !e.isPlaceholder)
@@ -923,7 +968,7 @@
             if (stage) {
               const reps = stage.reps
               const weight = stage.weight
-              exportText += `- 第${entryIdx + 1}组：${reps}次 × ${weight}kg\n`
+              exportText += `第${entryIdx + 1}组：${reps}次 × ${weight}kg\n`
             }
           })
           exportText += '\n'
@@ -951,77 +996,101 @@
           }
         })
       },
+      onImportData() {
+        this.showImportModal = true
+      },
+
+      onImportConfirm(importedData) {
+        this.showImportModal = false
+        
+        if (!importedData || importedData.length === 0) {
+          uni.showToast({
+            title: '没有可导入的数据',
+            icon: 'none'
+          })
+          return
+        }
+
+        // 调用合并函数
+        const { mergeImportData, getNewActions } = require('@/utils/dataMerger')
+        
+        const existingData = {
+          entries: {},
+          actions: {}
+        }
+        
+        // 准备现有数据
+        this.chosenActions.forEach((actName, idx) => {
+          existingData.entries[actName] = this.actionEntries[idx] || []
+          existingData.actions[actName] = this.actionEntries[idx].reduce(
+            (sum, entry) => sum + (entry.total || 0), 0
+          )
+        })
+        
+        // 合并数据
+        const mergedData = mergeImportData(existingData, importedData, this.availableActionNames)
+        
+        // 检查新动作
+        const newActions = getNewActions(mergedData, this.chosenActions)
+        
+        if (newActions.length > 0) {
+          // 询问是否添加新动作到模板
+          uni.showModal({
+            title: '发现新动作',
+            content: `发现新动作：${newActions.join('、')}，是否添加到模板？`,
+            success: (res) => {
+              if (res.confirm) {
+                // 添加新动作到模板
+                newActions.forEach(actName => {
+                  this.onAddAction(actName)
+                })
+              }
+              // 应用合并数据
+              this.applyMergedData(mergedData)
+            }
+          })
+        } else {
+          // 直接应用合并数据
+          this.applyMergedData(mergedData)
+        }
+      },
+
+      applyMergedData(mergedData) {
+        // 更新页面数据
+        this.chosenActions.forEach((actName, idx) => {
+          if (mergedData.entries[actName]) {
+            this.$set(this.actionEntries, idx, mergedData.entries[actName])
+          }
+        })
+        
+        // 保存到本地存储
+        this.chosenActions.forEach((actName, idx) => {
+          this.saveEntryToStorage(idx)
+        })
+        
+        // 重新计算差异
+        this.calcAllDiffs()
+        
+        uni.showToast({
+          title: '导入成功',
+          icon: 'success'
+        })
+      },
     },
   }
 </script>
 
 <style scoped>
-  /* ========== CSS 变量定义（支持浅色模式） ========== */
-  .container {
-    --bg-primary: #121212;
-    --bg-secondary: #1e1e1e;
-    --bg-tertiary: #242424;
-    --bg-card: #242424;
-    --bg-input: #1a1a1a;
-    --bg-btn: #121212;
-    --border-color: #333;
-    --border-light: rgba(255, 255, 255, 0.1);
-    --text-primary: #f7f7f7;
-    --text-secondary: #999;
-    --text-muted: #666;
-    --text-placeholder: #555;
-    --text-btn: #f5f5f5;
-    --icon-bg: #ffffff;
-    --icon-color: #191919;
-    --divider-color: #555;
-    --tag-bg: #242424;
-    --shadow-color: rgba(0, 0, 0, 0.2);
-  }
-
-  .container.light {
-    --bg-primary: #f5f5f5;
-    --bg-secondary: #ffffff;
-    --bg-tertiary: #f0f0f0;
-    --bg-card: #ffffff;
-    --bg-input: #ffffff;
-    --bg-btn: #ffffff;
-    --border-color: #e0e0e0;
-    --border-light: #e0e0e0;
-    --text-primary: #333333;
-    --text-secondary: #666666;
-    --text-muted: #999999;
-    --text-placeholder: #cccccc;
-    --text-btn: #333333;
-    --icon-bg: #ffffff;
-    --icon-color: #ffffff;
-    --divider-color: #e0e0e0;
-    --tag-bg: #ffffff;
-    --shadow-color: rgba(0, 0, 0, 0.08);
-  }
-
   .container.light .save-row {
-    background: #f5f5f5 !important;
+    background: var(--bg-primary) !important;
   }
 
-  /* ========== 整体容器 & 深色模式 ========== */
   .container {
     position: relative;
     height: 100vh;
     overflow: hidden;
     display: flex;
     flex-direction: column;
-    background-color: var(--bg-primary);
-    color: var(--text-primary);
-  }
-
-  .container.dark {
-    background-color: #121212;
-    color: #f7f7f7;
-  }
-
-  .container.light {
-    background-color: #f5f5f5;
-    color: #333333;
   }
 
   /* ========== 动作列表 ========== */
@@ -1100,36 +1169,10 @@
 
   /* ========== 通用弹窗 ========== */
   .popup-overlay {
-    position: fixed;
-    top: 0;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    z-index: 1000;
-    display: flex;
-    justify-content: center;
     align-items: center;
   }
 
-  .overlay-bg {
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background-color: rgba(0, 0, 0, 0.3);
-  }
-
   .modal-panel {
-    position: relative;
-    width: 80vw;
-    max-height: 70vh;
-    background-color: var(--bg-secondary);
-    border: 1rpx solid var(--border-color);
-    border-radius: 10px;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
     margin-top: -44px;
   }
 
@@ -1152,9 +1195,7 @@
   .modal-header {
     position: relative;
     padding: 12px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+    border-bottom: none;
   }
 
   .modal-header::after {
@@ -1178,25 +1219,18 @@
   .close-icon {
     width: 40px;
     height: 40px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
     font-size: 20px;
-    border-radius: 50%;
     color: var(--text-secondary);
   }
 
   .modal-body {
-    flex: 1;
-    overflow-y: auto;
     padding: 12px 16px;
   }
 
   .modal-footer {
     padding: 10px 16px;
-    display: flex;
+    padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
     justify-content: center;
-    position: relative;
   }
 
   .no-border::after,
