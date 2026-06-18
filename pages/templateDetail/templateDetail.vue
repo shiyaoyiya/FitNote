@@ -800,6 +800,19 @@
         
         if (!newName || newName === oldName) return
         
+        // 检查 templateId 是否存在
+        if (!this.templateId) {
+          uni.showToast({
+            title: '模板不存在',
+            icon: 'none'
+          })
+          this.templateName = oldName
+          return
+        }
+        
+        // 保留历史记录中的模板颜色
+        this.preserveTemplateColorInHistory(oldName, this.currentColor)
+        
         // 调用模板存储的 renameTemplate 方法
         const success = this.tplStore.renameTemplate(this.templateId, newName)
         
