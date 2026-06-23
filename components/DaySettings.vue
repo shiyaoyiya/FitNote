@@ -360,6 +360,8 @@
   .action-label {
     font-size: 15px;
     color: var(--text-primary);
+    width: 30px;
+    text-align: justify;
   }
 
   .import-action {
@@ -406,5 +408,4 @@
     -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
     backdrop-filter: blur(12px) saturate(140%) !important;
   }
-
 </style>

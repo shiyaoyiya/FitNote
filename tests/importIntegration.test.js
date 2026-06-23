@@ -59,12 +59,10 @@ test('导出格式 - 带日期标题', () => {
 第2组：10次 × 50kg`
 
   const result = parseImportText(text)
-  // 日期标题会被解析为动作名，但没有组数数据，所以会被添加到结果中
-  assert.strictEqual(result.length, 2)
-  assert.strictEqual(result[0].actionName, '6月18日')
-  assert.strictEqual(result[0].entries.length, 0)
-  assert.strictEqual(result[1].actionName, '卧推')
-  assert.strictEqual(result[1].entries.length, 2)
+  // 日期标题会被过滤掉，只解析出卧推
+  assert.strictEqual(result.length, 1)
+  assert.strictEqual(result[0].actionName, '卧推')
+  assert.strictEqual(result[0].entries.length, 2)
 })
 
 // Step 2: 测试简洁格式导入
@@ -87,13 +85,17 @@ test('简洁格式 - 使用动作库匹配', () => {
   assert.strictEqual(result[1].entries[0].weight, 80)
 })
 
-test('简洁格式 - 无动作库时解析失败', () => {
+test('简洁格式 - 无动作库时也能解析', () => {
   const text = `卧推 10×50 10×50 10×50
 深蹲 8×80 8×80`
 
   const result = parseImportText(text)
-  // 没有动作库匹配，简洁格式无法解析
-  assert.strictEqual(result.length, 0)
+  // 现在支持动作名+数据格式，无需动作库也能解析
+  assert.strictEqual(result.length, 2)
+  assert.strictEqual(result[0].actionName, '卧推')
+  assert.strictEqual(result[0].entries.length, 3)
+  assert.strictEqual(result[1].actionName, '深蹲')
+  assert.strictEqual(result[1].entries.length, 2)
 })
 
 // Step 3: 测试自由文本格式导入
@@ -167,8 +169,10 @@ test('错误处理 - 动作名不匹配', () => {
   const actionNames = ['深蹲', '硬拉']
 
   const result = parseImportTextWithActions(text, actionNames)
-  // 使用动作库匹配时，如果动作名不在库中，应该返回空数组
-  assert.strictEqual(result.length, 0)
+  // 现在支持动作名+数据格式，即使动作名不在库中也能解析
+  assert.strictEqual(result.length, 1)
+  assert.strictEqual(result[0].actionName, '卧推')
+  assert.strictEqual(result[0].entries.length, 1)
 })
 
 test('错误处理 - 部分动作名不匹配', () => {
@@ -177,9 +181,10 @@ test('错误处理 - 部分动作名不匹配', () => {
   const actionNames = ['卧推', '硬拉']
 
   const result = parseImportTextWithActions(text, actionNames)
-  // 只有匹配的动作会被解析
-  assert.strictEqual(result.length, 1)
+  // 卧推在库中，深蹲不在库中，但都能解析
+  assert.strictEqual(result.length, 2)
   assert.strictEqual(result[0].actionName, '卧推')
+  assert.strictEqual(result[1].actionName, '深蹲')
 })
 
 // Step 5: 测试数据合并
@@ -202,9 +207,9 @@ test('数据合并 - 追加到现有动作', () => {
     }
   ]
 
-  const result = mergeImportData(existingData, importedData)
-  assert.strictEqual(result.entries['卧推'].length, 2)
-  assert.strictEqual(result.actions['卧推'], 1000)
+  const { mergedData } = mergeImportData(existingData, importedData)
+  assert.strictEqual(mergedData.entries['卧推'].length, 2)
+  assert.strictEqual(mergedData.actions['卧推'], 1000)
 })
 
 test('数据合并 - 添加新动作', () => {
@@ -224,10 +229,10 @@ test('数据合并 - 添加新动作', () => {
     }
   ]
 
-  const result = mergeImportData(existingData, importedData, ['卧推', '深蹲'])
-  assert.strictEqual(Object.keys(result.entries).length, 2)
-  assert.strictEqual(result.entries['深蹲'].length, 1)
-  assert.strictEqual(result.actions['深蹲'], 640)
+  const { mergedData } = mergeImportData(existingData, importedData, ['卧推', '深蹲'])
+  assert.strictEqual(Object.keys(mergedData.entries).length, 2)
+  assert.strictEqual(mergedData.entries['深蹲'].length, 1)
+  assert.strictEqual(mergedData.actions['深蹲'], 640)
 })
 
 test('数据合并 - 模糊匹配动作名', () => {
@@ -247,9 +252,9 @@ test('数据合并 - 模糊匹配动作名', () => {
     }
   ]
 
-  const result = mergeImportData(existingData, importedData, ['卧推'])
-  assert.strictEqual(result.entries['卧推'].length, 2)
-  assert.strictEqual(result.actions['卧推'], 1000)
+  const { mergedData } = mergeImportData(existingData, importedData, ['卧推'])
+  assert.strictEqual(mergedData.entries['卧推'].length, 2)
+  assert.strictEqual(mergedData.actions['卧推'], 1000)
 })
 
 test('数据合并 - 空数据处理', () => {
@@ -259,10 +264,10 @@ test('数据合并 - 空数据处理', () => {
   }
 
   const result1 = mergeImportData(existingData, [])
-  assert.deepStrictEqual(result1, existingData)
+  assert.deepStrictEqual(result1.mergedData, existingData)
 
   const result2 = mergeImportData(existingData, null)
-  assert.deepStrictEqual(result2, existingData)
+  assert.deepStrictEqual(result2.mergedData, existingData)
 })
 
 test('数据合并 - 获取新动作', () => {
@@ -296,10 +301,10 @@ test('数据合并 - 占位符处理', () => {
     }
   ]
 
-  const result = mergeImportData(existingData, importedData)
-  assert.strictEqual(result.entries['卧推'].length, 2)
+  const { mergedData } = mergeImportData(existingData, importedData)
+  assert.strictEqual(mergedData.entries['卧推'].length, 2)
   // 占位符数据应该被添加，但不影响总重量
-  assert.strictEqual(result.actions['卧推'], 500)
+  assert.strictEqual(mergedData.actions['卧推'], 500)
 })
 
 // 测试模糊匹配函数

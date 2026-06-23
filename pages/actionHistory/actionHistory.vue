@@ -8,13 +8,39 @@
     <!-- 进步折线图（固定在顶部，不随列表滚动） -->
     <ProgressChart :data="chartData" :title="actionName + ' 重量趋势'" canvas-id="actionProgressCanvas"
       :is-light-mode="!daySettingsStore.isDarkMode" @range-change="onChartRangeChange" />
+    <!-- 底部操作栏（选择模式时显示） -->
+    <view v-if="isSelectMode" class="action-bar">
+      <view class="action-bar-left">
+        <view class="select-all-btn" @tap="toggleSelectAll">
+          <text>{{ isAllSelected ? '取消全选' : '全选' }}</text>
+        </view>
+        <text class="selected-count">已选 {{ selectedIndices.size }} 项</text>
+      </view>
+      <view class="action-bar-right">
+        <view class="export-btn" @tap="exportSelected">
+          <text>复制</text>
+        </view>
+        <view class="cancel-btn" @tap="cancelSelect">
+          <text>取消</text>
+        </view>
+      </view>
+    </view>
     <scroll-view class="history-list" scroll-y @scrolltolower="loadMore" :lower-threshold="100">
-      <view v-for="(item, idx) in historyItems" :key="idx" class="history-row">
+      <view v-for="(item, idx) in historyItems" :key="idx" class="history-row"
+        :class="{ 'selected': selectedIndices.has(idx) }" @touchstart="onRowTouchStart($event, idx)"
+        @touchmove="onRowTouchMove" @touchend="onRowTouchEnd" @tap="onRowTap(idx)">
+        <!-- 复选框（选择模式时显示） -->
+        <view v-if="isSelectMode" class="checkbox-wrapper">
+          <view class="checkbox" :class="{ 'checked': selectedIndices.has(idx) }">
+            <text v-if="selectedIndices.has(idx)" class="checkmark">✓</text>
+          </view>
+        </view>
         <!-- 左侧：上面是 entriesText，下面是 "总重(±增减)" -->
         <view class="left-block">
           <!-- 明细列表：展示每组重量 -->
           <view v-if="actionEntries[idx]?.length > 0" class="action-entries">
-            <view v-for="(entry, eidx) in actionEntries[idx].filter(e => !e.isPlaceholder)" :key="eidx" class="entry-row">
+            <view v-for="(entry, eidx) in actionEntries[idx].filter(e => !e.isPlaceholder)" :key="eidx"
+              class="entry-row">
               <text class="entry-index">第{{ eidx + 1 }}组：</text>
               <text class="entry-text">{{ entry.input }}kg</text>
             </view>
@@ -81,6 +107,18 @@
         loadingMore: false,
         DAYDATA_PREFIX: 'fitness_daydata_',
         chartData: [],
+        isSelectMode: false,
+        selectedIndices: new Set(),
+        touchStartTime: 0,
+        touchStartPos: null,
+        touchMoved: false,
+        longPressTimer: null,
+      }
+    },
+
+    computed: {
+      isAllSelected() {
+        return this.historyItems.length > 0 && this.selectedIndices.size === this.historyItems.length
       }
     },
 
@@ -106,6 +144,125 @@
     },
 
     methods: {
+      /** 触摸开始 */
+      onRowTouchStart(e, idx) {
+        this.touchStartTime = Date.now()
+        this.touchStartPos = {
+          x: e.touches[0].clientX,
+          y: e.touches[0].clientY
+        }
+        this.touchMoved = false
+        this.longPressTimer = setTimeout(() => {
+          if (!this.touchMoved) {
+            this.onRowLongPress(idx)
+          }
+        }, 400)
+      },
+
+      /** 触摸移动 */
+      onRowTouchMove(e) {
+        if (!this.touchStartPos) return
+        const dx = Math.abs(e.touches[0].clientX - this.touchStartPos.x)
+        const dy = Math.abs(e.touches[0].clientY - this.touchStartPos.y)
+        if (dx > 10 || dy > 10) {
+          this.touchMoved = true
+          clearTimeout(this.longPressTimer)
+        }
+      },
+
+      /** 触摸结束 */
+      onRowTouchEnd() {
+        clearTimeout(this.longPressTimer)
+        this.touchStartPos = null
+      },
+
+      /** 长按进入选择模式 */
+      onRowLongPress(idx) {
+        uni.vibrateShort()
+        if (!this.isSelectMode) {
+          this.isSelectMode = true
+          this.selectedIndices = new Set()
+        }
+        this.toggleSelection(idx)
+      },
+
+      /** 点击行（选择模式下切换选中状态） */
+      onRowTap(idx) {
+        if (this.isSelectMode) {
+          this.toggleSelection(idx)
+        }
+      },
+
+      /** 切换选中状态 */
+      toggleSelection(idx) {
+        const newSet = new Set(this.selectedIndices)
+        if (newSet.has(idx)) {
+          newSet.delete(idx)
+        } else {
+          newSet.add(idx)
+        }
+        this.selectedIndices = newSet
+      },
+
+      /** 全选/取消全选 */
+      toggleSelectAll() {
+        if (this.isAllSelected) {
+          this.selectedIndices = new Set()
+        } else {
+          const newSet = new Set()
+          for (let i = 0; i < this.historyItems.length; i++) {
+            newSet.add(i)
+          }
+          this.selectedIndices = newSet
+        }
+      },
+
+      /** 取消选择模式 */
+      cancelSelect() {
+        this.isSelectMode = false
+        this.selectedIndices = new Set()
+      },
+
+      /** 导出选中项到剪贴板 */
+      exportSelected() {
+        if (this.selectedIndices.size === 0) {
+          uni.showToast({
+            title: '请先选择记录',
+            icon: 'none'
+          })
+          return
+        }
+
+        const sortedIndices = Array.from(this.selectedIndices).sort((a, b) => a - b)
+        let output = this.actionName + '：\n'
+
+        sortedIndices.forEach((idx, i) => {
+          const item = this.historyItems[idx]
+          const entries = this.actionEntries[idx]
+          const realEntries = entries ? entries.filter(e => !e.isPlaceholder) : []
+
+          output += item.displayDate + '\n'
+          realEntries.forEach((entry, eidx) => {
+            output += '第' + (eidx + 1) + '组：' + entry.input + 'kg\n'
+          })
+
+          if (i < sortedIndices.length - 1) {
+            output += '\n'
+          }
+        })
+
+        uni.setClipboardData({
+          data: output,
+          success: () => {
+            uni.showToast({
+              title: '已复制到剪贴板',
+              icon: 'success'
+            })
+            this.cancelSelect()
+          }
+        })
+      },
+
       /** 改名后的处理 */
       onNameBlur(newNameRaw) {
         const newName = newNameRaw.trim()
@@ -422,5 +579,93 @@
   .container.dark .load-more-text,
   .container.dark .no-more-text {
     color: var(--text-secondary);
+  }
+
+  /* 底部操作栏 */
+  .action-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 16px;
+    background-color: var(--bg-secondary);
+    border-top: 1px solid var(--border-color);
+    flex-shrink: 0;
+  }
+
+  .container.dark .action-bar {
+    background-color: var(--bg-secondary);
+    border-color: var(--border-color);
+  }
+
+  .action-bar-left,
+  .action-bar-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .select-all-btn,
+  .export-btn,
+  .cancel-btn {
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 14px;
+  }
+
+  .select-all-btn {
+    background-color: var(--bg-tertiary);
+    color: var(--text-primary);
+  }
+
+  .export-btn {
+    background-color: var(--primary);
+    color: #fff;
+  }
+
+  .cancel-btn {
+    background-color: var(--bg-tertiary);
+    color: var(--text-secondary);
+  }
+
+  .selected-count {
+    font-size: 14px;
+    color: var(--text-secondary);
+  }
+
+  /* 复选框样式 */
+  .checkbox-wrapper {
+    display: flex;
+    align-items: center;
+    margin-right: 10px;
+  }
+
+  .checkbox {
+    width: 22px;
+    height: 22px;
+    border: 2px solid var(--border-color);
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .checkbox.checked {
+    background-color: var(--primary);
+    border-color: var(--primary);
+  }
+
+  .checkmark {
+    color: #fff;
+    font-size: 14px;
+    font-weight: bold;
+  }
+
+  /* 选中行高亮 */
+  .history-row.selected {
+    background-color: var(--bg-secondary);
+  }
+
+  .container.dark .history-row.selected {
+    background-color: var(--bg-secondary);
   }
 </style>

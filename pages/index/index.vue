@@ -51,7 +51,7 @@
         <text class="tab-label">训练统计</text>
       </view>
 
-      <view class="tab-item" v-if="!isMiniProgram" @click="goToBackup" @longpress="onExportCSV">
+      <view class="tab-item" @click="goToBackup" @longpress="onExportCSV">
         <view class="tab-icon">
           <view class="icon-base icon-backup"></view>
         </view>

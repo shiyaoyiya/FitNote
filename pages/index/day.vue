@@ -133,6 +133,7 @@
   import ActionCard from '@/components/ActionCard.vue'
   import DaySettings from '@/components/DaySettings.vue'
   import ImportDataModal from '@/components/ImportDataModal.vue'
+  import { mergeImportData, getNewActions, applyMatchSelections } from '@/utils/dataMerger'
 
   export default {
     components: {
@@ -236,13 +237,19 @@
       this.templateStore.load()
       this.actionStore.load()
       this.loadDayData()
+      
+      // 监听数据更新事件
+      uni.$on('day-data-updated', () => {
+        this.loadDayData()
+      })
     },
     beforeUnmount() {
       this.clearAllTimers()
+      uni.$off('day-data-updated')
     },
     onShow() {
-      if (!this.showChooseTpl) this.loadDayData()
       this.checkPendingManageActions()
+      if (!this.showChooseTpl) this.loadDayData()
     },
     onHide() {},
     onUnload() {
@@ -391,12 +398,12 @@
         const todayTotal = getTotalWeight(this.actionEntries[idx])
         if (todayTotal > latestTotal) {
           this.$set(this.diffs, idx, {
-            text: `+${todayTotal - latestTotal}`,
+            text: `+${Math.round((todayTotal - latestTotal) * 100) / 100}`,
             class: 'diff-up'
           })
         } else if (todayTotal < latestTotal) {
           this.$set(this.diffs, idx, {
-            text: `-${latestTotal - todayTotal}`,
+            text: `-${Math.round((latestTotal - todayTotal) * 100) / 100}`,
             class: 'diff-down'
           })
         } else {
@@ -816,14 +823,19 @@
       },
 
       checkPendingManageActions() {
-        const raw = uni.removeStorageSync('_pendingManageActions')
+        const raw = uni.getStorageSync('_pendingManageActions')
+        console.log('[day] checkPendingManageActions, raw:', raw)
         if (!raw) return
+        uni.removeStorageSync('_pendingManageActions')
         try {
           const newOrder = JSON.parse(raw)
+          console.log('[day] checkPendingManageActions, newOrder:', newOrder)
           if (Array.isArray(newOrder)) {
             this.onSaveSort(newOrder)
           }
-        } catch (e) {}
+        } catch (e) {
+          console.error('[day] checkPendingManageActions error:', e)
+        }
       },
       /* ========== 设置组件事件 ========== */
       onAddAction(actName) {
@@ -866,6 +878,9 @@
         })
       },
       onSaveSort(newOrder) {
+        console.log('[day] onSaveSort called, newOrder:', newOrder)
+        console.log('[day] onSaveSort, current chosenActions:', [...this.chosenActions])
+        console.log('[day] onSaveSort, chosenTplName:', this.chosenTplName)
         // 先把新增的动作同步到 chosenActions / actionEntries / diffs
         const currentSet = new Set(this.chosenActions)
         newOrder.forEach(name => {
@@ -924,7 +939,9 @@
           })
           return
         }
-        let exportText = ''
+        const d = new Date(this.date)
+        const dateLine = `${d.getMonth() + 1}月${d.getDate()}日${this.chosenTplName ? '：' + this.chosenTplName : ''}`
+        let exportText = dateLine + '\n'
         this.chosenActions.forEach((actName, actionIdx) => {
           const entries = this.actionEntries[actionIdx] || []
           const filledEntries = entries.filter(e => !e.isPlaceholder)
@@ -935,7 +952,7 @@
             if (stage) {
               const reps = stage.reps
               const weight = stage.weight
-              exportText += `- 第${entryIdx + 1}组：${reps}次 × ${weight}kg\n`
+              exportText += `第${entryIdx + 1}组：${reps}次 × ${weight}kg\n`
             }
           })
           exportText += '\n'
@@ -980,9 +997,6 @@
           return
         }
 
-        // 调用合并函数
-        const { mergeImportData, getNewActions } = require('@/utils/dataMerger')
-
         const existingData = {
           entries: {},
           actions: {}
@@ -996,9 +1010,78 @@
           )
         })
 
-        // 合并数据
-        const mergedData = mergeImportData(existingData, importedData, this.availableActionNames)
+        // 合并数据（传入当天模板动作列表）
+        const { mergedData, matchResults } = mergeImportData(
+          existingData,
+          importedData,
+          this.availableActionNames,
+          this.chosenActions
+        )
 
+        // 如果有多个匹配结果，需要用户选择
+        if (matchResults.length > 0) {
+          this.showMatchSelection(matchResults, mergedData)
+        } else {
+          // 检查新动作
+          this.handleNewActions(mergedData)
+        }
+      },
+
+      showMatchSelection(matchResults, mergedData) {
+        // 存储待处理的匹配结果
+        this._pendingMatchResults = matchResults
+        this._pendingMergedData = mergedData
+        this._matchSelections = matchResults.map(m => m.selected)
+
+        // 构建选择提示
+        const firstMatch = matchResults[0]
+        const options = firstMatch.matches.map((name, idx) => ({
+          name,
+          checked: idx === 0
+        }))
+
+        // 显示选择弹窗（逐个处理）
+        this.showSingleMatchSelection(0)
+      },
+
+      showSingleMatchSelection(index) {
+        const matchResults = this._pendingMatchResults
+        if (!matchResults || index >= matchResults.length) {
+          // 所有选择完成，应用合并数据
+          const mergedData = this.applyMatchSelectionsToData()
+          this.handleNewActions(mergedData)
+          return
+        }
+
+        const current = matchResults[index]
+        const options = current.matches.map(name => name)
+
+        uni.showActionSheet({
+          itemList: options,
+          success: (res) => {
+            this._matchSelections[index] = current.matches[res.tapIndex]
+            // 处理下一个
+            this.showSingleMatchSelection(index + 1)
+          },
+          fail: () => {
+            // 用户取消，取消整个导入
+            uni.showToast({
+              title: '已取消导入',
+              icon: 'none'
+            })
+          }
+        })
+      },
+
+      applyMatchSelectionsToData() {
+        return applyMatchSelections(
+          this._pendingMergedData,
+          this._pendingMatchResults,
+          this._matchSelections
+        )
+      },
+
+      handleNewActions(mergedData) {
         // 检查新动作
         const newActions = getNewActions(mergedData, this.chosenActions)
 

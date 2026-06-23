@@ -287,18 +287,18 @@
       saveManageActions(e) {
         console.log('[manageActions] saveManageActions called, sortedActions:', [...this.sortedActions])
         const dataToSave = JSON.stringify([...this.sortedActions])
-        uni.setStorage({
-          key: '_pendingManageActions',
-          data: dataToSave,
-          success: () => {
-            console.log('[manageActions] storage async set success')
-            uni.navigateBack()
-          },
-          fail: (err) => {
-            console.error('[manageActions] storage set fail:', err)
-            uni.navigateBack()
-          }
-        })
+        try {
+          uni.setStorageSync('_pendingManageActions', dataToSave)
+          console.log('[manageActions] storage sync set success')
+          // 验证写入
+          const verify = uni.getStorageSync('_pendingManageActions')
+          console.log('[manageActions] verify read:', verify ? 'OK' : 'FAIL')
+        } catch (err) {
+          console.error('[manageActions] storage set fail:', err)
+        }
+        setTimeout(() => {
+          uni.navigateBack()
+        }, 100)
       },
       onSortSlideStart(e, idx) {
         this.closeAllSlides(idx)
