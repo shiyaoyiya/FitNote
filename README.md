@@ -1,7 +1,7 @@
 # FitNote 健身记录小程序
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.9.4-blue?style=flat-square" alt="version">
+  <img src="https://img.shields.io/badge/version-2.0.9-blue?style=flat-square" alt="version">
   <img src="https://img.shields.io/badge/uni--app-v3-4fc08d?style=flat-square" alt="uni-app">
   <img src="https://img.shields.io/badge/Vue-3.x-4fc08d?style=flat-square" alt="Vue">
   <img src="https://img.shields.io/badge/Pinia-v3-f7d336?style=flat-square" alt="Pinia">
@@ -37,6 +37,7 @@ FitNote 是一款专为健身爱好者打造的训练记录小程序，帮助你
 - 为模板设置颜色标识，日历中一目了然
 - 快速将模板应用到指定日期
 - 支持分化训练计划设置
+- 分化计划模板名称自动同步
 
 ### 训练统计分析
 - **部位状态监测**：智能算法分析近期各部位刺激强度
@@ -47,9 +48,11 @@ FitNote 是一款专为健身爱好者打造的训练记录小程序，帮助你
 - 容量历史追踪
 
 ### 数据备份与恢复
-- 一键导出训练数据为 JSON 文件
-- 支持数据导入，恢复训练记录
-- 支持 CSV 格式导出（长按备份按钮）
+- **按日期范围导出**：选择起止日期，精确导出指定时段数据
+- **多格式支持**：JSON 格式完整备份，CSV 格式便于表格分析
+- **智能导入**：粘贴文本自动解析，模糊匹配动作名称
+- **数据合并**：导入时自动识别重复记录，支持覆盖或跳过策略
+- **实时预览**：导入前预览解析结果，确认后一键合并
 - **云备份功能**：基于微信云开发的数据云端备份
 
 ### 个性化设置
@@ -68,6 +71,7 @@ FitNote 是一款专为健身爱好者打造的训练记录小程序，帮助你
 | [uView UI](https://www.uviewui.com/) | UI 组件库 |
 | [SortableJS](https://sortablejs.github.io/Sortable/) | 拖拽排序 |
 | [Vue Draggable](https://github.com/SortableJS/Vue.Draggable) | Vue 拖拽组件 |
+| [微信云开发](https://developers.weixin.qq.com/miniprogram/dev/wxcloud/basis/getting-started.html) | 云端数据备份 |
 
 ## 项目结构
 
@@ -83,6 +87,7 @@ FitNote/
 │   │   └── day.vue         # 日训练详情
 │   ├── actionHistory/      # 动作历史
 │   ├── actionLibrary/      # 动作库管理
+│   ├── manageActions/      # 管理动作
 │   ├── templateDetail/     # 模板详情编辑
 │   ├── templateManager/    # 模板管理
 │   ├── trainingStat/       # 训练统计
@@ -92,7 +97,11 @@ FitNote/
 ├── components/             # 公共组件
 │   ├── ActionCard.vue      # 动作卡片
 │   ├── CalendarMonth.vue   # 月历组件
+│   ├── DateRangePicker.vue # 日期范围选择器
 │   ├── DaySettings.vue     # 日期设置
+│   ├── ExportTab.vue       # 数据导出面板
+│   ├── ImportTab.vue       # 数据导入面板
+│   ├── ImportDataModal.vue # 导入数据弹窗
 │   ├── ProgressChart.vue   # 进度图表
 │   ├── TemplateSelector.vue # 模板选择器
 │   ├── TimerModal.vue      # 计时器弹窗
@@ -108,14 +117,20 @@ FitNote/
 │   ├── backup.js           # 备份功能
 │   ├── canvasHelper.js     # Canvas 辅助
 │   ├── cloudBackup.js      # 云备份
+│   ├── cloudConfig.js      # 云开发配置
 │   ├── color.js            # 颜色处理
+│   ├── dataMerger.js       # 数据合并（智能去重）
 │   ├── dayHelper.js        # 日期辅助
+│   ├── exportImport.js     # 导出导入核心逻辑
+│   ├── importParser.js     # 导入文本解析（模糊匹配）
 │   ├── presetTemplates.js  # 预设模板
 │   ├── theme.js            # 主题管理
 │   └── trainingAnalyzer.js # 训练分析
 ├── cloudfunctions/         # 微信云函数
 │   └── getOpenId/          # 获取用户 OpenID
 ├── static/                 # 静态资源
+├── tests/                  # 测试文件
+│   └── importIntegration.test.js # 导入功能集成测试
 └── docs/                   # 项目文档
 ```
 
@@ -168,11 +183,19 @@ npm install
 
 ## 版本历史
 
-### v1.9.4 (当前版本)
-- 新增云备份功能
-- 优化 Android 15 兼容性
-- 修复计时器时长自适应
-- 优化主题切换体验
+### v2.0.9 (当前版本)
+- 新增数据导出面板，支持按日期范围导出
+- 新增数据导入面板，支持智能文本解析
+- 新增 DateRangePicker 日期范围选择组件
+- 优化数据合并算法，支持模糊匹配动作名称
+- 修复导入数据编码问题
+- 修复分化计划模板同步逻辑
+
+### v2.0.0
+- 新增导入/导出功能设计文档
+- 实现数据导入弹窗组件
+- 实现智能数据合并器
+- 实现导入文本解析器
 
 ### v1.9.0
 - 新增训练统计页面
