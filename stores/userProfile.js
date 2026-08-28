@@ -1,15 +1,33 @@
 // stores/userProfile.js
-// 身体数据档案：年龄/性别/身高/体重，热量估算与心率档位基础
+// 身体数据档案：性别/出生年月/身高/体重，热量估算与心率档位基础
+// age 由出生年月实时倒推（getter），避免固定年龄不随时间更新
 
 const STORAGE_KEY = 'fitness_user_profile'
+
+// 由出生年月(YYYY-MM)计算当前年龄
+function computeAge(birthDate) {
+  if (!birthDate) return 0
+  const m = /^(\d{4})-(\d{2})$/.exec(birthDate)
+  if (!m) return 0
+  const by = Number(m[1]), bm = Number(m[2])
+  const now = new Date()
+  let age = now.getFullYear() - by
+  if (now.getMonth() + 1 < bm) age--
+  return age > 0 ? age : 0
+}
 
 function clampValidate(patch) {
   const p = { ...patch }
   if (p.gender !== undefined && !['male', 'female'].includes(p.gender)) {
     throw new Error('gender 必须为 male 或 female')
   }
-  if (p.age !== undefined && (p.age < 5 || p.age > 100)) {
-    throw new Error('age 必须在 5-100 之间')
+  if (p.birthDate !== undefined) {
+    const m = /^(\d{4})-(\d{2})$/.exec(p.birthDate)
+    if (!m) throw new Error('出生年月格式应为 YYYY-MM')
+    const y = Number(m[1]), mo = Number(m[2])
+    const curY = new Date().getFullYear()
+    if (y < 1900 || y > curY) throw new Error('出生年份不合理')
+    if (mo < 1 || mo > 12) throw new Error('出生月份 1-12')
   }
   if (p.height !== undefined && (p.height < 100 || p.height > 250)) {
     throw new Error('height 必须在 100-250 之间')
@@ -24,7 +42,7 @@ function clampValidate(patch) {
 export function useUserInMemoryProfileStore(initial = {}) {
   let state = {
     gender: null,
-    age: null,
+    birthDate: null,
     height: null,
     weight: null,
     weightHistory: [],
@@ -33,6 +51,7 @@ export function useUserInMemoryProfileStore(initial = {}) {
   }
   return {
     get state() { return state },
+    get age() { return computeAge(state.birthDate) },
     updateProfile(patch) {
       const valid = clampValidate(patch)
       if (valid.weight !== undefined && valid.weight !== state.weight) {
@@ -41,13 +60,14 @@ export function useUserInMemoryProfileStore(initial = {}) {
       state = { ...state, ...valid, updatedAt: new Date().toISOString() }
     },
     getMaxHeartRate() {
-      return state.age ? 220 - state.age : 0
+      const a = this.age
+      return a ? 220 - a : 0
     },
     isComplete() {
-      return !!(state.gender && state.age && state.height && state.weight)
+      return !!(state.gender && state.birthDate && state.height && state.weight)
     },
     toProfile() {
-      return { gender: state.gender, age: state.age, height: state.height, weight: state.weight }
+      return { gender: state.gender, age: this.age, height: state.height, weight: state.weight }
     },
   }
 }
@@ -58,19 +78,29 @@ import { defineStore } from 'pinia'
 export const useUserProfileStore = defineStore('userProfile', {
   state: () => ({
     gender: null,
-    age: null,
+    birthDate: null,
     height: null,
     weight: null,
     weightHistory: [],
     updatedAt: null,
   }),
+  getters: {
+    // age 由出生年月实时倒推
+    age: (state) => computeAge(state.birthDate),
+  },
   actions: {
     load() {
       try {
         const raw = uni.getStorageSync(STORAGE_KEY)
         if (raw) {
           const data = typeof raw === 'string' ? JSON.parse(raw) : raw
-          Object.assign(this, data)
+          // 逐字段赋值，避免 Object.assign 覆盖 getter
+          if (data.gender !== undefined) this.gender = data.gender
+          if (data.birthDate !== undefined) this.birthDate = data.birthDate
+          if (data.height !== undefined) this.height = data.height
+          if (data.weight !== undefined) this.weight = data.weight
+          if (data.weightHistory !== undefined) this.weightHistory = data.weightHistory
+          if (data.updatedAt !== undefined) this.updatedAt = data.updatedAt
         }
       } catch (e) { /* 首次无数据 */ }
     },
@@ -84,15 +114,16 @@ export const useUserProfileStore = defineStore('userProfile', {
     },
     save() {
       uni.setStorageSync(STORAGE_KEY, JSON.stringify({
-        gender: this.gender, age: this.age, height: this.height,
+        gender: this.gender, birthDate: this.birthDate, height: this.height,
         weight: this.weight, weightHistory: this.weightHistory, updatedAt: this.updatedAt,
       }))
     },
     getMaxHeartRate() {
-      return this.age ? 220 - this.age : 0
+      const a = this.age
+      return a ? 220 - a : 0
     },
     isComplete() {
-      return !!(this.gender && this.age && this.height && this.weight)
+      return !!(this.gender && this.birthDate && this.height && this.weight)
     },
     toProfile() {
       return { gender: this.gender, age: this.age, height: this.height, weight: this.weight }

@@ -48,9 +48,9 @@ export function createBleHeartRate() {
     uni.notifyBLECharacteristicValueChange({
       deviceId, serviceId: HR_SERVICE_UUID, characteristicId: HR_MEASUREMENT_UUID,
       state: true, success: () => {
-        if (valueChangeHandler) uni.off('onBLECharacteristicValueChange', valueChangeHandler)
-        valueChangeHandler = onValueChange
-        uni.on('onBLECharacteristicValueChange', onValueChange)
+        if (valueChangeHandler) uni.offBLECharacteristicValueChange(valueChangeHandler)
+      valueChangeHandler = onValueChange
+      uni.onBLECharacteristicValueChange(onValueChange)
       },
     })
   }
@@ -106,13 +106,13 @@ export function createBleHeartRate() {
       stateCallback = cb
       if (!stateChangeHandler) {
         stateChangeHandler = onConnStateChange
-        uni.on('onBLEConnectionStateChange', onConnStateChange)
+        uni.onBLEConnectionStateChange(onConnStateChange)
       }
     },
     getLastDeviceId() { return deviceId },
     disconnect() {
-      if (valueChangeHandler) { uni.off('onBLECharacteristicValueChange', valueChangeHandler); valueChangeHandler = null }
-      if (stateChangeHandler) { uni.off('onBLEConnectionStateChange', stateChangeHandler); stateChangeHandler = null }
+      if (valueChangeHandler) { uni.offBLECharacteristicValueChange(valueChangeHandler); valueChangeHandler = null }
+      if (stateChangeHandler) { uni.offBLEConnectionStateChange(stateChangeHandler); stateChangeHandler = null }
       if (deviceId) {
         uni.closeBLEConnection({ deviceId, complete: () => setState('disconnected') })
       } else { setState('disconnected') }

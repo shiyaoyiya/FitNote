@@ -1119,10 +1119,13 @@
         this.hrBle = createBleHeartRate()
         const ok = await this.hrBle.initAdapter()
         if (!ok) { this.hrConnected = false; return }
-        this.hrBle.onHeartRate((h) => { this.hr = h })
+        this.hrBle.onHeartRate((h) => {
+          this.hr = h
+          // 首次收到心率才启动计时与累计（手环开始运动广播心率→自动开始）
+          if (!this.hrTimer && this.hrStartTs === 0) this.startHrAccumulate()
+        })
         this.hrBle.onStateChange((s) => {
           this.hrConnected = (s === 'connected')
-          if (s === 'connected' && !this.hrTimer && this.hrStartTs === 0) this.startHrAccumulate()
         })
         // 自动连上次设备
         const last = this.hrBle.getLastDeviceId()
