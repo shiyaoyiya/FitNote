@@ -51,6 +51,23 @@
         @manage="showBodyPartManager = true"
         @select:bodyPart="onBodyPartSelect"
       />
+
+      <view class="calories-card">
+        <view class="calories-row">
+          <text class="calories-title">消耗热量</text>
+          <text class="calories-total">{{ Math.round(caloriesData.total) }} kcal</text>
+        </view>
+        <view class="calories-chart-area">
+          <view v-if="caloriesChartData.length === 0" class="calories-empty">暂无热量数据</view>
+          <view v-else class="calories-bars">
+            <view v-for="(item, index) in caloriesChartData" :key="index" class="calories-bar-wrapper">
+              <view class="calories-bar-value">{{ item.kcal }}</view>
+              <view class="calories-bar" :style="{ height: caloriesBarHeight(item.kcal) + 'px' }" />
+              <view class="calories-bar-label">{{ item.label }}</view>
+            </view>
+          </view>
+        </view>
+      </view>
     </view>
 
     <BodyPartManager
@@ -72,7 +89,7 @@ import BodyPartManager from './components/BodyPartManager.vue'
 import { useActionStore } from '@/stores/action.js'
 import { useDayDataCacheStore } from '@/stores/dayDataCache.js'
 import { useDaySettingsStore } from '@/stores/daySettings.js'
-import { computeStats, isCategoryId, CATEGORY_NAMES, MERGED_CATEGORIES, collectAllWeeklyVolume } from './statUtil.js'
+import { computeStats, isCategoryId, CATEGORY_NAMES, MERGED_CATEGORIES, collectAllWeeklyVolume, collectCalories } from './statUtil.js'
 import { rebuildVolumeHistory, getStatus } from './volumeHistory.js'
 
 const CONFIG_KEY = 'training_stat_bodypart_config'
@@ -183,6 +200,47 @@ const bodyPartGridData = computed(() => {
 
   return result
 })
+
+const caloriesData = computed(() => {
+  // 引用 allStats.value 建立响应式依赖，使 refreshStats 完成后同步重算
+  if (!allStats.value) return { total: 0, daily: [] }
+  return collectCalories({
+    year: currentYear.value,
+    month: currentMonth.value - 1,
+    periodType: currentPeriod.value,
+    dayDataCacheStore,
+  })
+})
+
+const caloriesChartData = computed(() => {
+  const raw = caloriesData.value.daily || []
+  if (currentPeriod.value === 'year') {
+    const monthBuckets = {}
+    for (const item of raw) {
+      const m = parseInt(item.date.split('-')[1])
+      const label = `${m}月`
+      monthBuckets[label] = (monthBuckets[label] || 0) + item.kcal
+    }
+    return Object.keys(monthBuckets)
+      .sort((a, b) => parseInt(a) - parseInt(b))
+      .map(label => ({ label, kcal: Math.round(monthBuckets[label]) }))
+  }
+  return raw.map(item => {
+    const parts = item.date.split('-')
+    return { label: `${parseInt(parts[1])}/${parseInt(parts[2])}`, kcal: Math.round(item.kcal) })
+  })
+})
+
+const caloriesMaxValue = computed(() => {
+  const arr = caloriesChartData.value
+  if (arr.length === 0) return 1
+  return Math.max(...arr.map(i => i.kcal), 1)
+})
+
+function caloriesBarHeight(kcal) {
+  const maxBarHeight = 120
+  return Math.max(2, (kcal / caloriesMaxValue.value) * maxBarHeight)
+}
 
 const OLD_TO_NEW_MAP = {
   upper_chest: 'chest',
@@ -392,5 +450,79 @@ watch([currentYear, currentMonth], ([newYear, newMonth], [oldYear, oldMonth]) =>
 .period-toggle .toggle-btn.active {
   background: #379bff;
   color: #ffffff;
+}
+
+.calories-card {
+  background-color: var(--card-bg, #ffffff);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 12px;
+}
+
+.calories-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.calories-title {
+  font-size: 16px;
+  font-weight: bold;
+  color: var(--section-title, #1a1a1a);
+}
+
+.calories-total {
+  font-size: 15px;
+  font-weight: 600;
+  color: #f59e0b;
+}
+
+.calories-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 48px;
+  color: var(--empty-text, #999999);
+  font-size: 14px;
+}
+
+.calories-bars {
+  width: 100%;
+  overflow-x: auto;
+  display: flex;
+  flex-direction: row;
+  align-items: flex-end;
+  gap: 12px;
+  padding-top: 4px;
+}
+
+.calories-bar-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+  min-height: 2px;
+}
+
+.calories-bar-value {
+  font-size: 11px;
+  color: var(--chart-text, #666666);
+  margin-bottom: 4px;
+}
+
+.calories-bar {
+  width: 28px;
+  min-height: 2px;
+  border-radius: 4px 4px 0 0;
+  background-color: #f59e0b;
+  transition: height 0.3s ease;
+}
+
+.calories-bar-label {
+  font-size: 11px;
+  color: var(--chart-label, #999999);
+  margin-top: 6px;
+  text-align: center;
 }
 </style>

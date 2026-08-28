@@ -534,7 +534,28 @@ function collectAllWeeklyVolume(actionStore, dayDataCacheStore) {
   return weeklyVolume;
 }
 
+function collectCalories({ year, month, periodType, dayDataCacheStore }) {
+  let total = 0
+  const daily = []
+
+  const keys = dayDataCacheStore
+    ? getKeysInPeriodCached(year, month, periodType, dayDataCacheStore)
+    : getKeysInPeriod(year, month, periodType)
+
+  for (const key of keys) {
+    const dateStr = key.replace(DAYDATA_PREFIX, '')
+    const data = getDayData(key, dayDataCacheStore)
+    const kcal = data.caloriesTotal
+    if (typeof kcal === 'number' && kcal > 0) {
+      total += kcal
+      daily.push({ date: dateStr, kcal })
+    }
+  }
+
+  return { total: Math.round(total), daily }
+}
+
 export {
   SUBCATEGORIES, SUBCATEGORY_IDS, CATEGORY_NAMES, CATEGORY_IDS, CATEGORY_TO_SUBS,
-  isCategoryId, MERGED_CATEGORIES, collectWeeklyVolume, collectAllWeeklyVolume
+  isCategoryId, MERGED_CATEGORIES, collectWeeklyVolume, collectAllWeeklyVolume, collectCalories
 }
