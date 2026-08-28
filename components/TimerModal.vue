@@ -26,6 +26,7 @@
 </template>
 
 <script>
+  import { showFloatTimer, updateFloatTimerText, closeFloatTimer, closeSystemFloatTimer, stopFloatTimer, showSystemFloatTimer, hasOverlayPermission, requestOverlayPermission } from '@/utils/floatTimer.js'
   export default {
     name: 'TimerModal',
     props: {
@@ -47,6 +48,9 @@
         ctx: null,
         isMiniProgram: false,
         selectedQuickSeconds: 180,
+        isBackground: false,
+        _onAppHide: null,
+        _onAppShow: null,
       }
     },
     computed: {
@@ -141,12 +145,46 @@
           this.audioCtx.stop()
           this.notified = false
         }
+        stopFloatTimer()
+        if (this._onAppHide) { uni.offAppHide(this._onAppHide); this._onAppHide = null }
+        if (this._onAppShow) { uni.offAppShow(this._onAppShow); this._onAppShow = null }
+        this.isBackground = false
       },
       startCountdown() {
         this.clearTimer()
         this.endTimestamp = Date.now() + this.remaining * 1000
         this.updateRemaining()
         this.timerInterval = setInterval(() => this.updateRemaining(), 1000)
+        this.setupFloatTimer()
+      },
+      setupFloatTimer() {
+        // 首次提示开启系统悬浮窗权限（后台/桌面可见）
+        if (!hasOverlayPermission()) {
+          uni.showModal({
+            title: '后台悬浮提醒',
+            content: '开启悬浮窗权限后，倒计时切后台可在桌面/其他App上层显示。是否去开启？',
+            confirmText: '去开启',
+            cancelText: '仅前台',
+            success: (r) => { if (r.confirm) requestOverlayPermission() },
+          })
+        }
+        showFloatTimer(this.displayTime)
+        this._onAppHide = () => {
+          this.isBackground = true
+          if (this.timerInterval) {
+            closeFloatTimer()
+            if (hasOverlayPermission()) showSystemFloatTimer(this.displayTime)
+          }
+        }
+        this._onAppShow = () => {
+          this.isBackground = false
+          if (this.timerInterval) {
+            closeSystemFloatTimer()
+            showFloatTimer(this.displayTime)
+          }
+        }
+        uni.onAppHide(this._onAppHide)
+        uni.onAppShow(this._onAppShow)
       },
       updateRemaining() {
         const now = Date.now()
@@ -154,6 +192,7 @@
         this.remaining = Math.max(0, diff)
         if (this.remaining > 0 && this.remaining <= 10) uni.vibrateShort()
         this.drawCircle()
+        updateFloatTimerText(this.displayTime, this.isBackground)
         if (this.remaining <= 0 && !this.notified) {
           this.notified = true
           this.clearTimer()
