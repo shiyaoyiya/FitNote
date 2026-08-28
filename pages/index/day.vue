@@ -45,7 +45,7 @@
       @toggle-bubble-fill="settingsStore.toggleBubbleFill()"
       @set-heavy-timer="(v) => settingsStore.setHeavyTimerDuration(v)"
       @set-light-timer="(v) => settingsStore.setLightTimerDuration(v)" @export-data="onExportData"
-      @import-data="onImportData" />
+      @import-data="onImportData" @open-body-profile="showBodyProfile=true" />
 
     <!-- 导入数据弹窗 -->
     <ImportDataModal
@@ -59,6 +59,8 @@
     <EditEntryPopup :visible="showEditEntryPopup" :entry-idx="editEntryInfo.entryIdx"
       :entry="editEntryInfo.actionIdx >= 0 && editEntryInfo.entryIdx >= 0 ? actionEntries[editEntryInfo.actionIdx]?.[editEntryInfo.entryIdx] : null"
       @close="closeEditEntryPopup" @save="onEditEntrySave" />
+
+    <BodyProfilePopup :visible="showBodyProfile" @close="showBodyProfile=false" />
   </view>
 </template>
 
@@ -93,6 +95,8 @@
   import DaySettings from '@/components/DaySettings.vue'
   import ImportDataModal from '@/components/ImportDataModal.vue'
   import EditEntryPopup from '@/components/EditEntryPopup.vue'
+  import BodyProfilePopup from '@/components/BodyProfilePopup.vue'
+  import { useUserProfileStore } from '@/stores/userProfile.js'
   import { mergeImportData, getNewActions, applyMatchSelections } from '@/utils/dataMerger'
 
   export default {
@@ -102,7 +106,8 @@
       ActionCard,
       DaySettings,
       ImportDataModal,
-      EditEntryPopup
+      EditEntryPopup,
+      BodyProfilePopup
     },
     data() {
       return {
@@ -130,6 +135,7 @@
         showSettings: false,
         showEditEntryPopup: false,
         showImportModal: false,
+        showBodyProfile: false,
         editEntryInfo: {
           actionIdx: -1,
           entryIdx: -1
@@ -193,6 +199,7 @@
       this.templateStore.load()
       this.actionStore.load()
       this.loadDayData()
+      useUserProfileStore().load()
       
       // 监听数据更新事件
       uni.$on('day-data-updated', () => {
