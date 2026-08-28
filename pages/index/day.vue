@@ -24,14 +24,20 @@
 
     <!-- 底部按钮行 -->
     <view class="save-row" v-if="!isRestDay && !showChooseTpl">
-      <view class="minimal-timer-btn" @click="timerDuration = lastManualTimerDuration || settingsStore.heavyTimerDuration; showTimer = true">
-        <text class="mini-icon">⏱</text>
-        <text class="mini-text">开始计时休息</text>
-      </view>
-      <view class="minimal-settings-btn" @click="showSettings = true">
-        <text class="mini-icon">⚙</text>
-        <text class="mini-text">设置</text>
-      </view>
+      <HeartRateToggle
+        :hr="hr" :kcal-total="hrKcalTotal" :duration-sec="hrDurationSec"
+        :zone="hrZone" :zones="hrZones" :connected="hrConnected"
+        @toggle-connect="onToggleHrConnect" @request-settings="onOpenHrSettings"
+      >
+        <template #actions>
+          <view class="minimal-timer-btn" @click="timerDuration = lastManualTimerDuration || settingsStore.heavyTimerDuration; showTimer = true">
+            <text class="mini-icon">⏱</text><text class="mini-text">开始计时休息</text>
+          </view>
+          <view class="minimal-settings-btn" @click="showSettings = true">
+            <text class="mini-icon">⚙</text><text class="mini-text">设置</text>
+          </view>
+        </template>
+      </HeartRateToggle>
     </view>
 
     <!-- 计时器组件 -->
@@ -96,6 +102,10 @@
   import ImportDataModal from '@/components/ImportDataModal.vue'
   import EditEntryPopup from '@/components/EditEntryPopup.vue'
   import BodyProfilePopup from '@/components/BodyProfilePopup.vue'
+  import HeartRateToggle from '@/components/HeartRateToggle.vue'
+  import { createBleHeartRate } from '@/utils/bleHeartRate.js'
+  import { calcKcalPerMin, calcSessionKcal, estimateAvgHr } from '@/utils/calorieEstimate.js'
+  import { getZones, getZone } from '@/utils/heartRateZones.js'
   import { useUserProfileStore } from '@/stores/userProfile.js'
   import { mergeImportData, getNewActions, applyMatchSelections } from '@/utils/dataMerger'
 
@@ -107,7 +117,8 @@
       DaySettings,
       ImportDataModal,
       EditEntryPopup,
-      BodyProfilePopup
+      BodyProfilePopup,
+      HeartRateToggle
     },
     data() {
       return {
@@ -136,6 +147,16 @@
         showEditEntryPopup: false,
         showImportModal: false,
         showBodyProfile: false,
+        // 心率与热量累计
+        hrBle: null,            // createBleHeartRate() 实例
+        hrConnected: false,
+        hr: null,                // 当前心率
+        hrSamples: [],           // [{hr, durMin}] 累计采样
+        hrKcalTotal: 0,
+        hrDurationSec: 0,
+        hrTimer: null,           // 每分钟累计定时器
+        hrStartTs: 0,            // 训练开始时间戳
+        showDeviceScan: false,
         editEntryInfo: {
           actionIdx: -1,
           entryIdx: -1
@@ -177,6 +198,15 @@
           },
         ]
       },
+      hrZones() {
+        const p = useUserProfileStore()
+        return p.age ? getZones(p.age) : []
+      },
+      hrZone() {
+        const p = useUserProfileStore()
+        if (!p.age || this.hr == null) return null
+        return getZone(this.hr, p.age)
+      },
     },
     watch: {},
     onLoad(options) {
@@ -200,14 +230,30 @@
       this.actionStore.load()
       this.loadDayData()
       useUserProfileStore().load()
-      
+
       // 监听数据更新事件
       uni.$on('day-data-updated', () => {
         this.loadDayData()
       })
+
+      // 初始化蓝牙心率（无设备时静默不崩）
+      this.initHeartRate()
     },
     beforeUnmount() {
       this.clearAllTimers()
+      this.stopHrAccumulate()
+      // 训练结束写入心率与热量累计到当日 dayData
+      if (this.hrConnected && this.hrSamples.length > 0) {
+        const hrPayload = {
+          heartRateAvg: estimateAvgHr(this.hrSamples),
+          caloriesTotal: Math.round(this.hrKcalTotal),
+          durationSec: this.hrDurationSec,
+        }
+        const raw = this.dayDataCacheStore.getDayData(this.date)
+        const dayData = { ...raw, ...hrPayload }
+        this.dayDataCacheStore.saveDayData(this.date, dayData)
+      }
+      if (this.hrBle) this.hrBle.disconnect()
       uni.$off('day-data-updated')
     },
     onShow() {
@@ -1059,6 +1105,54 @@
           icon: 'success'
         })
       },
+
+      /* ========== 心率与热量累计 ========== */
+      async initHeartRate() {
+        this.hrBle = createBleHeartRate()
+        const ok = await this.hrBle.initAdapter()
+        if (!ok) { this.hrConnected = false; return }
+        this.hrBle.onHeartRate((h) => { this.hr = h })
+        this.hrBle.onStateChange((s) => {
+          this.hrConnected = (s === 'connected')
+          if (s === 'connected' && !this.hrTimer && this.hrStartTs === 0) this.startHrAccumulate()
+        })
+        // 自动连上次设备
+        const last = this.hrBle.getLastDeviceId()
+        if (last) this.onToggleHrConnect()
+      },
+      onToggleHrConnect() {
+        if (this.hrConnected) return
+        if (!this.hrBle) this.initHeartRate().then(() => this._doScanConnect())
+        else this._doScanConnect()
+      },
+      _doScanConnect() {
+        const last = this.hrBle.getLastDeviceId()
+        if (last) {
+          this.hrBle.connect(last).catch(() => { this.showDeviceScan = true })
+        } else {
+          // 简化：弹出 actionSheet 选设备
+          this.hrBle.startScan((d) => {
+            uni.showActionSheet({ itemList: [d.name || d.deviceId], success: () => {
+              this.hrBle.stopScan(); this.hrBle.connect(d.deviceId)
+            } })
+          })
+        }
+      },
+      startHrAccumulate() {
+        this.hrStartTs = Date.now()
+        this.hrTimer = setInterval(() => {
+          if (this.hr == null) return
+          const profile = useUserProfileStore().toProfile()
+          if (!useUserProfileStore().isComplete()) { return }
+          this.hrKcalTotal += calcKcalPerMin(this.hr, profile)
+          this.hrSamples.push({ hr: this.hr, durMin: 1 })
+          this.hrDurationSec = Math.floor((Date.now() - this.hrStartTs) / 1000)
+        }, 60000)
+      },
+      stopHrAccumulate() {
+        if (this.hrTimer) { clearInterval(this.hrTimer); this.hrTimer = null }
+      },
+      onOpenHrSettings() { this.showSettings = true },
     },
   }
 </script>

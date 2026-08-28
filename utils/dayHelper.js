@@ -1,3 +1,8 @@
+// DayData 可选心率字段（训练结束且有手环数据时写入）：
+//   heartRateAvg: number|null    本次平均心率
+//   caloriesTotal: number|null   本次消耗热量 kcal
+//   durationSec: number|null      本次训练时长(秒)
+
 /**
  * 训练组类型
  */
