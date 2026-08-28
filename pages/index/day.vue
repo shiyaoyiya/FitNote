@@ -42,7 +42,7 @@
 
     <!-- 计时器组件 -->
     <TimerModal :visible="showTimer" :default-duration="timerDuration" :quick-settings="quickTimerSettings"
-      @close="showTimer = false" @complete="showTimer = false" @time-change="onTimerTimeChange" />
+      @close="showTimer = false" @complete="onTimerComplete" @time-change="onTimerTimeChange" />
 
     <!-- 设置组件 -->
     <DaySettings :visible="showSettings" :available-actions="availableActionNames" :chosen-actions="chosenActions"
@@ -108,6 +108,7 @@
   import { getZones, getZone } from '@/utils/heartRateZones.js'
   import { useUserProfileStore } from '@/stores/userProfile.js'
   import { mergeImportData, getNewActions, applyMatchSelections } from '@/utils/dataMerger'
+  import { checkAndNotifyTrainingDay, notifyRestEnd } from '@/utils/notification.js'
 
   export default {
     components: {
@@ -238,6 +239,8 @@
 
       // 初始化蓝牙心率（无设备时静默不崩）
       this.initHeartRate()
+      // 训练日提醒（无设备时静默不崩）
+      checkAndNotifyTrainingDay()
     },
     beforeUnmount() {
       this.clearAllTimers()
@@ -277,6 +280,11 @@
 
       onTimerTimeChange(newDuration) {
         this.lastManualTimerDuration = newDuration
+      },
+
+      onTimerComplete() {
+        this.showTimer = false
+        notifyRestEnd()
       },
 
       /* ========== 数据加载 ========== */
