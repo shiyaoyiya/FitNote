@@ -175,7 +175,7 @@ export const useDaySettingsStore = defineStore('daySettings', {
     },
 
     /**
-     * 确认今天已使用分化计划，记录日期。
+     * 确认今天已使用分化计划，记录日期并推进循环偏移。
      * @param {string} todayDate - 格式 'YYYY-MM-DD'
      */
     advanceCycleOffset(todayDate) {
@@ -190,7 +190,13 @@ export const useDaySettingsStore = defineStore('daySettings', {
         return
       }
 
-      // 更新 lastActiveDate，offset 的推进由 getCycleIndex 按天数差自动计算
+      // 将 startOffset 推进到上一次训练日实际使用的索引位置，
+      // 确保下次 getCycleIndex 能正确计算下一轮位置
+      const last = new Date(this.splitPlan.lastActiveDate.replace(/\./g, '/').replace(/-/g, '/'))
+      const today = new Date(todayDate.replace(/\./g, '/').replace(/-/g, '/'))
+      const diffDays = Math.round((today - last) / 86400000)
+      const len = this.splitPlan.cycleDays.length
+      this.splitPlan.startOffset = ((this.splitPlan.startOffset + diffDays) % len + len) % len
       this.splitPlan.lastActiveDate = todayDate
       this.save()
     },
@@ -206,15 +212,6 @@ export const useDaySettingsStore = defineStore('daySettings', {
       const len = this.splitPlan.cycleDays.length
       if (len === 0) return 0
 
-      // 如果有 lastActiveDate，优先用日期差推算
-      if (this.splitPlan.lastActiveDate) {
-        const last = new Date(this.splitPlan.lastActiveDate.replace(/\./g, '/').replace(/-/g, '/'))
-        const today = new Date(todayDate.replace(/\./g, '/').replace(/-/g, '/'))
-        const diffDays = Math.round((today - last) / 86400000)
-        return ((this.splitPlan.startOffset + diffDays) % len + len) % len
-      }
-
-      // 首次使用：扫描最近训练历史推断循环位置
       if (dayDataCacheStore) {
         const offset = this._inferCycleOffset(todayDate, dayDataCacheStore)
         this.splitPlan.startOffset = offset
@@ -223,13 +220,13 @@ export const useDaySettingsStore = defineStore('daySettings', {
         return offset
       }
 
-      return 0
+      return this.splitPlan.startOffset || 0
     },
 
     /**
      * 根据最近训练历史推断循环偏移量
-     * 从最近的训练日反推：找到历史中最近一个与循环中某天模板匹配的训练日，
-     * 然后计算今天应该在哪一天
+     * 直接扫描近 14 天的训练数据，找到最近一个匹配分化模板的训练日，
+     * 然后计算今天在循环中的位置。
      */
     _inferCycleOffset(todayDate, dayDataCacheStore) {
       const cycleDays = this.splitPlan.cycleDays
@@ -237,9 +234,7 @@ export const useDaySettingsStore = defineStore('daySettings', {
       if (len === 0) return 0
 
       const today = new Date(todayDate.replace(/\./g, '/').replace(/-/g, '/'))
-      const dates = dayDataCacheStore.sortedDates || []
 
-      // 构建模板名 → 循环索引的映射（只取有模板且启用的天）
       const tplToCycleIdx = {}
       cycleDays.forEach((day, idx) => {
         if (day.enabled && day.template) {
@@ -247,19 +242,19 @@ export const useDaySettingsStore = defineStore('daySettings', {
         }
       })
 
-      // 从最近的日期往前找，找到第一个匹配循环模板的训练日
-      for (const dateStr of dates) {
-        if (dateStr >= todayDate) continue
+      for (let i = 1; i <= 14; i++) {
+        const d = new Date(today)
+        d.setDate(d.getDate() - i)
+        const y = d.getFullYear()
+        const m = String(d.getMonth() + 1).padStart(2, '0')
+        const dd = String(d.getDate()).padStart(2, '0')
+        const dateStr = `${y}-${m}-${dd}`
         const data = dayDataCacheStore.getDayData(dateStr)
         if (!data || data.isRestDay) continue
         const tplNames = Object.keys(data.templates || {})
         for (const tplName of tplNames) {
           if (tplToCycleIdx.hasOwnProperty(tplName)) {
-            const cycleIdx = tplToCycleIdx[tplName]
-            const trainDate = new Date(dateStr.replace(/\./g, '/').replace(/-/g, '/'))
-            const daysDiff = Math.round((today - trainDate) / 86400000)
-            // 今天的位置 = (那天的循环位置 + 间隔天数) % 长度
-            return ((cycleIdx + daysDiff) % len + len) % len
+            return ((tplToCycleIdx[tplName] + i) % len + len) % len
           }
         }
       }

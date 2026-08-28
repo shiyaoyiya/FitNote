@@ -124,6 +124,17 @@
               </view>
             </view>
           </view>
+          <view class="form-group">
+            <view class="checkbox-row" @click="formBodyweightMode = !formBodyweightMode">
+              <view class="checkbox-box" :class="{ checked: formBodyweightMode }">
+                <text class="checkbox-check" v-if="formBodyweightMode">✓</text>
+              </view>
+              <view class="checkbox-content">
+                <text class="checkbox-label">自重模式</text>
+                <text class="checkbox-hint">（如引体向上/双杠臂屈伸，可记录辅助/负重）</text>
+              </view>
+            </view>
+          </view>
           <view class="form-group" v-for="cat in categoryOptions" :key="'sub_'+cat.id">
             <view v-if="formCategories.includes(cat.id) && getSubcategories(cat.id).length > 0"
               class="subcategory-section-form">
@@ -179,6 +190,7 @@
         startTime: 0,
         isClick: false,
         formIsUnilateral: false,
+        formBodyweightMode: false,
       }
     },
 
@@ -403,6 +415,7 @@
         this.formCategories = detected ? [detected] : []
         this.formSubcategories = {}
         this.formIsUnilateral = false
+        this.formBodyweightMode = false
         this.showAddPopup = true
       },
 
@@ -413,6 +426,7 @@
         this.formCategories = [categoryId]
         this.formSubcategories = {}
         this.formIsUnilateral = false
+        this.formBodyweightMode = false
         this.showAddPopup = true
       },
 
@@ -423,6 +437,7 @@
         this.formCategories = [...act.categories]
         this.formSubcategories = JSON.parse(JSON.stringify(act.subcategories || {}))
         this.formIsUnilateral = act.isUnilateral || false
+        this.formBodyweightMode = act.bodyweightMode || false
         this.showAddPopup = true
       },
 
@@ -433,6 +448,7 @@
         this.formCategories = []
         this.formSubcategories = {}
         this.formIsUnilateral = false
+        this.formBodyweightMode = false
       },
 
       confirmAction() {
@@ -461,6 +477,7 @@
               ...this.formSubcategories
             },
             isUnilateral: this.formIsUnilateral,
+            bodyweightMode: this.formBodyweightMode,
           })
           uni.showToast({
             title: '已更新',
@@ -475,7 +492,7 @@
             })
             return
           }
-          this.actStore.addAction(name, this.formCategories)
+          this.actStore.addAction(name, this.formCategories, this.formBodyweightMode)
           const newAction = this.actStore.getActionByName(name)
           if (newAction && Object.keys(this.formSubcategories).length > 0) {
             this.actStore.updateAction(newAction.id, {

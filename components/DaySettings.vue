@@ -1,6 +1,5 @@
 <template>
   <view>
-    <!-- 设置弹窗 -->
     <view v-if="visible" class="popup-overlay">
       <view class="overlay-bg" @click.stop="$emit('close')"></view>
       <view class="modal-panel fade-in" @click.stop>
@@ -9,7 +8,6 @@
           <text class="close-icon" @click.stop="$emit('close')">×</text>
         </view>
         <view class="modal-body settings-body">
-          <!-- 设置开关 -->
           <view class="setting-item" @click="$emit('toggle-auto-timer')">
             <text class="setting-label">保存后自动调起计时器</text>
             <view class="setting-switch" :class="{ on: settings.autoStartTimer }">
@@ -31,7 +29,6 @@
 
           <view class="settings-divider"></view>
 
-          <!-- 计时器默认时间 -->
           <view class="setting-label-row">
             <text class="setting-section-title">计时器默认时间</text>
           </view>
@@ -56,17 +53,16 @@
 
           <view class="settings-divider"></view>
 
-          <!-- 操作按钮 -->
           <view class="setting-actions-row">
             <view class="setting-action manage-action" @click="navigateToManage">
               <text class="action-icon">📋</text>
               <text class="action-label">管理动作</text>
             </view>
-            <view class="setting-action export-action" @click="handleExportData">
+            <view class="setting-action export-action" @click="$emit('export-data')">
               <text class="action-icon">📤</text>
               <text class="action-label">复制数据</text>
             </view>
-            <view class="setting-action import-action" @click="handleImportData">
+            <view class="setting-action import-action" @click="$emit('import-data')">
               <text class="action-icon">📥</text>
               <text class="action-label">导入数据</text>
             </view>
@@ -74,56 +70,31 @@
         </view>
       </view>
     </view>
-
-
   </view>
 </template>
 
-<script>
-  export default {
-    name: 'DaySettings',
-    props: {
-      visible: {
-        type: Boolean,
-        default: false
-      },
-      availableActions: {
-        type: Array,
-        default: () => []
-      },
-      chosenActions: {
-        type: Array,
-        default: () => []
-      },
-      settings: {
-        type: Object,
-        default: () => ({
-          autoStartTimer: false,
-          autoFillData: false
-        })
-      },
+<script setup>
+  const props = defineProps({
+    visible: { type: Boolean, default: false },
+    availableActions: { type: Array, default: () => [] },
+    chosenActions: { type: Array, default: () => [] },
+    settings: {
+      type: Object,
+      default: () => ({ autoStartTimer: false, autoFillData: false })
     },
-    emits: ['close', 'add-action', 'toggle-auto-timer', 'toggle-auto-fill', 'toggle-bubble-fill',
-      'set-heavy-timer', 'set-light-timer', 'export-data', 'import-data'
-    ],
-    data() {
-      return {}
-    },
-    methods: {
-      navigateToManage() {
-        this.$emit('close')
-        const chosen = JSON.stringify(this.chosenActions || [])
-        uni.navigateTo({
-          url: '/pages/manageActions/manageActions?chosenActions=' + encodeURIComponent(chosen)
-        })
-      },
-      handleExportData() {
-        this.$emit('export-data')
-      },
-      handleImportData() {
-        this.$emit('import-data')
-      },
-    },
+  })
+
+  const emit = defineEmits([
+    'close', 'add-action', 'toggle-auto-timer', 'toggle-auto-fill', 'toggle-bubble-fill',
+    'set-heavy-timer', 'set-light-timer', 'export-data', 'import-data'
+  ])
+
+  function navigateToManage() {
+    emit('close')
+    const chosen = JSON.stringify(props.chosenActions || [])
+    uni.navigateTo({
+      url: '/pages/manageActions/manageActions?chosenActions=' + encodeURIComponent(chosen)
+    })
   }
 </script>
 
@@ -168,15 +139,8 @@
   }
 
   @keyframes fadeIn {
-    from {
-      opacity: 0;
-      transform: scale(0.9);
-    }
-
-    to {
-      opacity: 1;
-      transform: scale(1);
-    }
+    from { opacity: 0; transform: scale(0.9); }
+    to { opacity: 1; transform: scale(1); }
   }
 
   .modal-header {
@@ -222,14 +186,6 @@
     padding: 12px 16px;
   }
 
-  .modal-footer {
-    padding: 10px 16px;
-    display: flex;
-    justify-content: center;
-    position: relative;
-  }
-
-  /* 设置页面 */
   .settings-body {
     padding: 8px 0 !important;
   }
@@ -282,7 +238,6 @@
     margin: 4px 16px;
   }
 
-  /* 计时器默认时间输入 */
   .setting-label-row {
     padding: 8px 20px 0;
   }
@@ -384,28 +339,5 @@
   .import-action .action-label {
     font-size: 15px;
     color: var(--text-primary);
-  }
-
-  /* ===== 液态玻璃模式 ===== */
-  .container.liquid-glass .timer-input-wrap {
-    background: var(--glass-bg) !important;
-    border: none !important;
-    box-shadow:
-      0 0 0 0.5px var(--glass-edge) inset,
-      0 1px 3px var(--glass-shadow-inner) inset,
-      0 1px 4px var(--glass-shadow-outer) !important;
-    -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
-    backdrop-filter: blur(12px) saturate(140%) !important;
-  }
-
-  .container.liquid-glass .setting-action {
-    background: var(--glass-bg) !important;
-    border: none !important;
-    box-shadow:
-      0 0 0 0.5px var(--glass-edge) inset,
-      0 1px 3px var(--glass-shadow-inner) inset,
-      0 1px 4px var(--glass-shadow-outer) !important;
-    -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
-    backdrop-filter: blur(12px) saturate(140%) !important;
   }
 </style>

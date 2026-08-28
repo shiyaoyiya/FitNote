@@ -855,24 +855,21 @@ export async function backupData(backupType, dayDataCacheStore, onProgress) {
   if (onProgress) onProgress(80)
 
   try {
-    // 尝试备份到SAF路径
-    let safPath = null
+    let savedPath = null
 
-    // 如果设置了SAF路径，尝试备份到SAF路径
-    if (cfg.defaultPath && cfg.defaultPath.startsWith('content://')) {
-      try {
-        safPath = await writeBackupFile(payload, cfg.defaultPath)
-        if (onProgress) onProgress(100)
-      } catch (safErr) {
-        console.warn('SAF备份失败:', safErr.message)
-      }
+    try {
+      savedPath = await writeBackupFile(payload, cfg.defaultPath)
+      if (onProgress) onProgress(100)
+    } catch (writeErr) {
+      console.error('写入备份文件失败:', writeErr)
+      throw new Error('写入备份文件失败: ' + writeErr.message)
     }
 
     const historyItem = {
       time: nowIso,
       type,
-      safPath: safPath, // SAF路径可能为空
-      path: safPath // 主路径使用SAF路径
+      safPath: savedPath,
+      path: savedPath
     }
 
     const nextCfg = getBackupConfig()
@@ -886,8 +883,8 @@ export async function backupData(backupType, dayDataCacheStore, onProgress) {
     saveBackupConfig(nextCfg)
 
     return {
-      safPath,
-      path: safPath,
+      safPath: savedPath,
+      path: savedPath,
       backupHistory: nextCfg.backupHistory
     }
   } catch (error) {

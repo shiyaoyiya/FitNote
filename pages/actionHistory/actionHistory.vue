@@ -42,15 +42,15 @@
             <view v-for="(entry, eidx) in actionEntries[idx].filter(e => !e.isPlaceholder)" :key="eidx"
               class="entry-row">
               <text class="entry-index">第{{ eidx + 1 }}组：</text>
-              <text class="entry-text">{{ entry.input }}kg</text>
+               <text class="entry-text">{{ getHistoryEntryText(entry) }}</text>
             </view>
           </view>
-          <!-- 第二行：总重 + （增减） -->
-          <text class="total-diff-text">
-            总重：{{ item.totalToday }}kg
+          <!-- 第二行：总重/总次数 + （增减） -->
+          <text v-if="!isBodyweightAction" class="total-diff-text">
+             {{ getTotalDisplayText(item, actionEntries[idx]) }}
             <text v-if="allHist[idx + 1]"
               :class="item.diffValue > 0 ? 'diff-positive' : (item.diffValue < 0 ? 'diff-negative' : 'diff-neutral')">
-              ({{ item.diffValue > 0 ? '+' + item.diffValue + 'kg' : item.diffValue + 'kg' }})
+              {{ getDiffText(item, actionEntries[idx]) }}
             </text>
           </text>
         </view>
@@ -87,7 +87,8 @@
   } from '@/stores/daySettings.js'
   import ProgressChart from '@/components/ProgressChart.vue'
   import {
-    normalizeEntry
+    normalizeEntry,
+    getEntryDisplayText
   } from '@/utils/dayHelper.js'
   export default {
     components: {
@@ -119,7 +120,11 @@
     computed: {
       isAllSelected() {
         return this.historyItems.length > 0 && this.selectedIndices.size === this.historyItems.length
-      }
+      },
+      isBodyweightAction() {
+        const action = this.actStore ? this.actStore.getActionByName(this.actionName) : null
+        return action ? action.bodyweightMode : false
+      },
     },
 
     onLoad(options) {
@@ -243,7 +248,7 @@
 
           output += item.displayDate + '\n'
           realEntries.forEach((entry, eidx) => {
-            output += '第' + (eidx + 1) + '组：' + entry.input + 'kg\n'
+            output += '第' + (eidx + 1) + '组：' + this.getHistoryEntryText(entry) + '\n'
           })
 
           if (i < sortedIndices.length - 1) {
@@ -261,6 +266,33 @@
             this.cancelSelect()
           }
         })
+      },
+
+      /** 获取历史条目显示文本（处理旧格式 + 单位） */
+      getHistoryEntryText(entry) {
+        const normalized = normalizeEntry(entry)
+        return normalized ? getEntryDisplayText(normalized) : (entry.input || '')
+      },
+
+      /** 获取总重/总次数显示文本 */
+      getTotalDisplayText(item, entries) {
+        const realEntries = entries ? entries.filter(e => !e.isPlaceholder) : []
+        const modes = realEntries.map(e => e.bwMode).filter(Boolean)
+        if (modes.some(m => m === 'bodyweight')) {
+          return `总次数：${item.totalToday}`
+        }
+        if (modes.some(m => m === 'weighted')) {
+          return `总重：+${item.totalToday}kg`
+        }
+        return `总重：${item.totalToday}kg`
+      },
+
+      /** 获取差值显示文本 */
+      getDiffText(item, entries) {
+        const realEntries = entries ? entries.filter(e => !e.isPlaceholder) : []
+        const isBW = realEntries.some(e => e.bwMode === 'bodyweight')
+        const sign = item.diffValue > 0 ? '+' : ''
+        return `(${sign}${item.diffValue}${isBW ? '' : 'kg'})`
       },
 
       /** 改名后的处理 */

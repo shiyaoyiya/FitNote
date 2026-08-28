@@ -14,7 +14,8 @@
     <scroll-view class="action-list" scroll-y="true" v-if="!isRestDay && !showChooseTpl">
       <ActionCard v-for="(actName, idx) in chosenActions" :key="actName" :action-name="actName"
         :entries="actionEntries[idx]" :diff="diffs[idx]" :latest-record="actionLatestRecordCache[actName] || null"
-        :bubble-fill="settingsStore.bubbleFill" @confirm-entry="(data) => onConfirmEntry(idx, data)"
+        :bubble-fill="settingsStore.bubbleFill" :is-bodyweight="isBodyweightAction(actName)"
+        @confirm-entry="(data) => onConfirmEntry(idx, data)"
         @update-entry="(data) => onUpdateEntry(idx, data)" @delete-action="handleDeleteAction(idx)"
         @delete-entry="(eIdx) => handleDeleteEntry(idx, eIdx)" @edit-entry="(eIdx) => openEditEntryPopup(idx, eIdx)"
         @go-history="goHistory(idx)" />
@@ -23,7 +24,7 @@
 
     <!-- 底部按钮行 -->
     <view class="save-row" v-if="!isRestDay && !showChooseTpl">
-      <view class="minimal-timer-btn" @click="timerDuration = settingsStore.heavyTimerDuration; showTimer = true">
+      <view class="minimal-timer-btn" @click="timerDuration = lastManualTimerDuration || settingsStore.heavyTimerDuration; showTimer = true">
         <text class="mini-icon">⏱</text>
         <text class="mini-text">开始计时休息</text>
       </view>
@@ -35,7 +36,7 @@
 
     <!-- 计时器组件 -->
     <TimerModal :visible="showTimer" :default-duration="timerDuration" :quick-settings="quickTimerSettings"
-      @close="showTimer = false" @complete="showTimer = false" />
+      @close="showTimer = false" @complete="showTimer = false" @time-change="onTimerTimeChange" />
 
     <!-- 设置组件 -->
     <DaySettings :visible="showSettings" :available-actions="availableActionNames" :chosen-actions="chosenActions"
@@ -55,51 +56,9 @@
     />
 
     <!-- 编辑记录弹窗 -->
-    <view v-if="showEditEntryPopup" class="popup-overlay" @click.self="closeEditEntryPopup">
-      <view class="overlay-bg" @click="closeEditEntryPopup"></view>
-      <view class="modal-panel edit-panel fade-in" @click.stop>
-        <view class="modal-header no-border">
-          <text class="modal-title">编辑记录</text>
-          <text class="close-icon" @click="closeEditEntryPopup">×</text>
-        </view>
-        <view class="modal-body edit-body">
-          <view class="edit-badge">
-            <text>第 {{ editEntryInfo.entryIdx + 1 }} 组</text>
-            <text v-if="editEntryType !== 'normal'" class="entry-type-tag">
-              {{ editEntryType === 'decreasing' ? '🔻 递减' : '⏸ 暂停' }}
-            </text>
-          </view>
-          <view v-if="editEntryStages.length <= 1" class="edit-main-row">
-            <view class="input-item">
-              <input type="digit" v-model="editEntryStages[0].reps" class="big-input" focus />
-              <text class="unit-label">次</text>
-            </view>
-            <text class="x-mark">×</text>
-            <view class="input-item">
-              <input type="digit" v-model="editEntryStages[0].weight" class="big-input" />
-              <text class="unit-label">kg</text>
-            </view>
-          </view>
-          <view v-else class="edit-stages-wrap">
-            <view v-for="(stage, si) in editEntryStages" :key="si" class="edit-stage-row">
-              <text class="stage-label">{{ si === 0 ? '第1组' : '第' + (si + 1) + '组' }}</text>
-              <view class="input-item">
-                <input type="digit" v-model="stage.reps" class="small-input" />
-                <text class="unit-label">次</text>
-              </view>
-              <text class="x-mark">×</text>
-              <view class="input-item">
-                <input type="digit" v-model="stage.weight" class="small-input" />
-                <text class="unit-label">kg</text>
-              </view>
-            </view>
-          </view>
-        </view>
-        <view class="modal-footer no-border">
-          <button class="save-entry-btn" @click="saveEditedEntry">确认修改</button>
-        </view>
-      </view>
-    </view>
+    <EditEntryPopup :visible="showEditEntryPopup" :entry-idx="editEntryInfo.entryIdx"
+      :entry="editEntryInfo.actionIdx >= 0 && editEntryInfo.entryIdx >= 0 ? actionEntries[editEntryInfo.actionIdx]?.[editEntryInfo.entryIdx] : null"
+      @close="closeEditEntryPopup" @save="onEditEntrySave" />
   </view>
 </template>
 
@@ -133,6 +92,7 @@
   import ActionCard from '@/components/ActionCard.vue'
   import DaySettings from '@/components/DaySettings.vue'
   import ImportDataModal from '@/components/ImportDataModal.vue'
+  import EditEntryPopup from '@/components/EditEntryPopup.vue'
   import { mergeImportData, getNewActions, applyMatchSelections } from '@/utils/dataMerger'
 
   export default {
@@ -141,7 +101,8 @@
       TemplateSelector,
       ActionCard,
       DaySettings,
-      ImportDataModal
+      ImportDataModal,
+      EditEntryPopup
     },
     data() {
       return {
@@ -151,7 +112,6 @@
         settingsStore: useDaySettingsStore(),
         date: '',
         DAYDATA_PREFIX: 'fitness_daydata_',
-        TEMPLATES_KEY: 'fitness_templates',
         templates: [],
         // 页面状态
         showChooseTpl: true,
@@ -166,6 +126,7 @@
         // 弹窗状态
         showTimer: false,
         timerDuration: 180,
+        lastManualTimerDuration: null,
         showSettings: false,
         showEditEntryPopup: false,
         showImportModal: false,
@@ -173,11 +134,6 @@
           actionIdx: -1,
           entryIdx: -1
         },
-        editEntryStages: [{
-          reps: '',
-          weight: ''
-        }],
-        editEntryType: 'normal',
         // 差异缓存
         actionLatestRecordCache: {},
         calcDiffTimer: null,
@@ -266,6 +222,10 @@
         this.saveTimer = this.calcDiffTimer = this.loadTimer = null
       },
 
+      onTimerTimeChange(newDuration) {
+        this.lastManualTimerDuration = newDuration
+      },
+
       /* ========== 数据加载 ========== */
       loadDayData() {
         if (this.loadTimer) clearTimeout(this.loadTimer)
@@ -275,8 +235,7 @@
         uni.setNavigationBarTitle({
           title: this.date.replace(/-/g, '/')
         })
-        const tplArr = uni.getStorageSync(this.TEMPLATES_KEY) || []
-        this.templates = Array.isArray(tplArr) ? tplArr : []
+        this.templates = this.templateStore.templates
         this.availableActionNames = this.actionStore.actionNames
         const raw = this.dayDataCacheStore.getDayData(this.date)
         const dayData = {
@@ -323,7 +282,9 @@
         this.actionEntries = this.chosenActions.map(name => {
           const arr = dayData.entries[name]
           if (Array.isArray(arr) && arr.length > 0) {
-            return normalizeEntries(arr)
+            const normalized = normalizeEntries(arr)
+            dayData.actions[name] = getTotalWeight(normalized)
+            return normalized
           }
           // entries 为空或不存在，根据模板 actionSets 生成占位符
           const targetSets = templateActionSets[name] || defaultSetCount
@@ -337,8 +298,6 @@
           return placeholders
         })
         if (needSave) {
-          const key = this.DAYDATA_PREFIX + this.date
-          uni.setStorageSync(key, dayData)
           this.dayDataCacheStore.saveDayData(this.date, dayData)
         }
 
@@ -422,8 +381,7 @@
       saveEntryToStorage(idx) {
         const actName = this.chosenActions[idx]
         const todayDateStr = this.formatDateStr(new Date(this.date))
-        const key = this.DAYDATA_PREFIX + todayDateStr
-        const raw = uni.getStorageSync(key) || {}
+        const raw = this.dayDataCacheStore.getDayData(todayDateStr)
         const dayData = {
           templates: raw.templates || {},
           actions: raw.actions || {},
@@ -448,8 +406,7 @@
         this.saveTimer = setTimeout(() => this.saveEntryToStorage(idx), 200)
       },
       persistOrder() {
-        const key = this.DAYDATA_PREFIX + this.date
-        const raw = uni.getStorageSync(key) || {}
+        const raw = this.dayDataCacheStore.getDayData(this.date)
         const dayData = {
           templates: {},
           actions: {},
@@ -459,18 +416,22 @@
         const tplInfo = dayData.templates[this.chosenTplName] || {}
         tplInfo.actionOrder = [...this.chosenActions]
         dayData.templates[this.chosenTplName] = tplInfo
-        uni.setStorageSync(key, dayData)
         this.dayDataCacheStore.saveDayData(this.date, dayData)
       },
 
       /* ========== 卡片事件处理 ========== */
+      isBodyweightAction(actName) {
+        const action = this.actionStore.getActionByName(actName)
+        return action ? action.bodyweightMode : false
+      },
       onConfirmEntry(idx, {
         type,
-        stages
+        stages,
+        bwMode,
       }) {
         const actName = this.chosenActions[idx]
         const isUnilateral = this.actionStore.getActionByName(actName)?.isUnilateral || false
-        const entry = buildEntry(type, stages, isUnilateral)
+        const entry = buildEntry(type, stages, isUnilateral, bwMode)
         if (!entry) {
           uni.showToast({
             title: '请输入次数',
@@ -559,8 +520,7 @@
         this.chosenActions.splice(idx, 1)
         this.diffs.splice(idx, 1)
         this.actionEntries.splice(idx, 1)
-        const key = this.DAYDATA_PREFIX + this.date
-        const raw = uni.getStorageSync(key) || {}
+        const raw = this.dayDataCacheStore.getDayData(this.date)
         const dayData = {
           templates: {},
           actions: {},
@@ -578,14 +538,11 @@
           actionWeights: {},
           totalWeight: 0
         }
-        tplInfo.actionWeights = {
-          ...actionWeights
-        }
+        tplInfo.actionWeights = { ...actionWeights }
         tplInfo.totalWeight = Object.values(actionWeights).reduce((a, b) => a + b, 0)
         const order = Array.isArray(tplInfo.actionOrder) ? tplInfo.actionOrder : []
         tplInfo.actionOrder = order.filter(name => name !== actNameToRemove)
         dayData.templates[this.chosenTplName] = tplInfo
-        uni.setStorageSync(key, dayData)
         this.dayDataCacheStore.saveDayData(this.date, dayData)
         uni.showToast({
           title: `已删除动作：${actNameToRemove}`,
@@ -602,65 +559,26 @@
 
       /* ========== 编辑记录弹窗 ========== */
       openEditEntryPopup(actionIdx, entryIdx) {
-        this.editEntryInfo = {
-          actionIdx,
-          entryIdx
-        }
-        const entry = this.actionEntries[actionIdx][entryIdx]
-        if (entry.stages && entry.stages.length > 0) {
-          this.editEntryStages = entry.stages.map(s => ({
-            reps: String(s.reps),
-            weight: s.weight > 0 ? String(s.weight) : ''
-          }))
-          this.editEntryType = entry.type || ENTRY_TYPE.NORMAL
-        } else {
-          const [reps, weight] = (entry.input || '').split('×')
-          this.editEntryStages = [{
-            reps,
-            weight: weight || ''
-          }]
-          this.editEntryType = ENTRY_TYPE.NORMAL
-        }
+        this.editEntryInfo = { actionIdx, entryIdx }
         this.showEditEntryPopup = true
       },
       closeEditEntryPopup() {
         this.showEditEntryPopup = false
-        this.editEntryInfo = {
-          actionIdx: -1,
-          entryIdx: -1
-        }
-        this.editEntryStages = [{
-          reps: '',
-          weight: ''
-        }]
-        this.editEntryType = ENTRY_TYPE.NORMAL
+        this.editEntryInfo = { actionIdx: -1, entryIdx: -1 }
       },
-      saveEditedEntry() {
-        const {
-          actionIdx,
-          entryIdx
-        } = this.editEntryInfo
-        const stages = this.editEntryStages
-        if (!stages[0].reps || Number(stages[0].reps) <= 0) {
-          uni.showToast({
-            title: '请输入次数',
-            icon: 'none'
-          })
-          return
-        }
+      onEditEntrySave({ stages, type }) {
+        const { actionIdx, entryIdx } = this.editEntryInfo
         const actName = this.chosenActions[actionIdx]
         const isUnilateral = this.actionStore.getActionByName(actName)?.isUnilateral || false
-        const entry = buildEntry(this.editEntryType, stages, isUnilateral)
+        const existingEntry = this.actionEntries[actionIdx]?.[entryIdx]
+        const bwMode = existingEntry?.bwMode
+        const entry = buildEntry(type, stages, isUnilateral, bwMode)
         if (!entry) return
         this.$set(this.actionEntries[actionIdx], entryIdx, entry)
         this.saveEntryToStorage(actionIdx)
         this.calcDiffForSingleAction(actionIdx)
         this.closeEditEntryPopup()
-        uni.showToast({
-          title: '修改成功',
-          icon: 'success',
-          duration: 1000
-        })
+        uni.showToast({ title: '修改成功', icon: 'success', duration: 1000 })
       },
 
       /* ========== 模板选择事件 ========== */
@@ -675,8 +593,8 @@
         this.chosenTplName = this.templates[idx].name
         this.chosenTplColor = this.templates[idx].color
         const key = this.DAYDATA_PREFIX + this.date
-        const raw = uni.getStorageSync(key) || {}
-        const dayData = typeof raw === 'object' ? raw : {}
+        const raw = this.dayDataCacheStore.getDayData(this.date)
+        const dayData = typeof raw === 'object' ? { ...raw } : {}
         dayData.templates = dayData.templates || {}
         const dayTpl = dayData.templates[this.chosenTplName] || {}
         let available = []
@@ -752,7 +670,6 @@
           dayData.templates[this.chosenTplName] = dayTpl
         }
 
-        uni.setStorageSync(key, dayData)
         this.dayDataCacheStore.saveDayData(this.date, dayData)
 
         this.showChooseTpl = false
@@ -764,12 +681,10 @@
           uni.hideLoading()
         })
       },
-      onSaveAerobic({
-        name,
-        time
-      }) {
-        const key = this.DAYDATA_PREFIX + this.date
-        const raw = uni.getStorageSync(key) || {}
+      onSaveAerobic({ name, time }) {
+        // 保存有氧名称到模板 store（用于常用有氧历史）
+        this.templateStore.addAerobic(name)
+        const raw = this.dayDataCacheStore.getDayData(this.date)
         const dayData = {
           templates: {},
           actions: {},
@@ -781,35 +696,24 @@
           actionWeights: {},
           isAerobic: true
         }
-        uni.setStorageSync(key, dayData)
-        uni.showToast({
-          title: '已添加有氧',
-          icon: 'success'
-        })
-        this.showChooseTpl = false
+        this.dayDataCacheStore.saveDayData(this.date, dayData)
+        uni.showToast({ title: '已添加有氧', icon: 'success' })
+        setTimeout(() => {
+          uni.navigateBack()
+        }, 500)
       },
       onSaveRestDay(reason) {
-        const key = this.DAYDATA_PREFIX + this.date
-        const raw = uni.getStorageSync(key) || {}
-        const dayData = {
-          ...raw
-        }
+        const raw = this.dayDataCacheStore.getDayData(this.date)
+        const dayData = { ...raw }
         dayData.isRestDay = true
         dayData.templates = {
-          [reason]: {
-            totalWeight: 0,
-            actionWeights: {}
-          }
+          [reason]: { totalWeight: 0, actionWeights: {} }
         }
-        uni.setStorageSync(key, dayData)
         this.dayDataCacheStore.saveDayData(this.date, dayData)
-        uni.showToast({
-          title: '已标记休息日',
-          icon: 'success'
-        })
-        this.showChooseTpl = false
-        this.isRestDay = true
-        this.restReasonStored = reason
+        uni.showToast({ title: '已标记休息日', icon: 'success' })
+        setTimeout(() => {
+          uni.navigateBack()
+        }, 500)
       },
 
       onCloseTemplateSelector() {
@@ -847,13 +751,9 @@
           return
         }
         this.chosenActions.push(actName)
-        this.diffs.push({
-          text: '未记录',
-          class: 'diff-neutral'
-        })
+        this.diffs.push({ text: '未记录', class: 'diff-neutral' })
         this.actionEntries.push([])
-        const dayKey = this.DAYDATA_PREFIX + this.date
-        const raw = uni.getStorageSync(dayKey) || {}
+        const raw = this.dayDataCacheStore.getDayData(this.date)
         const dayData = {
           ...raw,
           templates: raw.templates || {},
@@ -871,11 +771,8 @@
         tplInfo.totalWeight = Object.values(tplInfo.actionWeights).reduce((a, b) => (a + (Number(b) || 0)), 0)
         tplInfo.actionOrder = [...this.chosenActions]
         dayData.templates[this.chosenTplName] = tplInfo
-        uni.setStorageSync(dayKey, dayData)
-        uni.showToast({
-          title: `已添加：${actName}`,
-          icon: 'success'
-        })
+        this.dayDataCacheStore.saveDayData(this.date, dayData)
+        uni.showToast({ title: `已添加：${actName}`, icon: 'success' })
       },
       onSaveSort(newOrder) {
         console.log('[day] onSaveSort called, newOrder:', newOrder)
@@ -892,8 +789,7 @@
               class: 'diff-neutral'
             })
             // 持久化新动作
-            const dayKey = this.DAYDATA_PREFIX + this.date
-            const raw = uni.getStorageSync(dayKey) || {}
+            const raw = this.dayDataCacheStore.getDayData(this.date)
             const dayData = {
               ...raw,
               templates: raw.templates || {},
@@ -911,7 +807,6 @@
             tplInfo.totalWeight = Object.values(tplInfo.actionWeights).reduce((a, b) => (a + (Number(b) || 0)), 0)
             tplInfo.actionOrder = [...this.chosenActions]
             dayData.templates[this.chosenTplName] = tplInfo
-            uni.setStorageSync(dayKey, dayData)
             this.dayDataCacheStore.saveDayData(this.date, dayData)
           }
         })
@@ -1108,11 +1003,40 @@
       },
 
       applyMergedData(mergedData) {
-        // 更新页面数据
+        // 更新页面数据 - 导入的数据优先填充占位符
         this.chosenActions.forEach((actName, idx) => {
-          if (mergedData.entries[actName]) {
-            this.$set(this.actionEntries, idx, mergedData.entries[actName])
+          const mergedEntries = mergedData.entries[actName]
+          if (!mergedEntries || mergedEntries.length === 0) return
+
+          const currentEntries = [...(this.actionEntries[idx] || [])]
+
+          // 分离：当前有效条目 vs 占位符
+          const existingValid = currentEntries.filter(e => !isPlaceholderEntry(e))
+          const placeholderCount = currentEntries.filter(e => isPlaceholderEntry(e)).length
+
+          // mergedEntries 已包含：现有有效条目 + 新导入条目（无占位符）
+          // 提取新导入的条目（mergedEntries 中超出 existingValid 数量的部分）
+          const newEntries = mergedEntries.slice(existingValid.length)
+
+          // 构建结果：先放现有有效条目，再用新导入数据填充占位符位置
+          const result = [...existingValid]
+
+          // 用新导入数据填充占位符
+          for (let i = 0; i < placeholderCount && i < newEntries.length; i++) {
+            result.push(newEntries[i])
           }
+
+          // 如果新导入数据比占位符多，追加到末尾
+          for (let i = placeholderCount; i < newEntries.length; i++) {
+            result.push(newEntries[i])
+          }
+
+          // 如果占位符比新导入数据多，补回剩余占位符
+          for (let i = newEntries.length; i < placeholderCount; i++) {
+            result.push(createPlaceholderEntry())
+          }
+
+          this.$set(this.actionEntries, idx, result)
         })
 
         // 保存到本地存储
@@ -1133,49 +1057,6 @@
 </script>
 
 <style scoped>
-  /* ========== CSS 变量定义（支持浅色模式） ========== */
-  .container {
-    --bg-primary: #121212;
-    --bg-secondary: #1e1e1e;
-    --bg-tertiary: #242424;
-    --bg-card: #242424;
-    --bg-input: #1a1a1a;
-    --bg-btn: #121212;
-    --border-color: #333;
-    --border-light: rgba(255, 255, 255, 0.1);
-    --text-primary: #f7f7f7;
-    --text-secondary: #999;
-    --text-muted: #666;
-    --text-placeholder: #555;
-    --text-btn: #f5f5f5;
-    --icon-bg: #ffffff;
-    --icon-color: #191919;
-    --divider-color: #555;
-    --tag-bg: #242424;
-    --shadow-color: rgba(0, 0, 0, 0.2);
-  }
-
-  .container.light {
-    --bg-primary: #f5f5f5;
-    --bg-secondary: #ffffff;
-    --bg-tertiary: #f0f0f0;
-    --bg-card: #ffffff;
-    --bg-input: #ffffff;
-    --bg-btn: #ffffff;
-    --border-color: #e0e0e0;
-    --border-light: #e0e0e0;
-    --text-primary: #333333;
-    --text-secondary: #666666;
-    --text-muted: #999999;
-    --text-placeholder: #cccccc;
-    --text-btn: #333333;
-    --icon-bg: #ffffff;
-    --icon-color: #ffffff;
-    --divider-color: #e0e0e0;
-    --tag-bg: #ffffff;
-    --shadow-color: rgba(0, 0, 0, 0.08);
-  }
-
   .container.light .save-row {
     background: #f5f5f5 !important;
   }
@@ -1379,126 +1260,5 @@
   .no-border::after,
   .no-border::before {
     display: none !important;
-  }
-
-  /* ========== 编辑弹窗 ========== */
-  .edit-panel {
-    width: 70vw !important;
-    border-radius: 20px !important;
-    box-shadow: 0 20px 40px var(--shadow-color);
-  }
-
-  .edit-body {
-    padding: 10px 20px 30px !important;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-  }
-
-  .edit-badge {
-    background: rgba(55, 155, 255, 0.1);
-    padding: 4px 12px;
-    border-radius: 100px;
-    margin-bottom: 24px;
-  }
-
-  .edit-badge text {
-    font-size: 13px;
-    color: #379bff;
-    font-weight: bold;
-  }
-
-  .entry-type-tag {
-    margin-left: 6px;
-    font-size: 11px;
-    color: #ff8c00;
-  }
-
-  .edit-stages-wrap {
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-  }
-
-  .edit-stage-row {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-  }
-
-  .stage-label {
-    font-size: 12px;
-    color: var(--text-secondary);
-    min-width: 36px;
-    text-align: right;
-  }
-
-  .small-input {
-    width: 60px;
-    height: 44px;
-    background: var(--bg-input);
-    border: 1rpx solid var(--border-color);
-    border-radius: 10px;
-    text-align: center;
-    font-size: 18px;
-    font-weight: bold;
-    color: var(--text-primary);
-  }
-
-  .edit-main-row {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 15px;
-  }
-
-  .input-item {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 8px;
-  }
-
-  .big-input {
-    width: 80px;
-    height: 60px;
-    background: var(--bg-input);
-    border: 1rpx solid var(--border-color);
-    border-radius: 12px;
-    text-align: center;
-    font-size: 24px;
-    font-weight: bold;
-    color: var(--text-primary);
-  }
-
-  .unit-label {
-    font-size: 12px;
-    color: var(--text-secondary);
-  }
-
-  .x-mark {
-    font-size: 20px;
-    color: var(--text-muted);
-    margin-top: -20px;
-  }
-
-  .edit-stage-row .x-mark {
-    margin-top: 0;
-  }
-
-  .save-entry-btn {
-    width: 100% !important;
-    height: 50px !important;
-    line-height: 50px !important;
-    background: linear-gradient(135deg, #379bff, #2d82d6) !important;
-    border-radius: 12px !important;
-    font-size: 16px !important;
-    font-weight: bold;
-    margin-bottom: 10px;
-    border: none;
-    box-shadow: 0 4px 12px rgba(55, 155, 255, 0.3);
-    color: #ffffff;
   }
 </style>

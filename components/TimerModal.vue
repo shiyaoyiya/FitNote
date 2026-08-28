@@ -29,20 +29,11 @@
   export default {
     name: 'TimerModal',
     props: {
-      visible: {
-        type: Boolean,
-        default: false
-      },
-      defaultDuration: {
-        type: Number,
-        default: 180
-      },
-      quickSettings: {
-        type: Array,
-        default: null
-      },
+      visible: { type: Boolean, default: false },
+      defaultDuration: { type: Number, default: 180 },
+      quickSettings: { type: Array, default: null },
     },
-    emits: ['close', 'complete'],
+    emits: ['close', 'complete', 'time-change'],
     data() {
       return {
         totalDuration: 180,
@@ -61,16 +52,9 @@
     computed: {
       computedQuickSettings() {
         if (this.quickSettings && this.quickSettings.length > 0) return this.quickSettings
-        return [{
-            label: '胸背腿',
-            seconds: 180,
-            timeText: '3:00'
-          },
-          {
-            label: '肩手',
-            seconds: 120,
-            timeText: '2:00'
-          },
+        return [
+          { label: '胸背腿', seconds: 180, timeText: '3:00' },
+          { label: '肩手', seconds: 120, timeText: '2:00' },
         ]
       },
       displayTime() {
@@ -84,9 +68,7 @@
     },
     watch: {
       visible(val) {
-        if (val) {
-          this.initTimer()
-        }
+        if (val) this.initTimer()
       },
     },
     created() {
@@ -107,12 +89,11 @@
         const isWx = typeof wx !== 'undefined' && wx.canIUse
         const hasCreateCanvasContext = typeof uni.createCanvasContext === 'function'
         this.isMiniProgram = isWx && hasCreateCanvasContext
-        console.log('Timer Modal - Platform detection - isMiniProgram:', this.isMiniProgram)
       },
       initTimer() {
-        const initialDuration = this.defaultDuration > 0 ?
-          this.defaultDuration :
-          uni.getStorageSync('fitness_timer_duration') || 180
+        const initialDuration = this.defaultDuration > 0
+          ? this.defaultDuration
+          : uni.getStorageSync('fitness_timer_duration') || 180
         this.totalDuration = initialDuration
         this.remaining = initialDuration
         this.selectedQuickSeconds = initialDuration
@@ -125,8 +106,6 @@
       initCanvas() {
         this.detectPlatform()
 
-        const size = 250
-
         if (this.isMiniProgram) {
           this.ctx = uni.createCanvasContext('timerCanvas', this)
           this.drawCircle()
@@ -134,11 +113,13 @@
         } else {
           const canvas = document.getElementById('timerCanvas')
           if (!canvas) {
-            console.warn('Timer canvas element not found')
+            // Canvas 未找到也要启动计时
+            this.startCountdown()
             return
           }
 
           this.canvasNode = canvas
+          const size = 250
           const pixelRatio = window.devicePixelRatio || 1
 
           canvas.width = size * pixelRatio
@@ -178,11 +159,7 @@
           this.clearTimer()
           uni.vibrateLong()
           this.audioCtx && this.audioCtx.play()
-          uni.showToast({
-            title: '计时结束',
-            icon: 'none',
-            duration: 2000
-          })
+          uni.showToast({ title: '计时结束', icon: 'none', duration: 2000 })
         }
       },
       setQuickTime(seconds) {
@@ -194,6 +171,7 @@
         this.notified = false
         this.endTimestamp = Date.now() + seconds * 1000
         this.startCountdown()
+        this.$emit('time-change', seconds)
       },
       adjustDuration(delta) {
         uni.vibrateShort()
@@ -204,6 +182,7 @@
         this.notified = false
         this.endTimestamp = Date.now() + this.remaining * 1000
         this.drawCircle()
+        this.$emit('time-change', this.totalDuration)
       },
       completeTimer() {
         this.clearTimer()
@@ -219,31 +198,51 @@
 
         this.ctx.clearRect(0, 0, size, size)
 
-        this.ctx.setStrokeStyle('rgba(255, 255, 255, 0.1)')
-        this.ctx.setLineWidth(14)
-        this.ctx.beginPath()
-        this.ctx.arc(cx, cy, r, 0, 2 * Math.PI)
-        this.ctx.stroke()
-
-        const percent = this.totalDuration > 0 ? this.remaining / this.totalDuration : 0
-        const startAngle = Math.PI * 1.5
-        const endAngle = startAngle + 2 * Math.PI * percent
-
-        this.ctx.setStrokeStyle('#379bff')
-        this.ctx.setLineWidth(17)
-
         if (this.isMiniProgram) {
+          // 小程序 CanvasContext API
+          this.ctx.setStrokeStyle('rgba(255, 255, 255, 0.1)')
+          this.ctx.setLineWidth(14)
+          this.ctx.beginPath()
+          this.ctx.arc(cx, cy, r, 0, 2 * Math.PI)
+          this.ctx.stroke()
+
+          const percent = this.totalDuration > 0 ? this.remaining / this.totalDuration : 0
+          const startAngle = Math.PI * 1.5
+          const endAngle = startAngle + 2 * Math.PI * percent
+
+          this.ctx.setStrokeStyle('#379bff')
+          this.ctx.setLineWidth(17)
           this.ctx.setShadow(0, 0, 7, '#379bff')
+
+          this.ctx.beginPath()
+          this.ctx.arc(cx, cy, r, startAngle, endAngle, false)
+          this.ctx.stroke()
+
+          if (this.ctx.draw) {
+            this.ctx.draw()
+          }
         } else {
-          this.ctx.setShadow(0, 0, 15, '#379bff')
-        }
+          // 标准 Canvas 2D API (H5/APP)
+          this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)'
+          this.ctx.lineWidth = 14
+          this.ctx.beginPath()
+          this.ctx.arc(cx, cy, r, 0, 2 * Math.PI)
+          this.ctx.stroke()
 
-        this.ctx.beginPath()
-        this.ctx.arc(cx, cy, r, startAngle, endAngle, false)
-        this.ctx.stroke()
+          const percent = this.totalDuration > 0 ? this.remaining / this.totalDuration : 0
+          const startAngle = Math.PI * 1.5
+          const endAngle = startAngle + 2 * Math.PI * percent
 
-        if (this.ctx.draw) {
-          this.ctx.draw()
+          this.ctx.strokeStyle = '#379bff'
+          this.ctx.lineWidth = 17
+          this.ctx.shadowColor = '#379bff'
+          this.ctx.shadowBlur = 15
+
+          this.ctx.beginPath()
+          this.ctx.arc(cx, cy, r, startAngle, endAngle, false)
+          this.ctx.stroke()
+
+          this.ctx.shadowBlur = 0
         }
       },
     },
@@ -281,13 +280,8 @@
   }
 
   @keyframes fadeIn {
-    from {
-      opacity: 0;
-    }
-
-    to {
-      opacity: 1;
-    }
+    from { opacity: 0; }
+    to { opacity: 1; }
   }
 
   .timer-panel {

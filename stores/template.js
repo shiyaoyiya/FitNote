@@ -15,10 +15,13 @@ export const useTemplateStore = defineStore('template', {
   actions: {
     /** 从本地读取所有模板 */
     load() {
-      console.log('【模板加载】开始读取本地存储，key:', STORAGE_KEY)
-      const arr = uni.getStorageSync(STORAGE_KEY)
-      console.log('【模板加载】本地存储原始数据:', arr) // 关键：看本地是否还有原有数据
-      this.templates = Array.isArray(arr) ? arr : []
+      try {
+        const arr = uni.getStorageSync(STORAGE_KEY)
+        this.templates = Array.isArray(arr) ? arr : []
+      } catch (e) {
+        console.error('加载模板数据失败:', e)
+        this.templates = []
+      }
       console.log('【模板加载】处理后templates:', this.templates)
 
       // 兼容老数据：如果模板没有 id，则给它补 id

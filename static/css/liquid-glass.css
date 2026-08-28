@@ -975,6 +975,24 @@ html .container.liquid-glass.light .custom-color-card {
   color: var(--glass-text) !important;
 }
 
+/* 有氧/休息日详情输入框液态玻璃适配 */
+.container.liquid-glass .detail-input {
+  background: var(--glass-bg) !important;
+  border: none !important;
+  border-radius: 12px !important;
+  box-shadow:
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 3px var(--glass-shadow-inner) inset,
+    0 1px 4px var(--glass-shadow-outer) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
+  backdrop-filter: blur(12px) saturate(140%) !important;
+}
+
+/* 纪念日列表液态玻璃适配 */
+.container.liquid-glass .anniv-list-container {
+  padding-bottom: calc(75px + 20px + 20px + env(safe-area-inset-bottom, 0px)) !important;
+}
+
 /* 纪念日弹窗 input */
 .container.liquid-glass .action-input {
   background: var(--glass-bg) !important;

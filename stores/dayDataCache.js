@@ -25,7 +25,9 @@ export const useDayDataCacheStore = defineStore('dayDataCache', {
     // 最大缓存条目数（防止内存溢出）
     MAX_CACHE_SIZE: 500,
     // 缓存淘汰时的保留数量
-    CACHE_TRIM_SIZE: 100
+    CACHE_TRIM_SIZE: 100,
+    // 数据版本号，每次 saveDayData 递增，用于触发 computed 重算
+    cacheVersion: 0
   }),
 
   getters: {
@@ -49,15 +51,16 @@ export const useDayDataCacheStore = defineStore('dayDataCache', {
         return this.cache.get(dateStr)
       }
       // 缓存中没有，从 storage 读取
-      const key = DAYDATA_PREFIX + dateStr
-      const dayData = uni.getStorageSync(key)
-      if (dayData && Object.keys(dayData).length > 0) {
-        console.log(`getDayData: ${dateStr} 有数据`, Object.keys(dayData))
+      try {
+        const key = DAYDATA_PREFIX + dateStr
+        const dayData = uni.getStorageSync(key)
+        this.cache.set(dateStr, dayData || {})
+        this.trimCacheAsync()
+        return dayData || {}
+      } catch (e) {
+        console.error(`读取日期数据失败: ${dateStr}`, e)
+        return {}
       }
-      this.cache.set(dateStr, dayData || {})
-      // trimCache 会在后台运行
-      this.trimCacheAsync()
-      return dayData || {}
     },
 
     // 批量查询多个动作的最近一次训练记录
@@ -76,10 +79,13 @@ export const useDayDataCacheStore = defineStore('dayDataCache', {
         if (!data || !data.entries) continue
         for (const actName of remaining) {
           if (data.entries[actName] && data.entries[actName].length > 0) {
+            const entries = data.entries[actName]
+            const computedTotal = entries.reduce((sum, e) => sum + (e.total || 0), 0)
+            if (computedTotal <= 0) continue
             results[actName] = {
               date: dateStr,
-              total: data.actions?.[actName] || 0,
-              entry: data.entries[actName],
+              total: data.actions?.[actName] != null ? data.actions[actName] : Math.round(computedTotal * 100) / 100,
+              entry: entries,
             }
             remaining.delete(actName)
           }
@@ -91,7 +97,12 @@ export const useDayDataCacheStore = defineStore('dayDataCache', {
     // 保存单个日期的数据（同时更新缓存和 storage）
     saveDayData(dateStr, dayData) {
       this.cache.set(dateStr, dayData)
-      uni.setStorageSync(DAYDATA_PREFIX + dateStr, dayData)
+      try {
+        uni.setStorageSync(DAYDATA_PREFIX + dateStr, dayData)
+      } catch (e) {
+        console.error(`保存日期数据失败: ${dateStr}`, e)
+      }
+      this.cacheVersion++
       // 判断是否有实际活动数据
       const hasActivityData = this.checkHasActivity(dayData)
       if (hasActivityData) {

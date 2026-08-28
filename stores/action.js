@@ -104,6 +104,7 @@ function normalizeAction(raw) {
     categoryName: getCategoryName(categories[0]),
     createdAt,
     isUnilateral: raw.isUnilateral || false,
+    bodyweightMode: raw.bodyweightMode || false,
   }
 }
 
@@ -141,25 +142,35 @@ export const useActionStore = defineStore('action', {
 
   actions: {
     load() {
-      const raw = uni.getStorageSync(STORAGE_KEY) || []
-      if (!Array.isArray(raw)) {
+      try {
+        const raw = uni.getStorageSync(STORAGE_KEY) || []
+        if (!Array.isArray(raw)) {
+          this.actions = []
+          return
+        }
+        if (raw.length > 0 && typeof raw[0] === 'string') {
+          this.migrateFromLegacy(raw)
+        } else if (raw.length > 0 && typeof raw[0] === 'object') {
+          this.actions = raw.map(a => normalizeAction(a))
+        } else {
+          this.initActions()
+        }
+      } catch (e) {
+        console.error('加载动作数据失败:', e)
         this.actions = []
-        return
-      }
-      if (raw.length > 0 && typeof raw[0] === 'string') {
-        this.migrateFromLegacy(raw)
-      } else if (raw.length > 0 && typeof raw[0] === 'object') {
-        this.actions = raw.map(a => normalizeAction(a))
-      } else {
         this.initActions()
       }
     },
 
     save() {
-      uni.setStorageSync(STORAGE_KEY, this.actions)
+      try {
+        uni.setStorageSync(STORAGE_KEY, this.actions)
+      } catch (e) {
+        console.error('保存动作数据失败:', e)
+      }
     },
 
-    addAction(name, categoryIds) {
+    addAction(name, categoryIds, bodyweightMode = false) {
       if (!name) return
       const exists = this.actions.some(a => a.name === name)
       if (exists) return
@@ -178,6 +189,7 @@ export const useActionStore = defineStore('action', {
         categoryName: getCategoryName(catIds[0]),
         createdAt: new Date().toISOString(),
         isUnilateral: false,
+        bodyweightMode,
       })
       this.save()
     },
@@ -195,7 +207,7 @@ export const useActionStore = defineStore('action', {
       this.save()
     },
 
-    updateAction(id, { name, categories, subcategories, isUnilateral }) {
+    updateAction(id, { name, categories, subcategories, isUnilateral, bodyweightMode }) {
       const action = this.actions.find(a => a.id === id)
       if (!action) return
       if (name && name !== action.name) {
@@ -214,6 +226,9 @@ export const useActionStore = defineStore('action', {
       }
       if (typeof isUnilateral === 'boolean') {
         action.isUnilateral = isUnilateral
+      }
+      if (typeof bodyweightMode === 'boolean') {
+        action.bodyweightMode = bodyweightMode
       }
       this.save()
     },

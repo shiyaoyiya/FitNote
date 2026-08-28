@@ -45,14 +45,15 @@ export function createStage(reps, weight, isUnilateral = false) {
  * @param {boolean} isUnilateral - 是否单侧动作
  * @returns {object} entry
  */
-export function buildEntry(type, stages, isUnilateral = false) {
+export function buildEntry(type, stages, isUnilateral = false, bwMode) {
   const builtStages = stages
     .filter(s => s.reps && Number(s.reps) > 0)
     .map(s => createStage(s.reps, s.weight, isUnilateral))
 
   if (builtStages.length === 0) return null
 
-  const total = builtStages.reduce((sum, s) => sum + s.total, 0)
+  let total = builtStages.reduce((sum, s) => sum + s.total, 0)
+  if (bwMode === 'assisted') total = -Math.abs(total)
 
   // 构建显示字符串
   const stageStrings = builtStages.map(s =>
@@ -65,6 +66,7 @@ export function buildEntry(type, stages, isUnilateral = false) {
     total,
     type: type || ENTRY_TYPE.NORMAL,
     stages: builtStages,
+    ...(bwMode ? { bwMode } : {}),
   }
 }
 
@@ -73,9 +75,12 @@ export function buildEntry(type, stages, isUnilateral = false) {
  */
 export function getEntryDisplayText(entry) {
   if (!entry || !entry.stages || entry.stages.length === 0) return ''
-  const stageStrings = entry.stages.map(s =>
-    s.weight > 0 ? `${s.reps}×${s.weight}kg` : `${s.reps}个`
-  )
+  const stageStrings = entry.stages.map(s => {
+    if (entry.bwMode === 'bodyweight') return `${s.reps}次`
+    if (entry.bwMode === 'assisted') return `${s.reps}次(-${s.weight}kg)`
+    if (entry.bwMode === 'weighted') return `${s.reps}次(+${s.weight}kg)`
+    return s.weight > 0 ? `${s.reps}×${s.weight}kg` : `${s.reps}次`
+  })
   let text = stageStrings.join('+')
   if (entry.type === ENTRY_TYPE.DECREASING) text += ' 🔻递减'
   else if (entry.type === ENTRY_TYPE.PAUSED) text += ' ⏸暂停'
@@ -128,6 +133,7 @@ export function normalizeEntry(entry) {
     total: entry.total,
     type: ENTRY_TYPE.NORMAL,
     stages,
+    ...(entry.bwMode ? { bwMode: entry.bwMode } : {}),
   }
 }
 

@@ -113,7 +113,8 @@ const RAW_ACTIONS = [
     subcategories: {
       chest: ['mid_lower_chest'],
       arms: ['triceps']
-    }
+    },
+    bodyweightMode: true
   },
   {
     name: '下斜器械推胸',
@@ -144,7 +145,8 @@ const RAW_ACTIONS = [
     categories: ['back'],
     subcategories: {
       back: ['teres_major']
-    }
+    },
+    bodyweightMode: true
   },
   {
     name: '宽距高位下拉',
@@ -243,14 +245,16 @@ const RAW_ACTIONS = [
     categories: ['back'],
     subcategories: {
       back: ['lats']
-    }
+    },
+    bodyweightMode: true
   },
   {
     name: '反握引体向上',
     categories: ['back'],
     subcategories: {
       back: ['lats']
-    }
+    },
+    bodyweightMode: true
   },
   {
     name: '反握高位下拉',
@@ -952,6 +956,7 @@ export function getInitialActions() {
     categoryName: getCategoryName(raw.categories[0]),
     createdAt: new Date().toISOString(),
     isUnilateral: raw.isUnilateral || false,
+    bodyweightMode: raw.bodyweightMode || false,
   }))
 }
 

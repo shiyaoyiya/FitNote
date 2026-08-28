@@ -8,9 +8,9 @@
         <view class="input-pair">
           <input type="digit" v-model="mainReps" placeholder="次数" class="input-reps"
             @focus="onInputFocus('reps')" @blur="onInputBlur" />
-          <text class="input-mult">×</text>
-          <input type="digit" v-model="mainWeight" placeholder="kg" class="input-weight"
-            @focus="onInputFocus('weight')" @blur="onInputBlur" />
+          <text v-if="!isBodyweight || currentBWMode !== 'bodyweight'" class="input-mult">×</text>
+          <input type="digit" v-model="mainWeight" :placeholder="weightPlaceholder" class="input-weight"
+            @focus="onInputFocus('weight')" @blur="onInputBlur" v-if="!isBodyweight || currentBWMode !== 'bodyweight'" />
         </view>
         <button class="confirm-btn" @click="confirmEntry">✓️</button>
       </view>
@@ -21,13 +21,26 @@
       <text class="bubble-text">{{ bubbleContent }}</text>
     </view>
 
-    <!-- 组类型选择 + 展开 -->
+    <!-- 组类型选择 + 自重模式 + 展开 -->
     <view class="type-selector">
       <view class="type-btn" :class="{ 'type-btn-active': entryType === 'normal' }" @click="selectType('normal')">
         <text :class="{ 'type-text-active': entryType === 'normal' }">正常组</text>
       </view>
       <view class="type-btn" :class="{ 'type-btn-active': entryType === 'composite' }" @click="selectType('composite')">
         <text :class="{ 'type-text-active': entryType === 'composite' }">复合组</text>
+      </view>
+      <view v-if="isBodyweight" class="bw-mode-divider"></view>
+      <view v-if="isBodyweight" class="bw-mode-btn" :class="{ 'bw-mode-active': currentBWMode === 'bodyweight' }"
+        @click="currentBWMode = 'bodyweight'">
+        <text :class="{ 'bw-text-active': currentBWMode === 'bodyweight' }">自重</text>
+      </view>
+      <view v-if="isBodyweight" class="bw-mode-btn" :class="{ 'bw-mode-active': currentBWMode === 'assisted' }"
+        @click="currentBWMode = 'assisted'">
+        <text :class="{ 'bw-text-active': currentBWMode === 'assisted' }">辅助</text>
+      </view>
+      <view v-if="isBodyweight" class="bw-mode-btn" :class="{ 'bw-mode-active': currentBWMode === 'weighted' }"
+        @click="currentBWMode = 'weighted'">
+        <text :class="{ 'bw-text-active': currentBWMode === 'weighted' }">负重</text>
       </view>
       <text class="expand-icon" @click="expanded = !expanded">{{ expanded ? '▲' : '▼' }}</text>
     </view>
@@ -71,7 +84,7 @@
       </view>
 
       <!-- 对比信息 -->
-      <view class="action-diff" v-if="diff !== null && entries.length > 0">
+      <view class="action-diff" v-if="diff !== null && entries.length > 0 && !isBodyweight">
         <text class="total-weight">总容量：{{ getTotalWeight(entries) }}kg</text>
         <text>与上次相比：</text>
         <text :class="diff.class">{{ diff.text }}</text>
@@ -113,6 +126,10 @@
         type: Boolean,
         default: true
       },
+      isBodyweight: {
+        type: Boolean,
+        default: false
+      },
     },
     emits: ['confirm-entry', 'delete-action', 'delete-entry', 'edit-entry', 'go-history', 'update-entry'],
     data() {
@@ -122,6 +139,7 @@
         mainReps: '',
         mainWeight: '',
         extraStages: [],
+        currentBWMode: 'bodyweight',
         // 气泡
         showBubble: false,
         bubbleContent: '',
@@ -132,6 +150,11 @@
         pressedEntryIdx: -1,
         longPressThreshold: 500,
       }
+    },
+    computed: {
+      weightPlaceholder() {
+        return 'kg'
+      },
     },
     watch: {
       expanded(val) {
@@ -210,6 +233,7 @@
         return {
           stages: entry.stages,
           type: hasSubStages ? ENTRY_TYPE.COMPOSITE : ENTRY_TYPE.NORMAL,
+          bwMode: entry.bwMode,
           displayText,
         }
       },
@@ -236,6 +260,9 @@
         // 填充主输入
         if (!this.mainReps) this.mainReps = String(stages[0].reps)
         if (!this.mainWeight) this.mainWeight = String(stages[0].weight)
+        if (this.isBodyweight && history.bwMode) {
+          this.currentBWMode = history.bwMode
+        }
 
         // 如果历史有额外阶段，自动创建并填充
         if (stages.length > 1) {
@@ -342,6 +369,7 @@
           total,
           type: this.entryType,
           stages: mergedStages,
+          ...(this.isBodyweight ? { bwMode: this.currentBWMode } : {}),
         }
         this.$emit('update-entry', { entryIdx: lastIdx, entry: updatedEntry })
         this.extraStages = []
@@ -382,6 +410,7 @@
         this.$emit('confirm-entry', {
           type: this.entryType,
           stages,
+          bwMode: this.isBodyweight ? this.currentBWMode : undefined,
         })
 
         this.expanded = true
@@ -508,6 +537,33 @@
 
   .type-text-active {
     color: var(--primary);
+  }
+
+  /* 自重模式按钮（与 type-btn 同行） */
+  .bw-mode-divider {
+    width: 1px;
+    height: 16px;
+    background: var(--border-color);
+    margin: 0 2px;
+  }
+
+  .bw-mode-btn {
+    padding: 3px 8px;
+    border-radius: 6px;
+    background: var(--bg-btn);
+    border: 1rpx solid var(--border-color);
+    font-size: 11px;
+    color: var(--text-secondary);
+    white-space: nowrap;
+  }
+
+  .bw-mode-active {
+    background: rgba(46, 213, 115, 0.15);
+    border-color: #2ed573;
+  }
+
+  .bw-text-active {
+    color: #2ed573;
   }
 
   /* 输入区域 */

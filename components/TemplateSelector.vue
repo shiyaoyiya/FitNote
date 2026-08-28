@@ -138,16 +138,19 @@ export default {
       restReason: '',
       commonReasons: ['休息日', '有事', '月经', '姨妈', '生病', '受伤'],
       COMMON_REASONS_KEY: 'fitness_common_reasons',
+      commonAerobics: [],
+      COMMON_AEROBIC_KEY: 'fitness_common_aerobics',
       presetPacks: [],
       selectedPresets: [],
     }
   },
   created() {
     this.loadCommonReasons()
+    this.loadCommonAerobics()
   },
   computed: {
     aerobicHistory() {
-      return this.templates.filter(t => t.isAerobic).map(t => t.name)
+      return this.commonAerobics
     },
   },
   methods: {
@@ -174,11 +177,31 @@ export default {
       if (this.commonReasons.length > 15) this.commonReasons = this.commonReasons.slice(0, 15)
       uni.setStorageSync(this.COMMON_REASONS_KEY, this.commonReasons)
     },
+    loadCommonAerobics() {
+      const saved = uni.getStorageSync(this.COMMON_AEROBIC_KEY)
+      if (Array.isArray(saved) && saved.length > 0) {
+        this.commonAerobics = saved
+      } else {
+        // 从模板 store 初始化已有有氧
+        const tplStore = useTemplateStore()
+        tplStore.load()
+        this.commonAerobics = tplStore.templates.filter(t => t.isAerobic).map(t => t.name)
+      }
+    },
+    addCommonAerobic(name) {
+      const idx = this.commonAerobics.indexOf(name)
+      if (idx === 0) return
+      if (idx > 0) this.commonAerobics.splice(idx, 1)
+      this.commonAerobics.unshift(name)
+      if (this.commonAerobics.length > 15) this.commonAerobics = this.commonAerobics.slice(0, 15)
+      uni.setStorageSync(this.COMMON_AEROBIC_KEY, this.commonAerobics)
+    },
     saveAerobic() {
       if (!this.aerobicName || this.aerobicTime === null || this.aerobicTime < 1) {
         uni.showToast({ title: '请填写名称和有效的时长（≥1分钟）', icon: 'none' })
         return
       }
+      this.addCommonAerobic(this.aerobicName)
       this.$emit('save-aerobic', { name: this.aerobicName, time: this.aerobicTime })
       this.aerobicName = ''
       this.aerobicTime = null

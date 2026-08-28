@@ -1,8 +1,8 @@
 <template>
-  <view class="year-container" :class="{ dark: daySettingsStore.isDarkMode, light: !daySettingsStore.isDarkMode }">
+  <view class="container year-container" :class="{ dark: daySettingsStore.isDarkMode, light: !daySettingsStore.isDarkMode }">
     <!-- 外部垂直滚动容器 -->
     <scroll-view class="year-scroll-container" scroll-y="true" :scroll-with-animation="true"
-      @scrolltolower="onScrollToLower" @scroll="onScroll">
+      :scroll-top="scrollTop" @scrolltolower="onScrollToLower" @scroll="onScroll">
 
       <!-- 年份列表 -->
       <view v-for="yearData in yearList" :key="yearData.year" class="year-section">
@@ -66,6 +66,8 @@
           </view>
         </view>
       </view>
+      <!-- 底部占位：保证滚动内容始终高于容器，scrolltolower 才能触发懒加载 -->
+      <view class="scroll-spacer"></view>
     </scroll-view>
   </view>
 </template>
@@ -92,6 +94,12 @@
         earliestYear: null, // 最早有数据的年份
         lastKnownDates: '', // 用于检测训练数据变化的标记
         loadedYears: new Set(), // 已加载的年份
+        // 吸附效果相关
+        scrollTop: 0, // 程序控制的滚动位置（用于吸附）
+        isSnapping: false, // 吸附动画进行中锁定
+        snapTarget: null, // 吸附目标位置
+        sectionHeight: 0, // 一屏高度（px），与 .year-section 的 100vh 一致
+        snapTimer: null, // 吸附锁定时长兜底
       };
     },
     onLoad(options) {
@@ -112,6 +120,9 @@
       uni.setNavigationBarTitle({
         title: '年度总览'
       });
+
+      // 兜底：一屏高度先用系统窗口高度
+      this.sectionHeight = uni.getSystemInfoSync().windowHeight;
 
       // 获取最早年份
       this.earliestYear = this.dayDataCacheStore.getEarliestYear();
@@ -149,8 +160,18 @@
       }
     },
 
+    onReady() {
+      // 用实际 scroll-view 高度精确校准一屏高度，确保吸附边界准确
+      this.measureSectionHeight();
+    },
+
     onUnload() {
       // 离开页面时清空缓存，确保下次进入时重新计算
+      if (this.snapTimer) {
+        clearTimeout(this.snapTimer);
+        this.snapTimer = null;
+      }
+      this.isSnapping = false;
       this.yearList = [];
       this.loadedYears.clear();
       this.templateColorCache.clear();
@@ -426,15 +447,91 @@
         }
         return {};
       },
+      // 测量一屏高度
+      measureSectionHeight() {
+        try {
+          uni.createSelectorQuery().in(this).select('.year-scroll-container').boundingClientRect(rect => {
+            if (rect && rect.height > 0) {
+              this.sectionHeight = rect.height;
+            }
+          }).exec();
+        } catch (e) {}
+      },
+
+      // 确保某一屏已加载（按需懒加载，最多加载到目标屏）
+      ensureYearLoaded(targetIndex) {
+        let guard = 0;
+        while (this.yearList.length <= targetIndex && guard < 60) {
+          const before = this.yearList.length;
+          this.loadNextYear();
+          guard++;
+          if (this.yearList.length === before) break;
+        }
+      },
+
+      // 吸附到指定位置（一次只移动一屏）
+      snapTo(target) {
+        const H = this.sectionHeight;
+        if (!H || this.yearList.length <= 0) return;
+
+        // 先确保目标屏已加载
+        this.ensureYearLoaded(Math.floor(target / H));
+
+        // 限制目标不超出已加载范围，避免跳到未加载的年份
+        const maxTarget = (this.yearList.length - 1) * H;
+        if (target > maxTarget) target = maxTarget;
+        if (target < 0) target = 0;
+
+        if (Math.abs(target - this.scrollTop) < 1) return;
+
+        this.isSnapping = true;
+        this.snapTarget = target;
+        this.$nextTick(() => {
+          this.scrollTop = target;
+          if (this.snapTimer) clearTimeout(this.snapTimer);
+          this.snapTimer = setTimeout(() => {
+            this.isSnapping = false;
+            this.snapTarget = null;
+          }, 700);
+        });
+      },
+
       // 滚动到底部，加载下一年份
       onScrollToLower() {
         console.log('滚动到底部，加载更多年份');
         this.loadNextYear();
       },
 
-      // 滚动事件
+      // 滚动事件（实现吸附）
       onScroll(e) {
-        // 可以在这里添加滚动相关的逻辑
+        const H = this.sectionHeight;
+        if (!H) return;
+        const st = e.detail.scrollTop;
+
+        // 吸附动画进行中：等待到达目标后解锁
+        if (this.isSnapping) {
+          if (this.snapTarget !== null && Math.abs(st - this.snapTarget) < 2) {
+            this.isSnapping = false;
+            this.snapTarget = null;
+            this.scrollTop = st;
+            if (this.snapTimer) {
+              clearTimeout(this.snapTimer);
+              this.snapTimer = null;
+            }
+          }
+          return;
+        }
+
+        const index = Math.floor(st / H);
+        const offset = st - index * H;
+
+        // 上划：下一个年份占屏超过 2/3，吸附到下一屏
+        if (offset > H * (2 / 3)) {
+          this.snapTo((index + 1) * H);
+        } else if (offset < H * (1 / 3)) {
+          // 下划：当前年份重新占屏超过 2/3，吸附回当前屏
+          this.snapTo(index * H);
+        }
       }
     }
   };
@@ -449,6 +546,10 @@
 
   .year-scroll-container {
     height: 100vh;
+  }
+
+  .scroll-spacer {
+    height: 2px;
   }
 
   .year-section {

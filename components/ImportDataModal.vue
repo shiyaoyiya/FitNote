@@ -7,7 +7,6 @@
         <text class="close-icon" @click="$emit('close')">×</text>
       </view>
       <view class="modal-body">
-        <!-- 输入框 -->
         <view class="input-section">
           <text class="section-title">粘贴或输入训练数据：</text>
           <textarea class="input-textarea" v-model="inputText"
@@ -24,7 +23,6 @@
           </view>
         </view>
 
-        <!-- 解析结果 -->
         <view class="parsed-section" v-if="parsedData.length > 0">
           <text class="section-title">解析结果：</text>
           <view class="parsed-list">
@@ -39,7 +37,6 @@
           </view>
         </view>
 
-        <!-- 错误提示 -->
         <view class="error-section" v-if="errorMessage">
           <text class="error-text">{{ errorMessage }}</text>
         </view>
@@ -54,115 +51,90 @@
   </view>
 </template>
 
-<script>
-  import {
-    parseImportTextWithActions,
-    parseImportText
-  } from '@/utils/importParser'
+<script setup>
+  import { ref, watch } from 'vue'
+  import { parseImportTextWithActions, parseImportText } from '@/utils/importParser'
 
-  export default {
-    name: 'ImportDataModal',
-    props: {
-      visible: {
-        type: Boolean,
-        default: false
-      },
-      actionNames: {
-        type: Array,
-        default: () => []
+  const props = defineProps({
+    visible: { type: Boolean, default: false },
+    actionNames: { type: Array, default: () => [] }
+  })
+
+  const emit = defineEmits(['close', 'confirm'])
+
+  const inputText = ref('')
+  const parsedData = ref([])
+  const errorMessage = ref('')
+
+  watch(() => props.visible, (newVal) => {
+    if (newVal) {
+      inputText.value = ''
+      parsedData.value = []
+      errorMessage.value = ''
+      pasteFromClipboard()
+    }
+  })
+
+  async function pasteFromClipboard() {
+    try {
+      // #ifdef H5
+      const text = await navigator.clipboard.readText()
+      if (text) {
+        inputText.value = text
+        parseInput()
       }
-    },
-    emits: ['close', 'confirm'],
-    data() {
-      return {
-        inputText: '',
-        parsedData: [],
-        errorMessage: ''
-      }
-    },
-    watch: {
-      visible(newVal) {
-        if (newVal) {
-          this.inputText = ''
-          this.parsedData = []
-          this.errorMessage = ''
-          this.pasteFromClipboard()
-        }
-      }
-    },
-    methods: {
-      async pasteFromClipboard() {
-        try {
-          // #ifdef H5
-          const text = await navigator.clipboard.readText()
-          if (text) {
-            this.inputText = text
-            this.parseInput()
+      // #endif
+
+      // #ifdef APP-PLUS
+      uni.getClipboardData({
+        success: (res) => {
+          if (res.data) {
+            inputText.value = res.data
+            parseInput()
           }
-          // #endif
+        },
+        fail: () => {}
+      })
+      // #endif
+    } catch (error) {}
+  }
 
-          // #ifdef APP-PLUS
-          uni.getClipboardData({
-            success: (res) => {
-              if (res.data) {
-                this.inputText = res.data
-                this.parseInput()
-              }
-            },
-            fail: () => {
-              // 剪贴板读取失败，用户可以手动输入
-            }
-          })
-          // #endif
-        } catch (error) {
-          // 剪贴板读取失败，用户可以手动输入
-        }
-      },
-      parseInput() {
-        if (!this.inputText || !this.inputText.trim()) {
-          this.errorMessage = '请输入训练数据'
-          this.parsedData = []
-          return
-        }
+  function parseInput() {
+    if (!inputText.value || !inputText.value.trim()) {
+      errorMessage.value = '请输入训练数据'
+      parsedData.value = []
+      return
+    }
 
-        this.errorMessage = ''
-        console.log('[ImportData] 输入内容:', this.inputText.trim())
-        console.log('[ImportData] 动作库:', this.actionNames)
+    errorMessage.value = ''
 
-        try {
-          // 先尝试使用动作库匹配解析
-          this.parsedData = parseImportTextWithActions(this.inputText.trim(), this.actionNames)
-          console.log('[ImportData] 动作库匹配结果:', JSON.stringify(this.parsedData))
-
-          // 如果动作库匹配失败，使用纯文本解析（不需要动作库）
-          if (this.parsedData.length === 0) {
-            console.log('[ImportData] 动作库匹配失败，尝试纯文本解析')
-            this.parsedData = parseImportText(this.inputText.trim())
-            console.log('[ImportData] 纯文本解析结果:', JSON.stringify(this.parsedData))
-          }
-        } catch (e) {
-          console.error('[ImportData] 解析错误:', e)
-          this.parsedData = []
-        }
-
-        if (this.parsedData.length === 0) {
-          this.errorMessage = '无法识别训练数据格式，请检查输入内容'
-        }
-      },
-      getActionDetail(action) {
-        if (!action.entries || action.entries.length === 0) return ''
-        const first = action.entries[0]
-        const last = action.entries[action.entries.length - 1]
-        if (action.entries.length === 1) {
-          return `${first.reps}次×${first.weight}kg`
-        }
-        return `${first.reps}次~${last.reps}次×${first.weight}kg`
-      },
-      handleConfirm() {
-        if (this.parsedData.length > 0) {
-          this.$emit('confirm', this.parsedData)
-        }
+    try {
+      parsedData.value = parseImportTextWithActions(inputText.value.trim(), props.actionNames)
+      if (parsedData.value.length === 0) {
+        parsedData.value = parseImportText(inputText.value.trim())
       }
+    } catch (e) {
+      parsedData.value = []
+    }
+
+    if (parsedData.value.length === 0) {
+      errorMessage.value = '无法识别训练数据格式，请检查输入内容'
+    }
+  }
+
+  function getActionDetail(action) {
+    if (!action.entries || action.entries.length === 0) return ''
+    const first = action.entries[0]
+    const last = action.entries[action.entries.length - 1]
+    if (action.entries.length === 1) {
+      return `${first.reps}次×${first.weight}kg`
+    }
+    return `${first.reps}次~${last.reps}次×${first.weight}kg`
+  }
+
+  function handleConfirm() {
+    if (parsedData.value.length > 0) {
+      emit('confirm', parsedData.value)
     }
   }
 </script>
@@ -207,15 +179,8 @@
   }
 
   @keyframes fadeIn {
-    from {
-      opacity: 0;
-      transform: scale(0.9);
-    }
-
-    to {
-      opacity: 1;
-      transform: scale(1);
-    }
+    from { opacity: 0; transform: scale(0.9); }
+    to { opacity: 1; transform: scale(1); }
   }
 
   .modal-header {
@@ -286,6 +251,8 @@
     font-size: 14px;
     color: var(--text-primary);
     line-height: 1.5;
+    overflow-y: auto;
+    box-sizing: border-box;
   }
 
   .input-actions {

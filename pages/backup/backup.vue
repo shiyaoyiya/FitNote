@@ -450,6 +450,9 @@
           cacheStore.buildIndex()
           cacheStore.clearCache()
 
+          // 通知其他页面刷新数据
+          uni.$emit('backup-restored')
+
           this.setStatus('success', '导入成功，数据已更新')
           uni.showToast({
             title: '导入成功',

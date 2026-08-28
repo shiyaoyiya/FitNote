@@ -275,6 +275,7 @@
   import {
     useDaySettingsStore
   } from '@/stores/daySettings.js'
+  import { PRESET_COLORS } from '@/utils/color.js'
 
   export default {
     data() {
@@ -314,51 +315,7 @@
         pressedColorIndex: -1,
         longPressColorTimer: null,
         longPressThreshold: 500,
-        presetColors: [{
-            name: '清水蓝',
-            value: '#93d5dc'
-          },
-          {
-            name: '松石绿',
-            value: '#4DB6AC'
-          },
-          {
-            name: '藤萝紫',
-            value: '#8076a3'
-          },
-          {
-            name: '姜红',
-            value: '#eeb8c3'
-          },
-          {
-            name: '克莱因蓝',
-            value: '#002fa7'
-          },
-          {
-            name: '马尔斯绿',
-            value: '#01847f'
-          },
-          {
-            name: '申布伦黄',
-            value: '#fbd26a'
-          },
-          {
-            name: '提香红',
-            value: '#d44848'
-          },
-          {
-            name: '粉红',
-            value: '#f2b9b2'
-          },
-          {
-            name: '玛瑙灰',
-            value: '#cfccc9'
-          },
-          {
-            name: '汉白玉',
-            value: '#f8f4ed'
-          }
-        ],
+        presetColors: PRESET_COLORS,
         searchKeyword: '',
         searchFocus: false,
         lastVibrateTime: 0,

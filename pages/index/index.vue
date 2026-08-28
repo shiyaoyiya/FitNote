@@ -8,7 +8,7 @@
           :is-sliding="isSliding" :get-template-color="getTemplateColor" :get-total-weight="getTotalWeight"
           :is-aerobic-day="isAerobicDay" :get-template-name="getTemplateName" :get-contrast-color="getContrastColor"
           :get-cell-style="getCellStyle" :train-btn-visible="todayTrainBtnVisible" :is-light-mode="!daySettingsStore.isDarkMode" @date-click="handleDateClick"
-          @date-longpress="onDateLongPress" @go-to-year-page="goToYearPage" @open-anniv-popup="openAnnivPopup"
+          @date-longpress="onDateLongPress" @go-to-year-page="goToYearPage" @open-anniv-popup="$refs.annivSection.openAdd()"
           @toggle-train-btn="onToggleTrainBtn" @open-more-menu="openMoreMenu" />
 
         <!-- 上个月 -->
@@ -17,7 +17,7 @@
           :get-total-weight="getTotalWeight" :is-aerobic-day="isAerobicDay" :get-template-name="getTemplateName"
           :get-contrast-color="getContrastColor" :get-cell-style="getCellStyle"
           :train-btn-visible="todayTrainBtnVisible" :is-light-mode="!daySettingsStore.isDarkMode" @date-click="handleDateClick" @date-longpress="onDateLongPress"
-          @go-to-year-page="goToYearPage" @open-anniv-popup="openAnnivPopup" @toggle-train-btn="onToggleTrainBtn"
+          @go-to-year-page="goToYearPage" @open-anniv-popup="$refs.annivSection.openAdd()" @toggle-train-btn="onToggleTrainBtn"
           @open-more-menu="openMoreMenu" />
 
         <!-- 下个月 -->
@@ -26,7 +26,7 @@
           :get-total-weight="getTotalWeight" :is-aerobic-day="isAerobicDay" :get-template-name="getTemplateName"
           :get-contrast-color="getContrastColor" :get-cell-style="getCellStyle"
           :train-btn-visible="todayTrainBtnVisible" :is-light-mode="!daySettingsStore.isDarkMode" @date-click="handleDateClick" @date-longpress="onDateLongPress"
-          @go-to-year-page="goToYearPage" @open-anniv-popup="openAnnivPopup" @toggle-train-btn="onToggleTrainBtn"
+          @go-to-year-page="goToYearPage" @open-anniv-popup="$refs.annivSection.openAdd()" @toggle-train-btn="onToggleTrainBtn"
           @open-more-menu="openMoreMenu" />
       </view>
     </view>
@@ -73,143 +73,23 @@
       </view>
     </view>
 
-    <!-- 底部：多条纪念日卡片以及新增按钮 -->
-    <view class="anniv-list-container">
-      <view v-for="(item, idx) in annivs" :key="idx" class="anniv-item" @click="openAnnivPopup(idx)"
-        @longpress="onAnnivLongPress(idx)">
-        <view class="anniv-dot"></view>
-        <view class="anniv-content">
-          <view class="anniv-title-row">
-            <text class="anniv-title-text">{{ item.title }}</text>
-            <text class="anniv-days-tag">{{ item.daysText }}</text>
-          </view>
-          <view class="anniv-sub-text">纪念日 | {{ item.date }}</view>
-        </view>
-      </view>
-      <view class="safe-area-inset"></view>
-    </view>
+    <!-- 纪念日区域 -->
+    <AnniversarySection ref="annivSection" />
 
     <!-- 更多菜单弹窗 -->
-    <view v-if="showMoreMenu" class="popup-overlay" @click.self="showMoreMenu = false">
-      <view class="overlay-bg" @click="showMoreMenu = false"></view>
-      <view class="menu-panel fade-in" @click.stop>
-        <view class="menu-item" @click="onMenuReadGuide">
-          <text class="menu-icon">📖</text>
-          <text class="menu-text">阅读说明</text>
-        </view>
-        <view class="menu-item" @click="onMenuAddAnniv">
-          <text class="menu-icon">📝</text>
-          <text class="menu-text">添加纪念日</text>
-        </view>
-        <view class="menu-item" @click="onMenuToggleTrainBtn">
-          <text class="menu-icon">{{ todayTrainBtnVisible ? '👁' : '🙈' }}</text>
-          <text class="menu-text">{{ todayTrainBtnVisible ? '隐藏快捷训练按钮' : '显示快捷训练按钮' }}</text>
-        </view>
-        <view class="menu-item" @click="onToggleTheme">
-          <text class="menu-icon">{{ daySettingsStore.isDarkMode ? '☀️' : '🌙' }}</text>
-          <text class="menu-text">{{ daySettingsStore.isDarkMode ? '切换浅色模式' : '切换深色模式' }}</text>
-        </view>
-        <view class="menu-item" @click="onToggleLiquidGlass">
-          <text class="menu-icon">✨</text>
-          <text class="menu-text">{{ daySettingsStore.liquidGlassEnabled ? '关闭液态玻璃' : '开启液态玻璃' }}</text>
-        </view>
-      </view>
-    </view>
+    <MoreMenu :visible="showMoreMenu" :is-dark-mode="daySettingsStore.isDarkMode"
+      :train-btn-visible="todayTrainBtnVisible" :liquid-glass-enabled="daySettingsStore.liquidGlassEnabled"
+      @close="showMoreMenu = false" @read-guide="showGuidePanel = true"
+      @add-anniv="$refs.annivSection.openAdd()" @toggle-train-btn="onToggleTrainBtn"
+      @toggle-theme="onToggleTheme" @toggle-liquid-glass="onToggleLiquidGlass" />
     <!-- 阅读说明弹窗 -->
-    <view v-if="showGuidePanel" class="popup-overlay">
-      <view class="overlay-bg" @click="showGuidePanel = false"></view>
-      <view class="guide-panel fade-in">
-        <view class="guide-header">
-          <text class="guide-title">FitNote 功能说明</text>
-          <text class="close-icon" @click="showGuidePanel = false">×</text>
-        </view>
-        <scroll-view class="guide-body" scroll-y="true" show-scrollbar="false">
-          <view v-for="(item, idx) in GUIDE_CONTENT" :key="idx" class="guide-item">
-            <text class="guide-icon">{{ item.icon }}</text>
-            <view class="guide-content">
-              <text class="guide-item-title">{{ item.title }}</text>
-              <text class="guide-item-desc">{{ item.desc }}</text>
-            </view>
-          </view>
-        </scroll-view>
-      </view>
-    </view>
-    <!-- 纪念日输入弹窗 -->
-    <view v-if="showAnnivPopup" class="popup-overlay" @click.self="showAnnivPopup = false">
-      <view class="overlay-bg" @click="showAnnivPopup = false"></view>
-      <view class="modal-panel fade-in" @click.stop>
-        <view class="modal-header">
-          <text class="modal-title">{{ editingIndex === null ? '新增纪念日' : '编辑纪念日' }}</text>
-          <text class="close-icon" @click="showAnnivPopup = false">×</text>
-        </view>
-        <view class="modal-body">
-          <view class="input-row">
-            <input v-model="annivTitleInput" placeholder="纪念内容" class="action-input" />
-          </view>
-          <view class="input-row">
-            <input v-model="annivDateInput" placeholder="日期" type="date" class="action-input" />
-          </view>
-        </view>
-        <view class="modal-footer btn-row">
-          <text class="btn-confirm" @click="saveAnniv">保存</text>
-        </view>
-      </view>
-    </view>
+    <GuidePopup :visible="showGuidePanel" @close="showGuidePanel = false" />
     <!-- 有氧详情弹窗 -->
-    <view v-if="showAerobicDetail" class="popup-overlay" @click.self="closeAerobicDetail">
-      <view class="overlay-bg" @click="closeAerobicDetail"></view>
-      <view class="modal-panel fade-in">
-        <view class="modal-header">
-          <text class="modal-title">有氧</text>
-          <text class="close-icon" @click="closeAerobicDetail">×</text>
-        </view>
-        <view class="modal-body">
-          <text>类型：{{ aerobicDetail.name }}</text>
-          <text>时长：{{ aerobicDetail.time }} 分钟</text>
-          <text class="btn-set-color" @click="showAerobicColorPicker = !showAerobicColorPicker">
-            {{ showAerobicColorPicker ? '取消设置颜色' : '设置颜色' }}
-          </text>
-
-          <!-- 圆形配色选择区 -->
-          <view class="aerobic-color-picker" :style="{ display: showAerobicColorPicker ? 'flex' : 'none' }">
-            <view v-for="(cObj, idx) in presetColors" :key="idx" class="color-option-item"
-              @click="selectAerobicColor(cObj.value)">
-              <view class="color-circle" :style="{ backgroundColor: cObj.value }">
-                <view v-if="aerobicDetail.color === cObj.value" class="color-selected"></view>
-              </view>
-              <text class="color-name">{{ cObj.name }}</text>
-            </view>
-          </view>
-        </view>
-      </view>
-    </view>
+    <DayDetailPopup :visible="showAerobicDetail" type="aerobic" :detail="aerobicDetail"
+      @close="showAerobicDetail = false" @color-change="selectAerobicColor" @save-edit="onSaveAerobicEdit" />
     <!-- 休息日详情弹窗 -->
-    <view v-if="showRestDetail" class="popup-overlay" @click.self="closeRestDetail">
-      <view class="overlay-bg" @click="closeRestDetail"></view>
-      <view class="modal-panel fade-in">
-        <view class="modal-header">
-          <text class="modal-title">休息</text>
-          <text class="close-icon" @click="closeRestDetail">×</text>
-        </view>
-        <view class="modal-body">
-          <text>理由：{{ restDetail.reason }}</text>
-          <text class="btn-set-color" @click="showRestColorPicker = !showRestColorPicker">
-            {{ showRestColorPicker ? '取消设置颜色' : '设置颜色' }}
-          </text>
-
-          <!-- 圆形配色选择区 -->
-          <view class="aerobic-color-picker" :style="{ display: showRestColorPicker ? 'flex' : 'none' }">
-            <view v-for="(cObj, idx) in presetColors" :key="idx" class="color-option-item"
-              @click="selectRestColor(cObj.value)">
-              <view class="color-circle" :style="{ backgroundColor: cObj.value }">
-                <view v-if="restDetail.color === cObj.value" class="color-selected"></view>
-              </view>
-              <text class="color-name">{{ cObj.name }}</text>
-            </view>
-          </view>
-        </view>
-      </view>
-    </view>
+    <DayDetailPopup :visible="showRestDetail" type="rest" :detail="restDetail"
+      @close="showRestDetail = false" @color-change="selectRestColor" @save-edit="onSaveRestEdit" />
 
   </view>
 </template>
@@ -236,43 +116,21 @@
   } from '@/utils/backup.js'
   import CalendarMonth from '@/components/CalendarMonth.vue'
   import TrainingSplitPlan from '@/components/TrainingSplitPlan.vue'
-
-  const GUIDE_CONTENT = [{
-      icon: '📅',
-      title: '日历浏览',
-      desc: '首页展示月历，点击日期可查看/记录当日训练。左滑右滑切换月份，长按日期可清空该日记录'
-    },
-    {
-      icon: '🏋️',
-      title: '今日训练',
-      desc: '点击"开始训练"按钮/日历格子进入训练页面，可从预设模板中选择，记录每个动作的重量和次数，自动计算与上次训练的对比'
-    },
-    {
-      icon: '💪',
-      title: '训练模板',
-      desc: '在"训练模板"页面管理个人模板，支持创建、编辑、删除，添加/移除动作'
-    },
-    {
-      icon: '📊',
-      title: '训练统计',
-      desc: '查看周/月训练总量，各肌群训练频次分析'
-    },
-    {
-      icon: '📝',
-      title: '纪念日',
-      desc: '记录重要日期，首页底部展示已过去的天数'
-    },
-    {
-      // icon: '⏱️',
-      // title: '计时休息',
-      desc: '长按排序、侧滑删除是绝大部分页面的交互方式'
-    },
-  ]
+  import AnniversarySection from '@/components/AnniversarySection.vue'
+  import DayDetailPopup from '@/components/DayDetailPopup.vue'
+  import MoreMenu from '@/components/MoreMenu.vue'
+  import GuidePopup from '@/components/GuidePopup.vue'
+  import { PRESET_COLORS } from '@/utils/color.js'
+  import { formatDate } from '@/utils/theme.js'
 
   export default {
     components: {
       CalendarMonth,
-      TrainingSplitPlan
+      TrainingSplitPlan,
+      AnniversarySection,
+      DayDetailPopup,
+      MoreMenu,
+      GuidePopup
     },
     data() {
       return {
@@ -283,65 +141,15 @@
         DAYDATA_PREFIX: 'fitness_daydata_',
         todayTrainBtnVisible: true,
 
-        presetColors: [{
-            name: '清水蓝',
-            value: '#93d5dc'
-          },
-          {
-            name: '松石绿',
-            value: '#4DB6AC'
-          },
-          {
-            name: '藤萝紫',
-            value: '#8076a3'
-          },
-          {
-            name: '姜红',
-            value: '#eeb8c3'
-          },
-          {
-            name: '克莱因蓝',
-            value: '#002fa7'
-          },
-          {
-            name: '马尔斯绿',
-            value: '#01847f'
-          },
-          {
-            name: '申布伦黄',
-            value: '#fbd26a'
-          },
-          {
-            name: '提香红',
-            value: '#d44848'
-          },
-          {
-            name: '粉红',
-            value: '#f2b9b2'
-          },
-          {
-            name: '玛瑙灰',
-            value: '#cfccc9'
-          },
-          {
-            name: '汉白玉',
-            value: '#f8f4ed'
-          },
-        ],
+        presetColors: PRESET_COLORS,
 
         thisWeekTotal: 0,
         lastWeekTotal: 0,
         diffText: '0kg',
         diffClass: 'diff-neutral',
 
-        annivs: [],
         showMoreMenu: false,
         showGuidePanel: false,
-        GUIDE_CONTENT,
-        showAnnivPopup: false,
-        annivTitleInput: '',
-        annivDateInput: '',
-        editingIndex: null,
 
         showAerobicDetail: false,
         aerobicDetail: {
@@ -350,14 +158,12 @@
           time: 0,
           color: ''
         },
-        showAerobicColorPicker: false,
         showRestDetail: false,
         restDetail: {
           date: '',
           reason: '',
           color: ''
         },
-        showRestColorPicker: false,
         canSlide: true,
         isAnimating: false,
         slideOffset: 0,
@@ -389,6 +195,7 @@
         return this.daySettingsStore.splitPlan
       },
       todayBtnText() {
+        this.dayDataCacheStore.cacheVersion
         const todayStr = this.formatDate(new Date())
         const dayData = this.getDayData(todayStr)
         if (dayData.templates && typeof dayData.templates === 'object') {
@@ -428,6 +235,7 @@
         return '开始训练'
       },
       todayHasTemplate() {
+        this.dayDataCacheStore.cacheVersion
         const plan = this.splitPlan
         if (plan && plan.enabled) {
           const todayStr = this.formatDate(new Date())
@@ -492,7 +300,6 @@
         this.calcWeeklyTotals();
         this.canSlide = true;
       });
-      this.loadAnnivs()
     },
     onLoad(options) {
       const now = new Date()
@@ -507,7 +314,6 @@
         this.calcWeeklyTotals();
         this.canSlide = true;
       });
-      this.loadAnnivs()
     },
 
     mounted() {
@@ -521,22 +327,65 @@
       });
     },
     methods: {
-      closeRestDetail() {
-        this.showRestDetail = false;
-      },
       selectRestColor(color) {
         this.restDetail.color = color;
-
-        const key = this.DAYDATA_PREFIX + this.restDetail.date;
-        const dayData = uni.getStorageSync(key) || {};
+        const date = this.restDetail.date;
+        const dayData = this.getDayData(date) || {};
         dayData.color = color;
-        uni.setStorageSync(key, dayData);
-
-        uni.showToast({
-          title: '已保存颜色',
-          icon: 'success'
-        });
+        uni.setStorageSync(this.DAYDATA_PREFIX + date, dayData);
+        this.dayDataCache[date] = dayData;
+        uni.showToast({ title: '已保存颜色', icon: 'success' });
         this.showRestDetail = false;
+        this.monthDays = this.buildMonthDaysData(this.curYear, this.curMonth);
+        this.prepareAdjacentMonths();
+      },
+      onSaveAerobicEdit({ name, time }) {
+        const date = this.aerobicDetail.date;
+        const oldName = this.aerobicDetail.name;
+        const key = this.DAYDATA_PREFIX + date;
+        const dayData = this.getDayData(date) || {};
+
+        // 如果名称变了，删除旧的
+        if (name !== oldName && dayData.templates) {
+          delete dayData.templates[oldName];
+        }
+
+        dayData.templates = dayData.templates || {};
+        dayData.templates[name] = {
+          totalWeight: time,
+          actionWeights: {},
+          isAerobic: true
+        };
+        uni.setStorageSync(key, dayData);
+        this.dayDataCache[date] = dayData;
+
+        // 保存到模板 store
+        this.templateStore.addAerobic(name);
+
+        this.aerobicDetail.name = name;
+        this.aerobicDetail.time = time;
+        this.showAerobicDetail = false;
+        uni.showToast({ title: '已更新', icon: 'success' });
+        this.monthDays = this.buildMonthDaysData(this.curYear, this.curMonth);
+        this.prepareAdjacentMonths();
+      },
+      onSaveRestEdit({ reason }) {
+        const date = this.restDetail.date;
+        const key = this.DAYDATA_PREFIX + date;
+        const dayData = this.getDayData(date) || {};
+
+        dayData.isRestDay = true;
+        dayData.templates = {
+          [reason]: { totalWeight: 0, actionWeights: {} }
+        };
+        uni.setStorageSync(key, dayData);
+        this.dayDataCache[date] = dayData;
+
+        this.restDetail.reason = reason;
+        this.showRestDetail = false;
+        uni.showToast({ title: '已更新', icon: 'success' });
+        this.monthDays = this.buildMonthDaysData(this.curYear, this.curMonth);
+        this.prepareAdjacentMonths();
       },
       isRestDay(fullDate) {
         const raw = this.getDayData(fullDate);
@@ -723,18 +572,7 @@
         if (m > 11) m = 0;
         return m;
       },
-      formatDate(date) {
-        const y = date.getFullYear();
-        const m = date.getMonth() + 1;
-        const d = date.getDate();
-        return (
-          y +
-          '-' +
-          (m < 10 ? '0' + m : m) +
-          '-' +
-          (d < 10 ? '0' + d : d)
-        );
-      },
+      formatDate,
       onTouchStart(e) {
         if (!this.canSlide || this.isAnimating) return;
 
@@ -905,7 +743,6 @@
             color
           };
           this.showRestDetail = true;
-          this.showRestColorPicker = false;
           return;
         }
         const tplNames = dayData.templates ? Object.keys(dayData.templates) : [];
@@ -1043,106 +880,6 @@
         })
       },
 
-      updateAnnivDaysFor(dateStr) {
-        if (!dateStr) return '0 天';
-        let dateText = dateStr.trim();
-        if (dateText.includes('年') && dateText.includes('月') && dateText.includes('日')) {
-          dateText = dateText.replace('年', '/').replace('月', '/').replace('日', '');
-        }
-        dateText = dateText.replace(/\./g, '/').replace(/-/g, '/');
-        const parsedDate = new Date(dateText);
-        if (isNaN(parsedDate.getTime())) {
-          return '0 天';
-        }
-        const today = new Date();
-        const diffTime = today.setHours(0, 0, 0, 0) - parsedDate.setHours(0, 0, 0, 0);
-        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-        return `${diffDays+1} 天`;
-      },
-
-      loadAnnivs() {
-        const raw = uni.getStorageSync('annivs') || '[]';
-        try {
-          this.annivs = JSON.parse(raw);
-        } catch (e) {
-          this.annivs = [];
-        }
-        this.annivs.forEach((it) => {
-          it.daysText = this.updateAnnivDaysFor(it.date);
-        });
-      },
-      saveAnnivs() {
-        uni.setStorageSync('annivs', JSON.stringify(this.annivs));
-      },
-      openAnnivPopup(index) {
-        if (index === null) {
-          this.editingIndex = null;
-          this.annivTitleInput = '';
-          this.annivDateInput = '';
-        } else {
-          this.editingIndex = index;
-          const item = this.annivs[index];
-          this.annivTitleInput = item.title;
-          this.annivDateInput = item.date;
-        }
-        this.showAnnivPopup = true;
-      },
-      saveAnniv() {
-        const title = this.annivTitleInput.trim();
-        const date = this.annivDateInput;
-        if (!title || !date) {
-          uni.showToast({
-            title: '请填写完整信息',
-            icon: 'none'
-          });
-          return;
-        }
-        const daysText = this.updateAnnivDaysFor(date);
-
-        if (this.editingIndex === null) {
-          this.annivs.push({
-            title,
-            date,
-            daysText
-          });
-        } else {
-          this.annivs[this.editingIndex] = {
-            title,
-            date,
-            daysText
-          };
-        }
-        this.saveAnnivs();
-        this.showAnnivPopup = false;
-      },
-      removeAnniv(idx) {
-        uni.showModal({
-          title: '确认删除',
-          content: `删除「${this.annivs[idx].title}」吗？`,
-          success: (res) => {
-            if (res.confirm) {
-              this.annivs.splice(idx, 1);
-              this.saveAnnivs();
-            }
-          }
-        });
-      },
-      onAnnivLongPress(idx) {
-        uni.vibrateShort({
-          type: 'light'
-        });
-
-        uni.showModal({
-          title: '确认删除',
-          content: `确定要删除「${this.annivs[idx].title}」吗？`,
-          success: (res) => {
-            if (res.confirm) {
-              this.annivs.splice(idx, 1);
-              this.saveAnnivs();
-            }
-          }
-        });
-      },
       getDayData(fullDate) {
         if (!fullDate) return {};
         if (this.dayDataCache[fullDate]) {
@@ -1220,10 +957,6 @@
           this.showAerobicDetail = true;
         }
       },
-      closeAerobicDetail() {
-        this.showAerobicDetail = false;
-        this.showAerobicColorPicker = false;
-      },
       selectAerobicColor(color) {
         const key = this.DAYDATA_PREFIX + this.aerobicDetail.date;
         const dayData = this.getDayData(this.aerobicDetail.date) || {};
@@ -1232,14 +965,9 @@
         dayData.templates[this.aerobicDetail.name] = tpl;
         uni.setStorageSync(key, dayData);
         this.dayDataCache[this.aerobicDetail.date] = dayData;
-
         this.aerobicDetail.color = color;
-        this.showAerobicColorPicker = false;
         this.showAerobicDetail = false;
-        uni.showToast({
-          title: '已保存颜色',
-          icon: 'success'
-        });
+        uni.showToast({ title: '已保存颜色', icon: 'success' });
         this.monthDays = this.buildMonthDaysData(this.curYear, this.curMonth);
         this.prepareAdjacentMonths();
       },
@@ -1338,18 +1066,6 @@
       },
       openMoreMenu() {
         this.showMoreMenu = true
-      },
-      onMenuReadGuide() {
-        this.showMoreMenu = false
-        this.showGuidePanel = true
-      },
-      onMenuAddAnniv() {
-        this.showMoreMenu = false
-        this.openAnnivPopup(null)
-      },
-      onMenuToggleTrainBtn() {
-        this.showMoreMenu = false
-        this.onToggleTrainBtn()
       },
       onToggleTheme() {
         this.daySettingsStore.toggleTheme()
@@ -1625,45 +1341,6 @@
     transform: scale(0.9);
   }
 
-  .anniv-list-container {
-    padding: 10px 16px;
-    padding-bottom: calc(75px + 20px + env(safe-area-inset-bottom, 0px));
-  }
-
-  .container.liquid-glass .anniv-list-container {
-    padding-bottom: calc(75px + 20px + 20px + env(safe-area-inset-bottom, 0px));
-  }
-
-  .anniv-header {
-    font-size: 18px;
-    font-weight: bold;
-    text-align: center;
-    color: var(--text-primary);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-  }
-
-  .anniv-sub {
-    font-size: 12px;
-    text-align: left;
-    color: var(--text-muted);
-    margin-top: 4px;
-  }
-
-  .add-anniv {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    background-color: var(--bg-tertiary);
-    cursor: pointer;
-  }
-
-  .anniv-placeholder {
-    font-size: 16px;
-    color: var(--text-muted);
-  }
-
   .fade-in {
     animation: modalFadeIn 0.25s ease;
   }
@@ -1677,112 +1354,6 @@
 
   .overlay-bg {
     background-color: rgba(0, 0, 0, 0.7) !important;
-  }
-
-  /* 更多菜单弹窗 */
-  .menu-panel {
-    position: relative;
-    width: 90vw;
-    max-width: 360px;
-    background-color: var(--bg-secondary);
-    border-radius: 16px;
-    overflow: hidden;
-    z-index: 1;
-  }
-
-  .menu-item {
-    display: flex;
-    align-items: center;
-    padding: 14px 18px;
-    border-bottom: 1px solid var(--border-color);
-  }
-
-  .menu-item:last-child {
-    border-bottom: none;
-  }
-
-  .menu-item:active {
-    background-color: var(--bg-tertiary);
-  }
-
-  .menu-icon {
-    font-size: 20px;
-    margin-right: 12px;
-  }
-
-  .menu-text {
-    font-size: 15px;
-    color: var(--text-primary);
-  }
-
-  /* 阅读说明弹窗 */
-  .guide-panel {
-    position: relative;
-    width: 90vw;
-    max-height: 80vh;
-    background-color: var(--bg-secondary);
-    border-radius: 16px;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-    z-index: 1;
-  }
-
-  .guide-header {
-    padding: 16px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-bottom: 1px solid var(--border-color);
-  }
-
-  .guide-title {
-    font-size: 16px;
-    font-weight: bold;
-    color: var(--text-primary);
-  }
-
-  .guide-body {
-    flex: 1;
-    overflow-y: auto;
-    padding: 8px 12px;
-    max-height: 65vh;
-    box-sizing: border-box;
-  }
-
-  .guide-item {
-    display: flex;
-    align-items: flex-start;
-    padding: 10px 0;
-    border-bottom: 1px solid var(--border-color);
-  }
-
-  .guide-item:last-child {
-    border-bottom: none;
-  }
-
-  .guide-icon {
-    font-size: 22px;
-    margin-right: 12px;
-    flex-shrink: 0;
-  }
-
-  .guide-content {
-    flex: 1;
-  }
-
-  .guide-item-title {
-    font-size: 14px;
-    font-weight: bold;
-    color: var(--text-primary);
-    margin-bottom: 2px;
-    display: block;
-  }
-
-  .guide-item-desc {
-    font-size: 12px;
-    color: var(--text-muted);
-    line-height: 1.4;
   }
 
   .popup-panel {
@@ -1999,68 +1570,6 @@
     padding: 5px 0;
   }
 
-  .color-option-item {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 6px;
-    align-items: center;
-    margin: 5px;
-  }
-
-  .color-circle {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    position: relative;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    border: 2px solid transparent;
-    transition: transform 0.2s ease;
-    width: 36px;
-    height: 36px;
-  }
-
-  .color-selected {
-    position: absolute;
-    top: -4px;
-    left: -4px;
-    right: -4px;
-    bottom: -4px;
-    border: 2px solid #379bff;
-    border-radius: 50%;
-    animation: breathe 2s infinite ease-in-out;
-    top: 8px;
-    left: 8px;
-    right: 8px;
-    bottom: 8px;
-    border: 2px solid #fff;
-  }
-
-  @keyframes breathe {
-    0% {
-      transform: scale(1);
-      opacity: 0.8;
-    }
-
-    50% {
-      transform: scale(1.1);
-      opacity: 0.4;
-    }
-
-    100% {
-      transform: scale(1);
-      opacity: 0.8;
-    }
-  }
-
-  .color-name {
-    font-size: 11px;
-    color: var(--text-muted);
-    margin-top: 4px;
-    font-size: 12px;
-    color: var(--text-primary);
-  }
-
   .btn-row {
     display: flex;
     justify-content: center;
@@ -2127,62 +1636,6 @@
 
   .modal-footer {
     padding: 10px;
-  }
-
-  .anniv-item {
-    display: flex;
-    align-items: center;
-    background-color: var(--bg-secondary);
-    border-radius: 14px;
-    margin-bottom: 10px;
-    padding: 14px 16px;
-    position: relative;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
-  }
-
-  .anniv-item:active {
-    background-color: var(--bg-tertiary);
-  }
-
-  .anniv-dot {
-    width: 8px;
-    height: 8px;
-    background: #379bff;
-    border-radius: 50%;
-    margin-right: 12px;
-    flex-shrink: 0;
-  }
-
-  .anniv-content {
-    flex: 1;
-  }
-
-  .anniv-title-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-
-  .anniv-title-text {
-    font-size: 15px;
-    font-weight: 600;
-    color: inherit;
-  }
-
-  .anniv-days-tag {
-    font-size: 13px;
-    color: #379bff;
-    font-weight: bold;
-  }
-
-  .anniv-sub-text {
-    font-size: 11px;
-    color: var(--text-muted);
-    margin-top: 2px;
-  }
-
-  .safe-area-inset {
-    height: 20px;
   }
 
   .weight-text {
@@ -2345,17 +1798,6 @@
     margin-right: 0px;
   }
 
-  .aerobic-color-picker {
-    flex-wrap: wrap;
-    flex-direction: row;
-    margin-top: 10px;
-    justify-content: space-around;
-  }
-
-  .btn-set-color {
-    margin-top: 12px;
-    color: #379bff;
-  }
 </style>
 
 <!-- 非 scoped 样式块，覆盖 scoped 无法生效的伪元素选择器 -->

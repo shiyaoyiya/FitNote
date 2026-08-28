@@ -59,8 +59,10 @@ export function mergeImportData(existingData, importedData, actionNames = [], te
     }))
 
     if (result.entries[finalName]) {
+      // 合并时过滤掉占位符
+      const validEntries = result.entries[finalName].filter(e => !e.isPlaceholder)
       result.entries[finalName] = [
-        ...result.entries[finalName],
+        ...validEntries,
         ...formattedEntries
       ]
     } else {
@@ -102,8 +104,10 @@ export function applyMatchSelections(mergedData, matchResults, selections) {
     }))
 
     if (result.entries[selectedName]) {
+      // 合并时过滤掉占位符
+      const validEntries = result.entries[selectedName].filter(e => !e.isPlaceholder)
       result.entries[selectedName] = [
-        ...result.entries[selectedName],
+        ...validEntries,
         ...formattedEntries
       ]
     } else {
