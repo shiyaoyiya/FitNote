@@ -227,7 +227,7 @@ const caloriesChartData = computed(() => {
   }
   return raw.map(item => {
     const parts = item.date.split('-')
-    return { label: `${parseInt(parts[1])}/${parseInt(parts[2])}`, kcal: Math.round(item.kcal) })
+    return { label: `${parseInt(parts[1])}/${parseInt(parts[2])}`, kcal: Math.round(item.kcal) }
   })
 })
 
