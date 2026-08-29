@@ -310,16 +310,15 @@ function writeBackupFile(payload, customPath) {
 
             if (targetDocFile) {
               const fileUri = targetDocFile.getUri()
-              const outputStream = resolver.openOutputStream(fileUri)
+              const outputStream = plus.android.invoke(resolver, "openOutputStream", fileUri)
 
               if (outputStream) {
-                const String = plus.android.importClass('java.lang.String')
-                const javaString = new String(content)
-                const bytes = javaString.getBytes("UTF-8")
-
-                plus.android.invoke(outputStream, "write", bytes)
-                plus.android.invoke(outputStream, "flush")
-                plus.android.invoke(outputStream, "close")
+                const OutputStreamWriter = plus.android.importClass('java.io.OutputStreamWriter')
+                const BufferedWriter = plus.android.importClass('java.io.BufferedWriter')
+                const bw = new BufferedWriter(new OutputStreamWriter(outputStream, 'UTF-8'))
+                plus.android.invoke(bw, "write", content)
+                plus.android.invoke(bw, "flush")
+                plus.android.invoke(bw, "close")
 
                 const savedUri = fileUri.toString()
                 resolve(savedUri)
@@ -401,19 +400,18 @@ export function writeWithCreateDocument(content, fileName) {
         try {
           const main = plus.android.runtimeMainActivity()
           const Uri = plus.android.importClass('android.net.Uri')
-          const String = plus.android.importClass('java.lang.String')
 
           const uri = Uri.parse(fileUri)
           const resolver = main.getContentResolver()
           const outputStream = plus.android.invoke(resolver, "openOutputStream", uri)
 
           if (outputStream) {
-            const javaString = new String(content)
-            const bytes = javaString.getBytes("UTF-8")
-
-            plus.android.invoke(outputStream, "write", bytes)
-            plus.android.invoke(outputStream, "flush")
-            plus.android.invoke(outputStream, "close")
+            const OutputStreamWriter = plus.android.importClass('java.io.OutputStreamWriter')
+            const BufferedWriter = plus.android.importClass('java.io.BufferedWriter')
+            const bw = new BufferedWriter(new OutputStreamWriter(outputStream, 'UTF-8'))
+            plus.android.invoke(bw, "write", content)
+            plus.android.invoke(bw, "flush")
+            plus.android.invoke(bw, "close")
 
             resolve(fileUri)
           } else {
@@ -449,25 +447,25 @@ export function writeBackupDefault(content, fileName, resolve, reject) {
         create: true
       }, function (fileEntry) {
         fileEntry.createWriter(function (writer) {
+          let retried = false
           writer.onwrite = function () {
             const fullPath = fileEntry.fullPath
-            // 验证文件大小
             fileEntry.file(function (file) {
-              if (file.size === 0) {
-                // 重新尝试写入
+              if (file.size === 0 && !retried) {
+                retried = true
                 writer.seek(0)
-                writer.write(content)
+                writer.write(new Blob([content], { type: 'application/json;charset=utf-8' }))
               } else {
                 resolve(fullPath)
               }
             }, function (err) {
-              resolve(fullPath) // 即使获取大小失败，也认为写入成功
+              resolve(fullPath)
             })
           }
           writer.onerror = function (e) {
             reject(new Error('写入文件失败: ' + e.message))
           }
-          writer.write(content)
+          writer.write(new Blob([content], { type: 'application/json;charset=utf-8' }))
         }, function (e) {
           reject(new Error('创建写入器失败: ' + e.message))
         })
@@ -536,8 +534,8 @@ export async function listBackupFilesFromSAF(folderUri) {
       const uri = Uri.parse(folderUri)
       const resolver = main.getContentResolver()
 
-      // 使用ContentResolver直接查询
-      const cursor = resolver.query(
+      // 使用ContentResolver直接查询（必须通过plus.android.invoke调用Java方法）
+      const cursor = plus.android.invoke(resolver, "query",
         uri,
         null, // 返回所有列
         null, // 不筛选

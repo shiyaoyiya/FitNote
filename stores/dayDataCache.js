@@ -135,6 +135,16 @@ export const useDayDataCacheStore = defineStore('dayDataCache', {
       if (dayData.isRestDay) {
         return false
       }
+      // 检查心率/卡路里数据（仅心率广播训练也算有效活动）
+      if (dayData.durationSec && dayData.durationSec > 60) {
+        return true  // 心率训练时长 > 1 分钟
+      }
+      if (dayData.caloriesTotal && dayData.caloriesTotal > 0) {
+        return true
+      }
+      if (dayData.hrSamples && Array.isArray(dayData.hrSamples) && dayData.hrSamples.length >= 10) {
+        return true  // 至少 10 个心率采样
+      }
       // 检查templates是否有有效内容
       if (dayData.templates && typeof dayData.templates === 'object') {
         const templateKeys = Object.keys(dayData.templates)
@@ -179,7 +189,16 @@ export const useDayDataCacheStore = defineStore('dayDataCache', {
       if (!this.dateIndex.has(dateStr)) return false
       if (this.cache.has(dateStr)) {
         const data = this.cache.get(dateStr)
-        return !data.isRestDay && Object.keys(data.templates || {}).length > 0
+        if (data.isRestDay) return false
+        // 检查训练模板
+        if (Object.keys(data.templates || {}).length > 0) return true
+        // 检查心率/卡路里数据（心率训练也算有效活动）
+        if ((data.durationSec && data.durationSec > 60) ||
+            (data.caloriesTotal && data.caloriesTotal > 0) ||
+            (data.hrSamples && data.hrSamples.length >= 10)) {
+          return true
+        }
+        return false
       }
       // 不在缓存中但 index 有 → 可能有数据，返回 true
       return true

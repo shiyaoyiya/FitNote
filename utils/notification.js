@@ -42,7 +42,11 @@ export async function checkAndNotifyTrainingDay() {
   // 演示：本地通知（App）/控制台（小程序）+ 申请订阅
   if (isApp) {
     // #ifdef APP-PLUS
-    plus.push.createPush(`今日训练：${tplName}`, { title: 'FitNote 训练提醒' })
+    if (plus.push && typeof plus.push.createPush === 'function') {
+      plus.push.createPush(`今日训练：${tplName}`, { title: 'FitNote 训练提醒' })
+    } else {
+      uni.showToast({ title: `今日训练：${tplName}`, icon: 'none', duration: 3000 })
+    }
     // #endif
   } else {
     console.log('[训练日提醒] 今日训练：', tplName)
@@ -54,7 +58,12 @@ export async function checkAndNotifyTrainingDay() {
 export async function notifyRestEnd() {
   if (isApp) {
     // #ifdef APP-PLUS
-    plus.push.createPush('组间休息结束，继续训练！', { title: 'FitNote' })
+    if (plus.push && typeof plus.push.createPush === 'function') {
+      plus.push.createPush('组间休息结束，继续训练！', { title: 'FitNote' })
+    } else {
+      uni.showToast({ title: '组间休息结束，继续训练！', icon: 'none', duration: 3000 })
+      uni.vibrateLong()
+    }
     // #endif
   } else {
     await requestSubscribe(REST_TEMPLATE_ID)

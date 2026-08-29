@@ -1,6 +1,6 @@
 <template>
-  <view v-if="visible" class="popup-overlay" style="z-index: 2000;">
-    <view class="overlay-bg"></view>
+  <view v-show="visible" class="popup-overlay" style="z-index: 2000;">
+    <view class="overlay-bg" @click="$emit('minimize')"></view>
     <view class="timer-panel fade-in">
       <view class="timer-full-body">
         <view class="quick-settings">
@@ -26,7 +26,6 @@
 </template>
 
 <script>
-  import { showFloatTimer, updateFloatTimerText, closeFloatTimer, closeSystemFloatTimer, stopFloatTimer, showSystemFloatTimer, hasOverlayPermission, requestOverlayPermission } from '@/utils/floatTimer.js'
   export default {
     name: 'TimerModal',
     props: {
@@ -34,7 +33,7 @@
       defaultDuration: { type: Number, default: 180 },
       quickSettings: { type: Array, default: null },
     },
-    emits: ['close', 'complete', 'time-change'],
+    emits: ['close', 'complete', 'time-change', 'minimize'],
     data() {
       return {
         totalDuration: 180,
@@ -48,9 +47,6 @@
         ctx: null,
         isMiniProgram: false,
         selectedQuickSeconds: 180,
-        isBackground: false,
-        _onAppHide: null,
-        _onAppShow: null,
       }
     },
     computed: {
@@ -71,8 +67,9 @@
       },
     },
     watch: {
+      // 仅未计时时初始化；计时中再打开弹窗（点微型）不重置
       visible(val) {
-        if (val) this.initTimer()
+        if (val && !this.timerInterval) this.initTimer()
       },
     },
     created() {
@@ -107,6 +104,18 @@
           this.initCanvas()
         })
       },
+      // 外部（day.vue）直接启动倒计时，用于"点按钮即开始微型计时"
+      startTimer(duration) {
+        const d = duration > 0 ? duration : 180
+        this.totalDuration = d
+        this.remaining = d
+        this.selectedQuickSeconds = d
+        this.notified = false
+        this.canvasReady = true
+        this.$nextTick(() => {
+          this.initCanvas()
+        })
+      },
       initCanvas() {
         this.detectPlatform()
 
@@ -117,7 +126,6 @@
         } else {
           const canvas = document.getElementById('timerCanvas')
           if (!canvas) {
-            // Canvas 未找到也要启动计时
             this.startCountdown()
             return
           }
@@ -145,46 +153,12 @@
           this.audioCtx.stop()
           this.notified = false
         }
-        stopFloatTimer()
-        if (this._onAppHide) { uni.offAppHide(this._onAppHide); this._onAppHide = null }
-        if (this._onAppShow) { uni.offAppShow(this._onAppShow); this._onAppShow = null }
-        this.isBackground = false
       },
       startCountdown() {
         this.clearTimer()
         this.endTimestamp = Date.now() + this.remaining * 1000
         this.updateRemaining()
         this.timerInterval = setInterval(() => this.updateRemaining(), 1000)
-        this.setupFloatTimer()
-      },
-      setupFloatTimer() {
-        // 首次提示开启系统悬浮窗权限（后台/桌面可见）
-        if (!hasOverlayPermission()) {
-          uni.showModal({
-            title: '后台悬浮提醒',
-            content: '开启悬浮窗权限后，倒计时切后台可在桌面/其他App上层显示。是否去开启？',
-            confirmText: '去开启',
-            cancelText: '仅前台',
-            success: (r) => { if (r.confirm) requestOverlayPermission() },
-          })
-        }
-        showFloatTimer(this.displayTime)
-        this._onAppHide = () => {
-          this.isBackground = true
-          if (this.timerInterval) {
-            closeFloatTimer()
-            if (hasOverlayPermission()) showSystemFloatTimer(this.displayTime)
-          }
-        }
-        this._onAppShow = () => {
-          this.isBackground = false
-          if (this.timerInterval) {
-            closeSystemFloatTimer()
-            showFloatTimer(this.displayTime)
-          }
-        }
-        uni.onAppHide(this._onAppHide)
-        uni.onAppShow(this._onAppShow)
       },
       updateRemaining() {
         const now = Date.now()
@@ -192,13 +166,15 @@
         this.remaining = Math.max(0, diff)
         if (this.remaining > 0 && this.remaining <= 10) uni.vibrateShort()
         this.drawCircle()
-        updateFloatTimerText(this.displayTime, this.isBackground)
+        // 每秒通知父组件，用于微型计时器显示
+        this.$emit('time-change', this.remaining, this.displayTime)
         if (this.remaining <= 0 && !this.notified) {
           this.notified = true
           this.clearTimer()
           uni.vibrateLong()
           this.audioCtx && this.audioCtx.play()
           uni.showToast({ title: '计时结束', icon: 'none', duration: 2000 })
+          this.$emit('complete')
         }
       },
       setQuickTime(seconds) {
@@ -210,7 +186,7 @@
         this.notified = false
         this.endTimestamp = Date.now() + seconds * 1000
         this.startCountdown()
-        this.$emit('time-change', seconds)
+        this.$emit('time-change', seconds, this.displayTime)
       },
       adjustDuration(delta) {
         uni.vibrateShort()
@@ -221,11 +197,11 @@
         this.notified = false
         this.endTimestamp = Date.now() + this.remaining * 1000
         this.drawCircle()
-        this.$emit('time-change', this.totalDuration)
+        this.$emit('time-change', this.totalDuration, this.displayTime)
       },
       completeTimer() {
         this.clearTimer()
-        this.$emit('close')
+        this.$emit('complete')
       },
       drawCircle() {
         if (!this.ctx) return

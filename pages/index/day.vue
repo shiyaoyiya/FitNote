@@ -56,7 +56,8 @@
       @toggle-bubble-fill="settingsStore.toggleBubbleFill()"
       @set-heavy-timer="(v) => settingsStore.setHeavyTimerDuration(v)"
       @set-light-timer="(v) => settingsStore.setLightTimerDuration(v)" @export-data="onExportData"
-      @import-data="onImportData" @open-body-profile="showBodyProfile=true" />
+      @import-data="onImportData" @open-body-profile="showBodyProfile=true"
+      @open-met-selector="showMetSelector=true" />
 
     <!-- 导入数据弹窗 -->
     <ImportDataModal

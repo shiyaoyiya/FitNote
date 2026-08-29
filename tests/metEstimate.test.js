@@ -29,4 +29,47 @@ describe('MET公式热量计算', () => {
     expect(getMetPreset('cycling').met).toBe(6.8)
     expect(getMetPreset('unknown').met).toBe(1.0)
   })
+
+  it('负数输入返回0', () => {
+    expect(calcMetCalories(-1, 70, 30)).toBe(0)
+    expect(calcMetCalories(6.0, -1, 30)).toBe(0)
+    expect(calcMetCalories(6.0, 70, -1)).toBe(0)
+    expect(calcNetCalories(-1, 70, 30)).toBe(0)
+    expect(calcNetCalories(6.0, -1, 30)).toBe(0)
+    expect(calcNetCalories(6.0, 70, -1)).toBe(0)
+  })
+
+  it('零值输入返回0', () => {
+    expect(calcMetCalories(0, 70, 30)).toBe(0)
+    expect(calcMetCalories(6.0, 0, 30)).toBe(0)
+    expect(calcMetCalories(6.0, 70, 0)).toBe(0)
+    expect(calcNetCalories(0, 70, 30)).toBe(0)
+    expect(calcNetCalories(6.0, 0, 30)).toBe(0)
+    expect(calcNetCalories(6.0, 70, 0)).toBe(0)
+  })
+
+  it('大数值正常计算', () => {
+    const result = calcMetCalories(10, 100, 60)
+    expect(result).toBe(1000)
+  })
+
+  it('心率为0返回默认MET', () => {
+    expect(estimateMetFromHr(0, 30)).toBe(2.0)
+  })
+
+  it('心率为负数返回默认MET', () => {
+    expect(estimateMetFromHr(-1, 30)).toBe(2.0)
+  })
+
+  it('年龄为0返回默认MET', () => {
+    expect(estimateMetFromHr(100, 0)).toBe(2.0)
+  })
+
+  it('年龄超过120返回默认MET', () => {
+    expect(estimateMetFromHr(100, 130)).toBe(2.0)
+  })
+
+  it('心率超过最大心率仍返回高强度', () => {
+    expect(estimateMetFromHr(220, 30)).toBe(7.0)
+  })
 })
