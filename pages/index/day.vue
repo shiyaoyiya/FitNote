@@ -27,6 +27,7 @@
       <HeartRateToggle
         :hr="hr" :hr-history="hrHistorySamples" :kcal-total="hrKcalTotal" :duration-sec="hrDurationSec"
         :zone="hrZone" :zones="hrZones" :connected="hrConnected"
+        :trend="hrTrend" :signal-quality="signalQuality"
         @toggle-connect="onToggleHrConnect" @request-settings="onOpenHrSettings"
         @show-chart="onShowHrChart"
       >
@@ -121,8 +122,11 @@
   import HeartRateChartPopup from '@/components/HeartRateChartPopup.vue'
   import { createBleHeartRate } from '@/utils/bleHeartRate.js'
   import { startFloatTimer, updateFloatTimerText, stopFloatTimer, notifyTimerEnd, hasOverlayPermission, requestOverlayPermission } from '@/utils/floatTimer.js'
-  import { calcKcalPerMin, calcSessionKcal, estimateAvgHr } from '@/utils/calorieEstimate.js'
+  import { estimateAvgHr } from '@/utils/calorieEstimate.js'
   import { getZones, getZone } from '@/utils/heartRateZones.js'
+  import { calcMetCalories, calcNetCalories, estimateMetFromHr, getMetPreset } from '@/utils/metEstimate.js'
+  import { calculateHrTrend, getTrendIcon, getTrendColor } from '@/utils/heartRateTrend.js'
+  import { evaluateSignalQuality, shouldShowWeakSignalWarning } from '@/utils/bleConnectionQuality.js'
   import { useUserProfileStore } from '@/stores/userProfile.js'
   import { mergeImportData, getNewActions, applyMatchSelections } from '@/utils/dataMerger'
   import { checkAndNotifyTrainingDay, notifyRestEnd } from '@/utils/notification.js'
@@ -186,6 +190,12 @@
         hrHistorySamples: [],    // 历史心率采样（从 dayData 加载）
         hrHistoryKcal: 0,
         hrHistoryDur: 0,
+        metValue: 1.0,
+        activityType: 'custom',
+        totalCalories: 0,
+        netCalories: 0,
+        hrTrend: { trend: 'stable', change: 0 },
+        signalQuality: null,
         editEntryInfo: {
           actionIdx: -1,
           entryIdx: -1
@@ -1271,11 +1281,21 @@
         this.hrBle.onHeartRate((h) => {
           this.hr = h
           this.lastHrTs = Date.now()
+          this.hrTrend = calculateHrTrend(this.hrSamples.map(s => s.hr))
           // 首次收到心率 或 暂停后恢复：启动/恢复计时
           if (!this.hrTimer) this.startHrAccumulate()
         })
         this.hrBle.onStateChange((s) => {
           this.hrConnected = (s === 'connected')
+          if (s === 'connected' && this.hrBle) {
+            this.hrBle.getDeviceRssi(this.hrBle.getLastDeviceId())
+              .then(rssi => {
+                this.signalQuality = evaluateSignalQuality(rssi)
+                if (shouldShowWeakSignalWarning(rssi)) {
+                  uni.showToast({ title: '信号较弱，请靠近设备', icon: 'none' })
+                }
+              })
+          }
           // 订阅失败/断连时自动重连（限制：1 秒后检查一次）
           if (s === 'disconnected' && this.hrBle && this.hrBle.getLastDeviceId()) {
             setTimeout(() => {
@@ -1389,7 +1409,11 @@
           if (tickCount % 60 === 0 && this.hr != null) {
             const profile = useUserProfileStore().toProfile()
             if (useUserProfileStore().isComplete()) {
-              this.hrKcalTotal += calcKcalPerMin(this.hr, profile)
+              this.metValue = estimateMetFromHr(this.hr, profile.age)
+              const durationMin = 1
+              this.totalCalories += calcMetCalories(this.metValue, profile.weight, durationMin)
+              this.netCalories += calcNetCalories(this.metValue, profile.weight, durationMin)
+              this.hrKcalTotal = this.netCalories
             }
           }
         }, 1000)

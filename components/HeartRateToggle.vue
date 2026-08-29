@@ -62,6 +62,8 @@ export default {
     zone: { type: Object, default: null },
     zones: { type: Array, default: () => [] },
     connected: { type: Boolean, default: false },
+    trend: { type: Object, default: null },
+    signalQuality: { type: Object, default: null },
   },
   emits: ['toggle-connect', 'request-settings', 'show-chart'],
   data() {
@@ -93,6 +95,7 @@ export default {
       return { borderColor: zoneColors[zoneIndex] || zoneColors[0] }
     },
     trendData() {
+      if (this.trend) return this.trend
       if (!this.hrHistory || this.hrHistory.length < 2) {
         return { trend: 'stable', change: 0 }
       }
