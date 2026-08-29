@@ -77,7 +77,7 @@
     <view v-if="showMetSelector" class="met-selector-overlay">
       <view class="met-selector-mask" @click="showMetSelector = false"></view>
       <view class="met-selector-content">
-        <MetValueSelector v-model="metValue" @input="onMetValueChange" />
+        <MetValueSelector v-model="metValue" />
       </view>
     </view>
 
@@ -202,7 +202,6 @@
         hrHistoryKcal: 0,
         hrHistoryDur: 0,
         metValue: 1.0,
-        activityType: 'custom',
         totalCalories: 0,
         netCalories: 0,
         hrTrend: { trend: 'stable', change: 0 },
@@ -1444,10 +1443,6 @@
         if (this.hrTimer) { clearInterval(this.hrTimer); this.hrTimer = null }
       },
       onOpenHrSettings() { this.showSettings = true },
-      onMetValueChange(value) {
-        this.metValue = value
-        this.activityType = this.selectedActivity
-      },
       onShowHrChart() {
         // 从 dayData 加载今日历史心率数据
         const raw = this.dayDataCacheStore.getDayData(this.date)
