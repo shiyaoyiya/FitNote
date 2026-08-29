@@ -166,7 +166,7 @@ export default {
 .hr-val{font-size:15px;font-weight:700;color:#ef4444;white-space:nowrap}
 .hr-unit{font-size:9px;color:var(--text-secondary);margin-left:2px}
 .hr-trend{font-size:12px;font-weight:700;margin-left:4px}
-.hr-zones{display:flex;align-items:center;gap:5px;flex:1;justify-content:center;padding:0 4px}
+.hr-zones{display:flex;align-items:center;gap:5px;flex:1;justify-content:center;padding:0 8px}
 .hr-bar{display:flex;gap:2px;flex:1}
 .hr-seg{flex:1;height:7px;border-radius:2px;min-width:8vw}
 .hr-zone-label{font-size:10px;font-weight:700;white-space:nowrap}
