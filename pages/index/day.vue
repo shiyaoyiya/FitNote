@@ -73,6 +73,14 @@
 
     <BodyProfilePopup :visible="showBodyProfile" @close="showBodyProfile=false" />
 
+    <!-- MET值选择弹窗 -->
+    <view v-if="showMetSelector" class="met-selector-overlay">
+      <view class="met-selector-mask" @click="showMetSelector = false"></view>
+      <view class="met-selector-content">
+        <MetValueSelector v-model="metValue" @input="onMetValueChange" />
+      </view>
+    </view>
+
     <!-- 心率折线图弹窗（未连接时点击心率按钮） -->
     <HeartRateChartPopup
       :visible="showHrChart"
@@ -120,6 +128,7 @@
   import BodyProfilePopup from '@/components/BodyProfilePopup.vue'
   import HeartRateToggle from '@/components/HeartRateToggle.vue'
   import HeartRateChartPopup from '@/components/HeartRateChartPopup.vue'
+  import MetValueSelector from '@/components/MetValueSelector.vue'
   import { createBleHeartRate } from '@/utils/bleHeartRate.js'
   import { startFloatTimer, updateFloatTimerText, stopFloatTimer, notifyTimerEnd, hasOverlayPermission, requestOverlayPermission } from '@/utils/floatTimer.js'
   import { estimateAvgHr } from '@/utils/calorieEstimate.js'
@@ -141,7 +150,8 @@
       EditEntryPopup,
       BodyProfilePopup,
       HeartRateToggle,
-      HeartRateChartPopup
+      HeartRateChartPopup,
+      MetValueSelector
     },
     data() {
       return {
@@ -172,6 +182,7 @@
         showEditEntryPopup: false,
         showImportModal: false,
         showBodyProfile: false,
+        showMetSelector: false,
         // 心率与热量累计
         hrBle: null,            // createBleHeartRate() 实例
         hrConnected: false,
@@ -1433,6 +1444,10 @@
         if (this.hrTimer) { clearInterval(this.hrTimer); this.hrTimer = null }
       },
       onOpenHrSettings() { this.showSettings = true },
+      onMetValueChange(value) {
+        this.metValue = value
+        this.activityType = this.selectedActivity
+      },
       onShowHrChart() {
         // 从 dayData 加载今日历史心率数据
         const raw = this.dayDataCacheStore.getDayData(this.date)
@@ -1682,5 +1697,37 @@
   .no-border::after,
   .no-border::before {
     display: none !important;
+  }
+
+  /* ========== MET选择器 ========== */
+  .met-selector-overlay {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .met-selector-mask {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+  }
+
+  .met-selector-content {
+    position: relative;
+    width: 80%;
+    max-height: 70vh;
+    background-color: var(--bg-secondary);
+    border-radius: 16rpx;
+    overflow: hidden;
+    z-index: 1;
   }
 </style>
