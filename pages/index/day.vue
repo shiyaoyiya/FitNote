@@ -78,7 +78,7 @@
     <view v-if="showMetSelector" class="met-selector-overlay">
       <view class="met-selector-mask" @click="showMetSelector = false"></view>
       <view class="met-selector-content">
-        <MetValueSelector v-model="metValue" />
+        <MetValueSelector v-model="metValue" @input="onMetValueChange" />
       </view>
     </view>
 
@@ -300,6 +300,7 @@
       }
       if (raw.caloriesTotal) this.hrKcalTotal = raw.caloriesTotal
       if (raw.hrSamples && Array.isArray(raw.hrSamples)) this.hrSamples = raw.hrSamples
+      if (raw.metValue) this.metValue = raw.metValue
 
       // ★ 判定是否因为"手环停止广播"才结束上一次保存：
       //   hrPausedForNoHr=true  → 手环确实停了，gap（之后未训练的空白）不计入，startTs=0 等心率重连再新会话
@@ -1444,6 +1445,10 @@
         if (this.hrTimer) { clearInterval(this.hrTimer); this.hrTimer = null }
       },
       onOpenHrSettings() { this.showSettings = true },
+      onMetValueChange(val) {
+        const raw = this.dayDataCacheStore.getDayData(this.date)
+        this.dayDataCacheStore.saveDayData(this.date, { ...raw, metValue: val })
+      },
       onShowHrChart() {
         // 从 dayData 加载今日历史心率数据
         const raw = this.dayDataCacheStore.getDayData(this.date)
