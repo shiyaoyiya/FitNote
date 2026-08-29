@@ -234,4 +234,21 @@ export default {
   0%,100%{opacity:1}
   50%{opacity:0.3}
 }
+
+/* 深色模式适配 */
+@media (prefers-color-scheme: dark) {
+  .hr-toggle {
+    background: #1F2937;
+    color: #F9FAFB;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  }
+  
+  .hr-toggle.expanded {
+    background: #111827;
+  }
+  
+  .hr-seg {
+    opacity: 0.8;
+  }
+}
 </style>
