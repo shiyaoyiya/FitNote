@@ -1706,4 +1706,68 @@
     display: none !important;
   }
 
+  /* ========== MET选择器弹窗（复用 BodyProfilePopup 样式） ========== */
+  .bp-overlay {
+    position: fixed;
+    top: 0; bottom: 0; left: 0; right: 0;
+    z-index: 1000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  .bp-bg {
+    position: absolute;
+    top: 0; bottom: 0; left: 0; right: 0;
+    background-color: rgba(0, 0, 0, 0.3);
+  }
+  .bp-panel {
+    position: relative;
+    width: 80vw;
+    background: var(--glass-bg, rgba(255,255,255,0.7));
+    backdrop-filter: blur(20px) saturate(140%);
+    -webkit-backdrop-filter: blur(20px) saturate(140%);
+    border: 1rpx solid var(--glass-border, rgba(200,210,230,0.6));
+    border-radius: 16px;
+    overflow: hidden;
+    z-index: 1001;
+    margin-top: -44px;
+    box-shadow: var(--glass-float, 0 8px 24px rgba(0,0,0,0.06)),
+      0 0 0 0.5px var(--glass-edge, rgba(255,255,255,0.65)) inset;
+  }
+  .fade-in { animation: bpFadeIn 0.2s ease-out; }
+  @keyframes bpFadeIn {
+    from { opacity: 0; transform: scale(0.9); }
+    to { opacity: 1; transform: scale(1); }
+  }
+  .bp-header {
+    position: relative;
+    padding: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .bp-header::after {
+    content: '';
+    position: absolute;
+    left: 50%; bottom: 0;
+    transform: translateX(-50%);
+    width: 72vw; height: 1px;
+    background-color: var(--divider-color);
+  }
+  .bp-title { font-size: 16px; font-weight: bold; color: var(--text-primary); }
+  .bp-close {
+    width: 40px; height: 40px;
+    display: flex; justify-content: center; align-items: center;
+    font-size: 20px; border-radius: 50%;
+    color: var(--text-secondary);
+  }
+  .bp-body { padding: 12px 16px; }
+
+  /* 深色模式 - MET选择器 */
+  .container.dark .bp-panel {
+    background: rgba(31,41,55,0.85);
+    border-color: rgba(75,85,99,0.6);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.3),
+      0 0 0 0.5px rgba(255,255,255,0.08) inset;
+  }
 </style>
