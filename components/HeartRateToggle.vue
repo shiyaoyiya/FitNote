@@ -39,6 +39,9 @@
           </view>
           <text class="hr-zone-label" :style="{ color: zone ? zone.color : '#999' }">{{ zone ? zone.label : '静息' }}</text>
         </view>
+        <view class="hr-guidance" v-if="expanded && guidance">
+          <text class="hr-guidance-text">{{ guidance }}</text>
+        </view>
         <view class="hr-kcal-blk">
           <text class="hr-kcal">🔥{{ Math.round(kcalTotal) }} kcal</text>
           <text class="hr-dur">{{ formatDur(durationSec) }}</text>
@@ -64,6 +67,7 @@ export default {
     connected: { type: Boolean, default: false },
     trend: { type: Object, default: null },
     signalQuality: { type: Object, default: null },
+    guidance: { type: String, default: null },
   },
   emits: ['toggle-connect', 'request-settings', 'show-chart'],
   data() {
@@ -208,7 +212,7 @@ export default {
 .hr-connect-hint{display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.1}
 .hr-pulse-dot{width:8px;height:8px;border-radius:50%;background:#f59e0b;animation:dot-blink 1.2s ease-in-out infinite;margin-bottom:2px}
 .hr-connect-text{font-size:10px;font-weight:700;color:#f59e0b;white-space:nowrap}
-.hr-expanded{display:flex;align-items:center;justify-content:space-between;width:100%;padding:0 12px;box-sizing:border-box;gap:6px}
+.hr-expanded{display:flex;align-items:center;justify-content:space-between;width:100%;padding:0 12px;box-sizing:border-box;gap:6px;position:relative}
 .hr-blk{display:flex;align-items:baseline}
 .hr-val{font-size:15px;font-weight:700;color:#ef4444;white-space:nowrap}
 .hr-unit{font-size:9px;color:var(--text-secondary);margin-left:2px}
@@ -217,6 +221,8 @@ export default {
 .hr-bar{display:flex;gap:2px}
 .hr-seg{width:9px;height:7px;border-radius:2px}
 .hr-zone-label{font-size:10px;font-weight:700;white-space:nowrap}
+.hr-guidance{position:absolute;bottom:4px;left:12px;right:50%}
+.hr-guidance-text{font-size:9px;color:var(--text-secondary);white-space:nowrap}
 .hr-kcal-blk{display:flex;flex-direction:column;align-items:flex-end;line-height:1.15}
 .hr-kcal{font-size:12px;font-weight:700;color:#f59e0b;white-space:nowrap}
 .hr-dur{font-size:9px;color:var(--text-secondary);white-space:nowrap}

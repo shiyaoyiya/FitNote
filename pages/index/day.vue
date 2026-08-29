@@ -27,7 +27,7 @@
       <HeartRateToggle
         :hr="hr" :hr-history="hrHistorySamples" :kcal-total="hrKcalTotal" :duration-sec="hrDurationSec"
         :zone="hrZone" :zones="hrZones" :connected="hrConnected"
-        :trend="hrTrend" :signal-quality="signalQuality"
+        :trend="hrTrend" :signal-quality="signalQuality" :guidance="trainingGuidance"
         @toggle-connect="onToggleHrConnect" @request-settings="onOpenHrSettings"
         @show-chart="onShowHrChart"
       >
@@ -245,6 +245,17 @@
         const p = useUserProfileStore()
         if (!p.age || this.hr == null) return null
         return getZone(this.hr, p.age)
+      },
+      trainingGuidance() {
+        if (!this.hrZone) return null
+        const guidanceMap = {
+          0: '保持轻松，热身阶段',
+          1: '燃脂区间，继续保持',
+          2: '有氧训练，强度适中',
+          3: '无氧训练，注意休息',
+          4: '极限强度，谨慎使用'
+        }
+        return guidanceMap[this.hrZone.index] || ''
       },
     },
     watch: {},
