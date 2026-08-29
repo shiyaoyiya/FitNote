@@ -1438,10 +1438,10 @@
           if (tickCount % 60 === 0 && this.hr != null) {
             const profile = useUserProfileStore().toProfile()
             if (useUserProfileStore().isComplete()) {
-              this.metValue = estimateMetFromHr(this.hr, profile.age)
+              const hrEstMet = estimateMetFromHr(this.hr, profile.age)
               const durationMin = 1
-              this.totalCalories += calcMetCalories(this.metValue, profile.weight, durationMin)
-              this.netCalories += calcNetCalories(this.metValue, profile.weight, durationMin)
+              this.totalCalories += calcMetCalories(hrEstMet, profile.weight, durationMin)
+              this.netCalories += calcNetCalories(hrEstMet, profile.weight, durationMin)
               this.hrKcalTotal = this.netCalories
             }
           }
@@ -1769,5 +1769,23 @@
     border-color: rgba(75,85,99,0.6);
     box-shadow: 0 8px 24px rgba(0,0,0,0.3),
       0 0 0 0.5px rgba(255,255,255,0.08) inset;
+  }
+
+  /* 液态玻璃 - MET选择器 */
+  .container.liquid-glass .bp-panel {
+    background: var(--glass-bg) !important;
+    border: none !important;
+    border-radius: 24rpx !important;
+    box-shadow:
+      0 0 0 0.5px var(--glass-edge) inset,
+      0 1px 3px var(--glass-shadow-inner) inset,
+      0 1px 4px var(--glass-shadow-outer) !important;
+    -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
+    backdrop-filter: blur(12px) saturate(140%) !important;
+  }
+  .container.liquid-glass .bp-bg {
+    background: rgba(0, 0, 0, 0.25) !important;
+    -webkit-backdrop-filter: blur(3px) !important;
+    backdrop-filter: blur(3px) !important;
   }
 </style>
