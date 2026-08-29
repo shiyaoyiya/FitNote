@@ -28,7 +28,7 @@
         :hr="hr" :hr-history="hrHistorySamples" :kcal-total="hrKcalTotal" :duration-sec="hrDurationSec"
         :zone="hrZone" :zones="hrZones" :connected="hrConnected"
         :trend="hrTrend" :signal-quality="signalQuality" :guidance="trainingGuidance"
-        @toggle-connect="onToggleHrConnect" @request-settings="onOpenHrSettings"
+        @toggle-connect="onToggleHrConnect"
         @show-chart="onShowHrChart"
       >
         <template #actions>
@@ -1714,16 +1714,29 @@
     bottom: 0;
     left: 0;
     right: 0;
-    background-color: rgba(0, 0, 0, 0.5);
+    background-color: rgba(0, 0, 0, 0.4);
   }
 
   .met-selector-content {
     position: relative;
     width: 80%;
     max-height: 70vh;
-    background-color: var(--bg-secondary);
-    border-radius: 16rpx;
+    background: var(--glass-bg, rgba(255,255,255,0.7));
+    backdrop-filter: blur(20px) saturate(140%);
+    -webkit-backdrop-filter: blur(20px) saturate(140%);
+    border: 1rpx solid var(--glass-border, rgba(200,210,230,0.6));
+    border-radius: 16px;
     overflow: hidden;
     z-index: 1;
+    box-shadow: var(--glass-float, 0 8px 24px rgba(0,0,0,0.06)),
+      0 0 0 0.5px var(--glass-edge, rgba(255,255,255,0.65)) inset;
+  }
+
+  /* 深色模式 - MET选择器 */
+  .container.dark .met-selector-content {
+    background: rgba(31,41,55,0.85);
+    border-color: rgba(75,85,99,0.6);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.3),
+      0 0 0 0.5px rgba(255,255,255,0.08) inset;
   }
 </style>

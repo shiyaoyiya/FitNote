@@ -3,16 +3,11 @@
     class="hr-toggle"
     :class="{ expanded }"
     :style="toggleStyle"
-    @click="handleClick"
-    @dblclick="handleDoubleClick"
-    @longpress="handleLongPress"
-    @touchstart="handleTouchStart"
-    @touchend="handleTouchEnd"
   >
-    <!-- 心率按钮：未连接/收起/展开 三态由 expanded + connected 控制 -->
     <view
       class="hr-chip"
       :class="{ open: expanded, connected: connected && hr != null, 'not-connected': !connected || hr == null }"
+      @click="handleClick"
     >
       <!-- 收起态：未连接/暂停显示"连接"，已连接显示心率 -->
       <view class="hr-collapsed" v-if="!expanded">
@@ -48,7 +43,7 @@
         </view>
       </view>
     </view>
-    <!-- 计时/设置按钮：展开时隐藏（由父级控制或本组件 v-if） -->
+    <!-- 计时/设置按钮：展开时隐藏 -->
     <slot name="actions" v-if="!expanded" />
   </view>
 </template>
@@ -69,18 +64,10 @@ export default {
     signalQuality: { type: Object, default: null },
     guidance: { type: String, default: null },
   },
-  emits: ['toggle-connect', 'request-settings', 'show-chart'],
+  emits: ['toggle-connect', 'show-chart'],
   data() {
     return {
       expanded: false,
-      touchStartX: 0,
-      touchStartTime: 0,
-      clickTimeout: null
-    }
-  },
-  beforeUnmount() {
-    if (this.clickTimeout) {
-      clearTimeout(this.clickTimeout)
     }
   },
   computed: {
@@ -114,50 +101,13 @@ export default {
   },
   methods: {
     handleClick() {
-      // 清除之前的延时
-      if (this.clickTimeout) {
-        clearTimeout(this.clickTimeout)
-        this.clickTimeout = null
+      // 未连接 或 心率为空 → 显示心率曲线弹窗
+      if (!this.connected || this.hr == null) {
+        this.$emit('show-chart')
         return
       }
-      
-      // 设置延时来区分单击和双击
-      this.clickTimeout = setTimeout(() => {
-        this.clickTimeout = null
-        // 未连接 或 心率为空（暂停/超时）→ 显示心率曲线弹窗
-        if (!this.connected || this.hr == null) { this.$emit('show-chart'); return }
-        this.expanded = !this.expanded
-      }, 250)
-    },
-    handleDoubleClick() {
-      // 清除单击的延时
-      if (this.clickTimeout) {
-        clearTimeout(this.clickTimeout)
-        this.clickTimeout = null
-      }
+      // 已连接 → 切换展开/收起
       this.expanded = !this.expanded
-    },
-    handleLongPress() {
-      this.$emit('request-settings')
-    },
-    handleTouchStart(e) {
-      this.touchStartX = e.touches[0].clientX
-      this.touchStartTime = Date.now()
-    },
-    handleTouchEnd(e) {
-      const touchEndX = e.changedTouches[0].clientX
-      const touchDuration = Date.now() - this.touchStartTime
-      
-      // 检测滑动手势（水平滑动距离 > 50px，时间 < 300ms）
-      if (Math.abs(touchEndX - this.touchStartX) > 50 && touchDuration < 300) {
-        if (touchEndX > this.touchStartX) {
-          // 右滑 - 展开
-          this.expanded = true
-        } else {
-          // 左滑 - 收起
-          this.expanded = false
-        }
-      }
     },
     formatDur(sec) {
       const m = Math.floor(sec / 60)
@@ -189,8 +139,8 @@ export default {
 }
 
 .hr-toggle.expanded {
-  width: 280px;
-  height: 120px;
+  flex-direction: column;
+  align-items: stretch;
 }
 
 .hr-chip{
@@ -206,7 +156,7 @@ export default {
 }
 .hr-chip.connected{border-color:#ef4444}
 .hr-chip.not-connected{border-color:#f59e0b;animation:hr-pulse 1.8s ease-in-out infinite}
-.hr-chip.open{width:280px;border-radius:14px}
+.hr-chip.open{width:100%;border-radius:14px;height:120px}
 .hr-chip.open.not-connected{animation:none}
 .hr-collapsed{font-size:15px;font-weight:700;color:#ef4444;display:flex;align-items:center;justify-content:center}
 .hr-connect-hint{display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.1}
@@ -244,7 +194,7 @@ export default {
   }
   
   .hr-toggle.expanded {
-    background: #111827;
+    background: transparent;
   }
   
   .hr-seg {

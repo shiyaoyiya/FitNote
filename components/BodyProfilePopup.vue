@@ -112,12 +112,16 @@ export default {
 .bp-panel {
   position: relative;
   width: 80vw;
-  background-color: var(--bg-secondary);
-  border: 1rpx solid var(--border-color);
-  border-radius: 10px;
+  background: var(--glass-bg, rgba(255,255,255,0.7));
+  backdrop-filter: blur(20px) saturate(140%);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
+  border: 1rpx solid var(--glass-border, rgba(200,210,230,0.6));
+  border-radius: 16px;
   overflow: hidden;
   z-index: 1001;
   margin-top: -44px;
+  box-shadow: var(--glass-float, 0 8px 24px rgba(0,0,0,0.06)),
+    0 0 0 0.5px var(--glass-edge, rgba(255,255,255,0.65)) inset;
 }
 .fade-in { animation: bpFadeIn 0.2s ease-out; }
 @keyframes bpFadeIn {
@@ -180,4 +184,21 @@ export default {
 .bp-actions { display: flex; justify-content: flex-end; gap: 20px; margin-top: 16px; padding: 0 4px; }
 .bp-cancel { color: var(--text-secondary); font-size: 15px; }
 .bp-save { color: #ef4444; font-size: 15px; font-weight: 600; }
+
+/* 深色模式适配 */
+@media (prefers-color-scheme: dark) {
+  .bp-panel {
+    background: rgba(31,41,55,0.85);
+    border-color: rgba(75,85,99,0.6);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.3),
+      0 0 0 0.5px rgba(255,255,255,0.08) inset;
+  }
+  .bp-chip {
+    border-color: rgba(75,85,99,0.8);
+  }
+  .bp-input-wrap {
+    background: rgba(55,65,81,0.6);
+    border-color: rgba(75,85,99,0.6);
+  }
+}
 </style>

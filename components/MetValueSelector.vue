@@ -70,6 +70,7 @@ export default {
   font-size: 32rpx;
   font-weight: bold;
   margin-bottom: 20rpx;
+  color: var(--text-primary);
 }
 .activity-list {
   display: flex;
@@ -78,20 +79,24 @@ export default {
 }
 .activity-item {
   padding: 16rpx 24rpx;
-  background: #f3f4f6;
+  background: var(--bg-tertiary, #f3f4f6);
+  border: 1rpx solid var(--border-color, #e5e7eb);
   border-radius: 12rpx;
   text-align: center;
+  transition: all 0.2s;
 }
 .activity-item.active {
   background: #3b82f6;
   color: white;
+  border-color: #3b82f6;
 }
 .activity-name {
   font-size: 28rpx;
+  color: var(--text-primary);
 }
 .activity-met {
   font-size: 24rpx;
-  color: #6b7280;
+  color: var(--text-secondary, #6b7280);
 }
 .activity-item.active .activity-met {
   color: #e0e7ff;
@@ -102,10 +107,16 @@ export default {
   align-items: center;
   gap: 16rpx;
 }
+.custom-met text {
+  font-size: 28rpx;
+  color: var(--text-primary);
+}
 .custom-met input {
   width: 150rpx;
   padding: 8rpx 16rpx;
-  border: 1px solid #d1d5db;
+  border: 1px solid var(--border-color, #d1d5db);
   border-radius: 8rpx;
+  background: var(--bg-tertiary, #fff);
+  color: var(--text-primary);
 }
 </style>
