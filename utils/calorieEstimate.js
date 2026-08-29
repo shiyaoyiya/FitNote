@@ -38,3 +38,20 @@ export function estimateAvgHr(samples) {
   }
   return sumDur > 0 ? Math.round(sumW / sumDur) : 0
 }
+
+// 根据指定公式计算热量
+export function calcCaloriesWithFormula(hr, profile, formula = 'keytel') {
+  if (formula === 'met') {
+    // 使用MET公式需要额外参数，这里返回null作为占位
+    return null
+  }
+  return calcKcalPerMin(hr, profile)
+}
+
+// 获取可用公式列表
+export function getAvailableFormulas() {
+  return [
+    { id: 'keytel', name: 'Keytel公式（基于心率）' },
+    { id: 'met', name: 'MET公式（基于运动类型）' }
+  ]
+}
