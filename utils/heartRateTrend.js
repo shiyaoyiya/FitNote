@@ -1,9 +1,17 @@
 // utils/heartRateTrend.js
 export function calculateHrTrend(hrHistory, windowSize = 5) {
-  if (!hrHistory || hrHistory.length < 2) {
+  if (!Array.isArray(hrHistory) || hrHistory.length < 2) {
     return { trend: 'stable', change: 0 }
   }
-  
+
+  if (!Number.isInteger(windowSize) || windowSize <= 0) {
+    windowSize = 5
+  }
+
+  if (!hrHistory.every(h => typeof h === 'number' && !isNaN(h))) {
+    return { trend: 'stable', change: 0 }
+  }
+
   const recent = hrHistory.slice(-windowSize)
   const older = hrHistory.slice(-windowSize * 2, -windowSize)
   

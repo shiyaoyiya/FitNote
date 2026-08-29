@@ -22,6 +22,60 @@ describe('心率趋势计算', () => {
     expect(result.trend).toBe('stable')
   })
 
+  it('hrHistory 为 null 时返回稳定', () => {
+    const result = calculateHrTrend(null)
+    expect(result.trend).toBe('stable')
+    expect(result.change).toBe(0)
+  })
+
+  it('hrHistory 为空数组时返回稳定', () => {
+    const result = calculateHrTrend([])
+    expect(result.trend).toBe('stable')
+    expect(result.change).toBe(0)
+  })
+
+  it('hrHistory 包含非数字元素时返回稳定', () => {
+    const result = calculateHrTrend([100, 'abc', 105])
+    expect(result.trend).toBe('stable')
+    expect(result.change).toBe(0)
+  })
+
+  it('hrHistory 包含 NaN 时返回稳定', () => {
+    const result = calculateHrTrend([100, NaN, 105])
+    expect(result.trend).toBe('stable')
+    expect(result.change).toBe(0)
+  })
+
+  it('windowSize 为 0 时使用默认值', () => {
+    const hrHistory = [100, 102, 105, 110, 115, 120, 125, 130]
+    const result = calculateHrTrend(hrHistory, 0)
+    expect(result.trend).toBe('up')
+  })
+
+  it('windowSize 为负数时使用默认值', () => {
+    const hrHistory = [100, 102, 105, 110, 115, 120, 125, 130]
+    const result = calculateHrTrend(hrHistory, -3)
+    expect(result.trend).toBe('up')
+  })
+
+  it('windowSize 大于数组长度时正常计算', () => {
+    const hrHistory = [100, 102, 105, 110, 115]
+    const result = calculateHrTrend(hrHistory, 10)
+    expect(result.trend).toBe('stable')
+  })
+
+  it('hrHistory 只有一个元素时返回稳定', () => {
+    const result = calculateHrTrend([100])
+    expect(result.trend).toBe('stable')
+    expect(result.change).toBe(0)
+  })
+
+  it('windowSize 非整数时使用默认值', () => {
+    const hrHistory = [100, 102, 105, 110, 115, 120, 125, 130]
+    const result = calculateHrTrend(hrHistory, 2.5)
+    expect(result.trend).toBe('up')
+  })
+
   it('获取趋势图标', () => {
     expect(getTrendIcon('up')).toBe('↑')
     expect(getTrendIcon('down')).toBe('↓')
