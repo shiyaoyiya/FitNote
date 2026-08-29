@@ -1,9 +1,15 @@
 {
+  "scripts": {
+    "test": "vitest run"
+  },
   "dependencies": {
     "@vant/weapp": "^1.11.7",
     "pinia": "^3.0.3",
     "sortablejs": "^1.15.6",
     "uview-ui": "^2.0.38",
     "vuedraggable": "^2.24.3"
+  },
+  "devDependencies": {
+    "vitest": "^4.1.11"
   }
 }
