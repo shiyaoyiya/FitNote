@@ -13,7 +13,11 @@
         </view>
         <view v-else class="chart-canvas-wrap">
           <canvas
-            canvas-id="hrChart" id="hrChart" class="chart-canvas"
+            canvas-id="hrChartBase" id="hrChartBase" class="chart-canvas"
+            style="width: 100%; height: 200px;"
+          ></canvas>
+          <canvas
+            canvas-id="hrChartCursor" id="hrChartCursor" class="chart-canvas chart-cursor-layer"
             style="width: 100%; height: 200px;"
           ></canvas>
           <!-- 透明触摸层覆盖在 canvas 上方，捕获触摸坐标 -->
@@ -74,6 +78,7 @@ export default {
       chartLayout: null,
       cachedRect: null,
       canvasActualW: 320,
+      baseImage: null,  // 缓存基础图表图片（不含游标）
     }
   },
   computed: {
@@ -134,13 +139,10 @@ export default {
     cacheCanvasRect() {
       uni.createSelectorQuery()
         .in(this)
-        .select('#hrChart')
+        .select('#hrChartCursor')
         .boundingClientRect(rect => {
           if (rect) {
             this.cachedRect = rect
-            console.log('[HR Chart] rect cached:', rect.left, rect.width)
-          } else {
-            console.log('[HR Chart] rect 为空')
           }
         })
         .exec()
@@ -167,7 +169,6 @@ export default {
       const rect = this.cachedRect
       const relX = clientX - rect.left
       const virtX = (relX / rect.width) * 320
-      console.log('[HR Chart] clientX=', clientX, 'rect.left=', rect.left, 'virtX=', virtX)
       const { padL, xStep, n } = this.chartLayout
       if (n === 0) return
       let idx
@@ -178,12 +179,16 @@ export default {
       }
       if (idx !== this.cursorIndex) {
         this.cursorIndex = idx
-        this.drawChart()
+        this.drawCursor()  // 只重绘游标层
       }
     },
     drawChart() {
-      const ctx = uni.createCanvasContext('hrChart', this)
-      if (!ctx) { console.log('[HR Chart] ctx 为空'); return }
+      this.drawBaseChart()
+      this.drawCursor()
+    },
+    drawBaseChart() {
+      const ctx = uni.createCanvasContext('hrChartBase', this)
+      if (!ctx) return
 
       const w = 320, h = 200
       const padL = 38, padR = 15, padT = 15, padB = 28
@@ -204,7 +209,6 @@ export default {
         y: padT + plotH - ((s.hr - yMin) / yRange) * plotH,
       }))
 
-      // 存储布局供触摸使用
       this.chartLayout = { padL, padR, plotW, xStep, n, points, yMin, yRange, padT, plotH }
 
       ctx.clearRect(0, 0, w, h)
@@ -250,7 +254,18 @@ export default {
       })
       ctx.stroke()
 
-      // 游标（竖线 + 圆点）
+      ctx.draw()
+      this.cacheCanvasRect()
+    },
+    drawCursor() {
+      if (!this.chartLayout) return
+      const ctx = uni.createCanvasContext('hrChartCursor', this)
+      if (!ctx) return
+
+      const w = 320, h = 200
+      const { padT, plotH, points } = this.chartLayout
+      ctx.clearRect(0, 0, w, h)
+
       if (this.cursorIndex >= 0 && this.cursorIndex < points.length) {
         const p = points[this.cursorIndex]
         // 竖线
@@ -273,9 +288,6 @@ export default {
       }
 
       ctx.draw()
-
-      // 绘制完成后缓存 rect，供触摸使用
-      this.cacheCanvasRect()
     },
     formatDur(sec) {
       const m = Math.floor(sec / 60)
@@ -370,6 +382,12 @@ export default {
 .chart-canvas {
   width: 100%;
   height: 200px;
+}
+.chart-cursor-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 2;
 }
 /* 透明触摸层，覆盖在 canvas 上方 */
 .touch-overlay {
