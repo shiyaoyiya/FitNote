@@ -32,30 +32,30 @@ export default {
     value: {
       type: Number,
       default: 1.0
+    },
+    activityKey: {
+      type: String,
+      default: 'custom'
     }
   },
   data() {
     return {
       presets: MET_PRESETS,
-      selectedActivity: 'custom',
-      customMet: 1.0
+      selectedActivity: this.activityKey || 'custom',
+      customMet: this.value || 1.0
     }
   },
   watch: {
+    activityKey: {
+      immediate: true,
+      handler(val) {
+        if (val) this.selectedActivity = val
+      }
+    },
     value: {
       immediate: true,
       handler(val) {
-        if (val == null) return
-        let found = false
-        for (const key of Object.keys(this.presets)) {
-          if (this.presets[key].met === val) {
-            this.selectedActivity = key
-            found = true
-            break
-          }
-        }
-        if (!found) {
-          this.selectedActivity = 'custom'
+        if (val != null && this.selectedActivity === 'custom') {
           this.customMet = val
         }
       }
@@ -66,8 +66,10 @@ export default {
       this.selectedActivity = key
       if (key !== 'custom') {
         this.$emit('input', this.presets[key].met)
+        this.$emit('update:activityKey', key)
       } else {
         this.$emit('input', this.customMet)
+        this.$emit('update:activityKey', 'custom')
       }
     },
     updateCustomMet() {

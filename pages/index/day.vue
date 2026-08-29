@@ -83,7 +83,7 @@
           <text class="bp-close" @click="showMetSelector = false">×</text>
         </view>
         <view class="bp-body">
-          <MetValueSelector v-model="metValue" @input="onMetValueChange" />
+          <MetValueSelector v-model="metValue" :activity-key="metActivityKey" @input="onMetValueChange" @update:activityKey="onMetActivityKeyChange" />
         </view>
       </view>
     </view>
@@ -209,6 +209,7 @@
         hrHistoryKcal: 0,
         hrHistoryDur: 0,
         metValue: 1.0,
+        metActivityKey: 'custom',
         totalCalories: 0,
         netCalories: 0,
         hrTrend: { trend: 'stable', change: 0 },
@@ -307,6 +308,7 @@
       if (raw.caloriesTotal) this.hrKcalTotal = raw.caloriesTotal
       if (raw.hrSamples && Array.isArray(raw.hrSamples)) this.hrSamples = raw.hrSamples
       if (raw.metValue) this.metValue = raw.metValue
+      if (raw.metActivityKey) this.metActivityKey = raw.metActivityKey
 
       // ★ 判定是否因为"手环停止广播"才结束上一次保存：
       //   hrPausedForNoHr=true  → 手环确实停了，gap（之后未训练的空白）不计入，startTs=0 等心率重连再新会话
@@ -1453,7 +1455,12 @@
       onOpenHrSettings() { this.showSettings = true },
       onMetValueChange(val) {
         const raw = this.dayDataCacheStore.getDayData(this.date)
-        this.dayDataCacheStore.saveDayData(this.date, { ...raw, metValue: val })
+        this.dayDataCacheStore.saveDayData(this.date, { ...raw, metValue: val, metActivityKey: this.metActivityKey })
+      },
+      onMetActivityKeyChange(key) {
+        this.metActivityKey = key
+        const raw = this.dayDataCacheStore.getDayData(this.date)
+        this.dayDataCacheStore.saveDayData(this.date, { ...raw, metActivityKey: key })
       },
       onShowHrChart() {
         // 从 dayData 加载今日历史心率数据
