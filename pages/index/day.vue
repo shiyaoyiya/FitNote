@@ -75,10 +75,16 @@
     <BodyProfilePopup :visible="showBodyProfile" @close="showBodyProfile=false" />
 
     <!-- MET值选择弹窗 -->
-    <view v-if="showMetSelector" class="met-selector-overlay">
-      <view class="met-selector-mask" @click="showMetSelector = false"></view>
-      <view class="met-selector-content">
-        <MetValueSelector v-model="metValue" @input="onMetValueChange" />
+    <view v-if="showMetSelector" class="bp-overlay">
+      <view class="bp-bg" @click="showMetSelector = false"></view>
+      <view class="bp-panel fade-in" @click.stop>
+        <view class="bp-header">
+          <text class="bp-title">选择运动类型</text>
+          <text class="bp-close" @click="showMetSelector = false">×</text>
+        </view>
+        <view class="bp-body">
+          <MetValueSelector v-model="metValue" @input="onMetValueChange" />
+        </view>
       </view>
     </view>
 
@@ -1700,48 +1706,4 @@
     display: none !important;
   }
 
-  /* ========== MET选择器 ========== */
-  .met-selector-overlay {
-    position: fixed;
-    top: 0;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    z-index: 1000;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-  }
-
-  .met-selector-mask {
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background-color: rgba(0, 0, 0, 0.4);
-  }
-
-  .met-selector-content {
-    position: relative;
-    width: 80%;
-    max-height: 70vh;
-    background: var(--glass-bg, rgba(255,255,255,0.7));
-    backdrop-filter: blur(20px) saturate(140%);
-    -webkit-backdrop-filter: blur(20px) saturate(140%);
-    border: 1rpx solid var(--glass-border, rgba(200,210,230,0.6));
-    border-radius: 16px;
-    overflow: hidden;
-    z-index: 1;
-    box-shadow: var(--glass-float, 0 8px 24px rgba(0,0,0,0.06)),
-      0 0 0 0.5px var(--glass-edge, rgba(255,255,255,0.65)) inset;
-  }
-
-  /* 深色模式 - MET选择器 */
-  .container.dark .met-selector-content {
-    background: rgba(31,41,55,0.85);
-    border-color: rgba(75,85,99,0.6);
-    box-shadow: 0 8px 24px rgba(0,0,0,0.3),
-      0 0 0 0.5px rgba(255,255,255,0.08) inset;
-  }
 </style>

@@ -14,7 +14,7 @@
         <text v-if="connected && hr != null">♥{{ hr }}</text>
         <view v-else class="hr-connect-hint">
           <text class="hr-pulse-dot"></text>
-          <text class="hr-connect-text">连接</text>
+          <text class="hr-connect-text">未连接</text>
         </view>
       </view>
       <!-- 展开态：心率 + 趋势 + 区间条 + 档位 + 卡路里 + 时长 -->
@@ -120,8 +120,8 @@ export default {
 
 <style scoped>
 .hr-toggle {
-  --hr-color-disconnected: #6B7280;
-  --hr-color-connecting: #F59E0B;
+  --hr-color-disconnected: #3B82F6;
+  --hr-color-connecting: #3B82F6;
   --hr-color-zone-0: #3B82F6;
   --hr-color-zone-1: #22C55E;
   --hr-color-zone-2: #EAB308;
@@ -155,13 +155,13 @@ export default {
   transition:width .28s ease,border-radius .28s ease,border-color .2s
 }
 .hr-chip.connected{border-color:#ef4444}
-.hr-chip.not-connected{border-color:#f59e0b;animation:hr-pulse 1.8s ease-in-out infinite}
+.hr-chip.not-connected{border-color:#3b82f6;animation:hr-pulse 1.8s ease-in-out infinite}
 .hr-chip.open{width:100%;border-radius:14px;height:120px}
 .hr-chip.open.not-connected{animation:none}
 .hr-collapsed{font-size:15px;font-weight:700;color:#ef4444;display:flex;align-items:center;justify-content:center}
 .hr-connect-hint{display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.1}
-.hr-pulse-dot{width:8px;height:8px;border-radius:50%;background:#f59e0b;animation:dot-blink 1.2s ease-in-out infinite;margin-bottom:2px}
-.hr-connect-text{font-size:10px;font-weight:700;color:#f59e0b;white-space:nowrap}
+.hr-pulse-dot{width:8px;height:8px;border-radius:50%;background:#3b82f6;animation:dot-blink 1.2s ease-in-out infinite;margin-bottom:2px}
+.hr-connect-text{font-size:10px;font-weight:700;color:#3b82f6;white-space:nowrap}
 .hr-expanded{display:flex;align-items:center;justify-content:space-between;width:100%;padding:0 12px;box-sizing:border-box;gap:6px;position:relative}
 .hr-blk{display:flex;align-items:baseline}
 .hr-val{font-size:15px;font-weight:700;color:#ef4444;white-space:nowrap}
@@ -177,8 +177,8 @@ export default {
 .hr-kcal{font-size:12px;font-weight:700;color:#f59e0b;white-space:nowrap}
 .hr-dur{font-size:9px;color:var(--text-secondary);white-space:nowrap}
 @keyframes hr-pulse{
-  0%,100%{box-shadow:0 0 0 0 rgba(245,158,11,0.4)}
-  50%{box-shadow:0 0 0 6px rgba(245,158,11,0)}
+  0%,100%{box-shadow:0 0 0 0 rgba(59,130,246,0.4)}
+  50%{box-shadow:0 0 0 6px rgba(59,130,246,0)}
 }
 @keyframes dot-blink{
   0%,100%{opacity:1}
