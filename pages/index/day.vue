@@ -318,12 +318,13 @@
           this.hrStartTs = 0          // 等待心率恢复，再开始新会话
           console.log('[HR] 恢复：上次是手环停止广播，startTs=0，gap 不计入')
         } else {
-          // 训练仍在进行：当前显示 = 存储值 + 从 lastActive 到现在的时间（间隙计入）
+          // 训练仍在进行：把 gap 累加到基准时长，startTs 置 0 等心率重连再新会话
           const lastActive = raw.hrLastActiveTs || Date.now()
           const gapSec = Math.floor((Date.now() - lastActive) / 1000)
-          this.hrStartTs = lastActive - this.hrBaseDurationSec * 1000   // 统一公式的起点
-          this.hrDurationSec = this.hrBaseDurationSec + gapSec
-          console.log('[HR] 恢复：训练仍在进行，gap=', gapSec, 's 已计入，当前时长=', this.hrDurationSec)
+          this.hrBaseDurationSec = this.hrBaseDurationSec + gapSec
+          this.hrDurationSec = this.hrBaseDurationSec
+          this.hrStartTs = 0
+          console.log('[HR] 恢复：训练仍在进行，gap=', gapSec, 's 已计入基准，当前时长=', this.hrDurationSec)
         }
       }
 
@@ -1399,18 +1400,11 @@
         }, 10 * 1000)
       },
       startHrAccumulate() {
-        // 两种情况：
-        // A) hrStartTs === 0：上一次是"手环停止广播"结束的 / 首次开始 → 新会话从 NOW 开始
-        //    基准时长 = 已有的 hrDurationSec（从 storage 加载或之前累计）
-        //    hrDurationSec = 基准 + 会话内时间（gap 不计）
-        // B) hrStartTs !== 0：mounted 已从 hrLastActiveTs 反推好起点，gap 已算进公式
-        //    直接沿用 hrStartTs，tick 公式自然继续（不需要再改任何值）
+        // hrStartTs === 0：新会话从 NOW 开始，基准时长 = 已有的 hrDurationSec
         if (this.hrStartTs === 0) {
           this.hrBaseDurationSec = this.hrDurationSec || 0
           this.hrStartTs = Date.now()
           console.log('[HR] start: 新会话起点，base=', this.hrBaseDurationSec, 's')
-        } else {
-          console.log('[HR] start: 沿用已有 startTs（gap 已计入）')
         }
         if (this.hrTimer) clearInterval(this.hrTimer)
         let tickCount = 0
