@@ -156,13 +156,13 @@ export default {
 }
 .hr-chip.connected{border-color:#ef4444}
 .hr-chip.not-connected{border-color:#3b82f6;animation:hr-pulse 1.8s ease-in-out infinite}
-.hr-chip.open{width:100%;border-radius:14px;height:120px}
+.hr-chip.open{width:100%;border-radius:14px;height:52px}
 .hr-chip.open.not-connected{animation:none}
 .hr-collapsed{font-size:15px;font-weight:700;color:#ef4444;display:flex;align-items:center;justify-content:center}
 .hr-connect-hint{display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.1}
 .hr-pulse-dot{width:8px;height:8px;border-radius:50%;background:#3b82f6;animation:dot-blink 1.2s ease-in-out infinite;margin-bottom:2px}
 .hr-connect-text{font-size:10px;font-weight:700;color:#3b82f6;white-space:nowrap}
-.hr-expanded{display:flex;align-items:center;justify-content:space-between;width:100%;padding:0 12px;box-sizing:border-box;gap:6px;position:relative}
+.hr-expanded{display:flex;align-items:center;justify-content:space-between;width:100%;padding:0 12px;box-sizing:border-box;gap:4px;position:relative;height:52px}
 .hr-blk{display:flex;align-items:baseline}
 .hr-val{font-size:15px;font-weight:700;color:#ef4444;white-space:nowrap}
 .hr-unit{font-size:9px;color:var(--text-secondary);margin-left:2px}
@@ -171,7 +171,7 @@ export default {
 .hr-bar{display:flex;gap:2px}
 .hr-seg{width:9px;height:7px;border-radius:2px}
 .hr-zone-label{font-size:10px;font-weight:700;white-space:nowrap}
-.hr-guidance{position:absolute;bottom:4px;left:12px;right:50%}
+.hr-guidance{display:none}
 .hr-guidance-text{font-size:9px;color:var(--text-secondary);white-space:nowrap}
 .hr-kcal-blk{display:flex;flex-direction:column;align-items:flex-end;line-height:1.15}
 .hr-kcal{font-size:12px;font-weight:700;color:#f59e0b;white-space:nowrap}
