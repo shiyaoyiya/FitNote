@@ -5,7 +5,6 @@ const HR_SERVICE_UUID = '0000180D-0000-1000-8000-00805F9B34FB'
 const HR_MEASUREMENT_UUID = '00002A37-0000-1000-8000-00805F9B34FB'
 const DEVICE_ID_KEY = 'hr_device_id'
 const MAX_RETRIES = 3
-const RECONNECT_DELAY = 1500
 const SUBSCRIBE_DELAY = 800      // 连接成功后延迟订阅，等待 BLE 服务就绪
 const SUBSCRIBE_MAX_TRIES = 3   // 订阅失败重试次数
 const CONNECTION_TIMEOUT = 10000 // 10秒连接超时
@@ -14,16 +13,6 @@ const RECONNECT_INTERVALS = {
   normal: 1500,
   weak_signal: 3000,
   device_off: 5000
-}
-
-let lastDisconnectReason = 'normal'
-
-function getReconnectInterval() {
-  return RECONNECT_INTERVALS[lastDisconnectReason] || RECONNECT_INTERVALS.normal
-}
-
-function setDisconnectReason(reason) {
-  lastDisconnectReason = reason
 }
 
 // HRS 数据解析：flags byte bit0=1 → 心率 uint16，否则 uint8
@@ -64,6 +53,15 @@ export function createBleHeartRate() {
   let stateCallback = null
   let valueChangeHandler = null
   let stateChangeHandler = null
+  let lastDisconnectReason = 'normal'
+
+  function getReconnectInterval() {
+    return RECONNECT_INTERVALS[lastDisconnectReason] || RECONNECT_INTERVALS.normal
+  }
+
+  function setDisconnectReason(reason) {
+    lastDisconnectReason = reason
+  }
 
   function setState(s) { state = s; stateCallback && stateCallback(s) }
 
@@ -73,6 +71,8 @@ export function createBleHeartRate() {
   }
   function onConnStateChange(res) {
     if (!res.connected && state === 'connected') {
+      // 根据断开原因设置重连间隔
+      setDisconnectReason('normal')
       setState('reconnecting'); reconnect()
     }
   }
@@ -178,6 +178,8 @@ export function createBleHeartRate() {
     })
   }
 
+  // 注意：超时只拒绝 Promise.race，底层 BLE 连接仍会继续尝试。
+  // 连接会在设备不可用时自然失败，无需显式取消。
   async function connectWithTimeout(deviceId) {
     return Promise.race([
       connect(deviceId),
@@ -188,19 +190,21 @@ export function createBleHeartRate() {
   }
 
   async function reconnect() {
-    if (retries >= MAX_RETRIES || !deviceId) { setState('disconnected'); return }
+    while (retries < MAX_RETRIES && deviceId) {
+      setState('reconnecting')
 
-    setState('reconnecting')
+      const interval = getReconnectInterval()
+      await new Promise(resolve => setTimeout(resolve, interval))
 
-    const interval = getReconnectInterval()
-    await new Promise(resolve => setTimeout(resolve, interval))
-
-    retries++
-    try {
-      await connectWithTimeout(deviceId)
-    } catch (err) {
-      await reconnect()
+      retries++
+      try {
+        await connectWithTimeout(deviceId)
+        return // 连接成功，退出循环
+      } catch (err) {
+        // 继续下一次重试
+      }
     }
+    setState('disconnected')
   }
 
   return {
