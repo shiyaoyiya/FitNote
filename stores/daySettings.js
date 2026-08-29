@@ -12,6 +12,7 @@ export const useDaySettingsStore = defineStore('daySettings', {
     lightTimerDuration: 120,
     todayTrainBtnVisible: true,
     liquidGlassEnabled: false,
+    hrButtonVisible: true,
     splitPlan: {
       enabled: false,
       mode: 'cycle',
@@ -51,6 +52,7 @@ export const useDaySettingsStore = defineStore('daySettings', {
           if (data.lightTimerDuration) this.lightTimerDuration = data.lightTimerDuration
           if (data.hasOwnProperty('todayTrainBtnVisible')) this.todayTrainBtnVisible = !!data.todayTrainBtnVisible
           if (data.hasOwnProperty('liquidGlassEnabled')) this.liquidGlassEnabled = !!data.liquidGlassEnabled
+          if (data.hasOwnProperty('hrButtonVisible')) this.hrButtonVisible = !!data.hrButtonVisible
           if (data.splitPlan) {
             const cycleDays = data.splitPlan.cycleDays || []
             const weekPlan = data.splitPlan.weekPlan || [
@@ -87,6 +89,7 @@ export const useDaySettingsStore = defineStore('daySettings', {
         lightTimerDuration: this.lightTimerDuration,
         todayTrainBtnVisible: this.todayTrainBtnVisible,
         liquidGlassEnabled: this.liquidGlassEnabled,
+        hrButtonVisible: this.hrButtonVisible,
         splitPlan: this.splitPlan,
       })
     },
@@ -118,6 +121,11 @@ export const useDaySettingsStore = defineStore('daySettings', {
 
     toggleLiquidGlass() {
       this.liquidGlassEnabled = !this.liquidGlassEnabled
+      this.save()
+    },
+
+    toggleHrButton() {
+      this.hrButtonVisible = !this.hrButtonVisible
       this.save()
     },
 

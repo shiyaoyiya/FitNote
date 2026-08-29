@@ -26,6 +26,12 @@
               <view class="switch-dot"></view>
             </view>
           </view>
+          <view class="setting-item" @click="$emit('toggle-hr-button')">
+            <text class="setting-label">显示心率按钮</text>
+            <view class="setting-switch" :class="{ on: settings.hrButtonVisible }">
+              <view class="switch-dot"></view>
+            </view>
+          </view>
           <view class="setting-item" @click="$emit('open-body-profile')">
             <text class="setting-label">身体数据</text>
             <text class="setting-arrow">›</text>
@@ -94,7 +100,8 @@
 
   const emit = defineEmits([
     'close', 'add-action', 'toggle-auto-timer', 'toggle-auto-fill', 'toggle-bubble-fill',
-    'set-heavy-timer', 'set-light-timer', 'export-data', 'import-data', 'open-body-profile', 'open-met-selector'
+    'toggle-hr-button', 'set-heavy-timer', 'set-light-timer', 'export-data', 'import-data',
+    'open-body-profile', 'open-met-selector'
   ])
 
   function navigateToManage() {

@@ -24,7 +24,7 @@
 
     <!-- 底部按钮行 -->
     <view class="save-row" v-if="!isRestDay && !showChooseTpl">
-      <HeartRateToggle
+      <HeartRateToggle v-if="settingsStore.hrButtonVisible"
         :hr="hr" :hr-history="hrHistorySamples" :kcal-total="hrKcalTotal" :duration-sec="hrDurationSec"
         :zone="hrZone" :zones="hrZones" :connected="hrConnected"
         :trend="hrTrend" :signal-quality="signalQuality" :guidance="trainingGuidance"
@@ -43,6 +43,18 @@
           </view>
         </template>
       </HeartRateToggle>
+      <!-- 心率隐藏时仍显示计时/设置 -->
+      <view v-else class="save-row-inner">
+        <view v-if="!timerActive" class="minimal-timer-btn" @click="startQuickTimer">
+          <text class="mini-icon">⏱</text><text class="mini-text">开始计时</text>
+        </view>
+        <view v-else class="mini-timer-chip" @click="showTimer = true">
+          <text class="mini-timer-text">{{ timerDisplay }}</text>
+        </view>
+        <view class="minimal-settings-btn" @click="showSettings = true">
+          <text class="mini-icon">⚙</text><text class="mini-text">设置</text>
+        </view>
+      </view>
     </view>
 
     <!-- 计时器组件 -->
@@ -54,6 +66,7 @@
       :settings="settingsState" @close="showSettings = false" @add-action="onAddAction" @save-sort="onSaveSort"
       @toggle-auto-timer="settingsStore.toggleAutoStartTimer()" @toggle-auto-fill="settingsStore.toggleAutoFillData()"
       @toggle-bubble-fill="settingsStore.toggleBubbleFill()"
+      @toggle-hr-button="settingsStore.toggleHrButton()"
       @set-heavy-timer="(v) => settingsStore.setHeavyTimerDuration(v)"
       @set-light-timer="(v) => settingsStore.setLightTimerDuration(v)" @export-data="onExportData"
       @import-data="onImportData" @open-body-profile="showBodyProfile=true"
@@ -232,6 +245,7 @@
           autoStartTimer: this.settingsStore.autoStartTimer,
           autoFillData: this.settingsStore.autoFillData,
           bubbleFill: this.settingsStore.bubbleFill,
+          hrButtonVisible: this.settingsStore.hrButtonVisible,
           heavyTimerDuration: this.settingsStore.heavyTimerDuration,
           lightTimerDuration: this.settingsStore.lightTimerDuration,
         }
@@ -1530,6 +1544,12 @@
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
     border-top: 1rpx solid var(--border-light);
+  }
+  .save-row-inner {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    width: 100%;
   }
 
   .minimal-timer-btn,
