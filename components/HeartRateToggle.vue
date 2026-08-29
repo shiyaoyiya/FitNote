@@ -68,7 +68,13 @@ export default {
     return {
       expanded: false,
       touchStartX: 0,
-      touchStartTime: 0
+      touchStartTime: 0,
+      clickTimeout: null
+    }
+  },
+  beforeUnmount() {
+    if (this.clickTimeout) {
+      clearTimeout(this.clickTimeout)
     }
   },
   computed: {
@@ -101,11 +107,27 @@ export default {
   },
   methods: {
     handleClick() {
-      // 未连接 或 心率为空（暂停/超时）→ 显示心率曲线弹窗
-      if (!this.connected || this.hr == null) { this.$emit('show-chart'); return }
-      this.expanded = !this.expanded
+      // 清除之前的延时
+      if (this.clickTimeout) {
+        clearTimeout(this.clickTimeout)
+        this.clickTimeout = null
+        return
+      }
+      
+      // 设置延时来区分单击和双击
+      this.clickTimeout = setTimeout(() => {
+        this.clickTimeout = null
+        // 未连接 或 心率为空（暂停/超时）→ 显示心率曲线弹窗
+        if (!this.connected || this.hr == null) { this.$emit('show-chart'); return }
+        this.expanded = !this.expanded
+      }, 250)
     },
     handleDoubleClick() {
+      // 清除单击的延时
+      if (this.clickTimeout) {
+        clearTimeout(this.clickTimeout)
+        this.clickTimeout = null
+      }
       this.expanded = !this.expanded
     },
     handleLongPress() {
