@@ -208,3 +208,23 @@ export function getFilledEntryCount(entries) {
   if (!Array.isArray(entries)) return 0
   return entries.filter(e => !isPlaceholderEntry(e)).length
 }
+
+// 大肌群分类（复合动作，组间休息较长）
+const HEAVY_CATEGORY_IDS = ['chest', 'back', 'legs', 'leg', 'chest day', 'back day', 'leg day']
+
+/**
+ * 根据动作名查询其训练分类（heavy / light）
+ * 用于组间休息时长判断：大肌群 heavy，孤立/小肌群 light
+ * @param {string} actionName - 动作名
+ * @param {object} actionStore - useActionStore 实例
+ * @returns {'heavy' | 'light'}
+ */
+export function getActionCategory(actionName, actionStore) {
+  if (!actionStore || !Array.isArray(actionStore.actions)) return 'light'
+  const action = actionStore.actions.find(a => a.name === actionName)
+  if (!action || !Array.isArray(action.categories)) return 'light'
+  // 任一分类属于大肌群即判为 heavy
+  return action.categories.some(c => HEAVY_CATEGORY_IDS.includes(c))
+    ? 'heavy'
+    : 'light'
+}
