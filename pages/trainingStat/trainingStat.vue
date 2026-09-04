@@ -1,5 +1,6 @@
 <template>
-  <scroll-view class="container" :class="{ dark: daySettingsStore.isDarkMode, light: !daySettingsStore.isDarkMode, 'liquid-glass': daySettingsStore.liquidGlassEnabled }" scroll-y>
+  <scroll-view class="container" :class="{ dark: daySettingsStore.isDarkMode, light: !daySettingsStore.isDarkMode, 'liquid-glass': daySettingsStore.liquidGlassEnabled }" scroll-y
+    @touchstart="onPageTouchStart" @touchmove="onPageTouchMove" @touchend="onPageTouchEnd">
     <view class="content-area">
       <view class="filter-header-row">
         <view class="period-toggle">
@@ -31,6 +32,9 @@
         :stats="overviewStats"
         :period="currentPeriod"
         :dimension="currentDimension"
+        :swipeDeltaX="swipeDeltaX"
+        :swipeViewWidth="swipeViewWidth"
+        :noTransition="swipeNoTransition"
         @update:dimension="onDimensionChange"
       />
 
@@ -111,7 +115,18 @@ const now = new Date()
 const currentYear = ref(now.getFullYear())
 const currentMonth = ref(now.getMonth() + 1)
 const currentPeriod = ref('month')
+const DIM_TABS = ['days', 'sets', 'volume']
 const currentDimension = ref('days')
+
+// ============ 侧滑手势 ============
+const swipeStartX = ref(0)
+const swipeStartY = ref(0)
+const swipeStartTime = ref(0)
+const swipeDeltaX = ref(0)
+const swipeViewWidth = ref(0)
+const swipeNoTransition = ref(false)
+const swipeIsTracking = ref(false)
+
 const selectedBodyPart = ref('chest')
 const allStats = ref(null)
 const showBodyPartManager = ref(false)
@@ -347,6 +362,61 @@ function onMonthChange(m) {
 
 function onDimensionChange(dimension) {
   currentDimension.value = dimension
+  refreshStats()
+}
+
+// ============ 侧滑手势 ============
+function onPageTouchStart(e) {
+  if (e.touches.length !== 1) return
+  swipeStartX.value = e.touches[0].pageX
+  swipeStartY.value = e.touches[0].pageY
+  swipeStartTime.value = Date.now()
+  swipeDeltaX.value = 0
+  swipeNoTransition.value = true
+  swipeIsTracking.value = true
+  uni.createSelectorQuery().select('.content-area').boundingClientRect(rect => {
+    if (rect) swipeViewWidth.value = rect.width
+  }).exec()
+}
+
+function onPageTouchMove(e) {
+  if (!swipeIsTracking.value || e.touches.length !== 1) return
+  const dx = e.touches[0].pageX - swipeStartX.value
+  const dy = e.touches[0].pageY - swipeStartY.value
+  const absDx = Math.abs(dx)
+  const absDy = Math.abs(dy)
+  // 方向锁：横向必须明显大于纵向
+  if (absDx <= absDy * 1.9) return
+  swipeDeltaX.value = dx
+  if (e.cancelable) e.preventDefault()
+}
+
+function onPageTouchEnd() {
+  if (!swipeIsTracking.value) return
+  swipeIsTracking.value = false
+  swipeNoTransition.value = false
+  const dx = swipeDeltaX.value
+  const absDx = Math.abs(dx)
+  const dt = Date.now() - swipeStartTime.value
+  const distThreshold = swipeViewWidth.value * 0.15
+  const speedThreshold = 0.3
+  // 阈值判断：距离 > 视图宽度 15% 或 速度 > 0.3px/ms
+  if (absDx < distThreshold && dt > 0 && absDx / dt < speedThreshold) {
+    swipeDeltaX.value = 0
+    return
+  }
+  // 方向：右滑 → 上一个(i-1)；左滑 → 下一个(i+1)
+  const dir = dx > 0 ? -1 : 1
+  const curIdx = DIM_TABS.indexOf(currentDimension.value)
+  const nextIdx = curIdx + dir
+  if (nextIdx < 0 || nextIdx >= DIM_TABS.length) {
+    swipeDeltaX.value = 0
+    return
+  }
+  swipeDeltaX.value = 0
+  uni.vibrateShort()
+  currentDimension.value = DIM_TABS[nextIdx]
+  refreshStats()
 }
 
 function onBodyPartSelect(bodyPartId) {

@@ -1,11 +1,5 @@
-import assert from 'assert'
+import { describe, it, expect } from 'vitest'
 import { useUserInMemoryProfileStore } from '../stores/userProfile.js'
-
-let passed = 0, failed = 0
-function test(name, fn) {
-  try { fn(); console.log(`✓ ${name}`); passed++ }
-  catch (e) { console.log(`✗ ${name}\n  ${e.message}`); failed++ }
-}
 
 // 与实现同源计算，避免测试依赖固定日期
 function ageOf(birthDate) {
@@ -17,64 +11,63 @@ function ageOf(birthDate) {
   return a
 }
 
-test('age getter 从出生年月倒推', () => {
-  const s = useUserInMemoryProfileStore()
-  s.updateProfile({ birthDate: '2000-01' })
-  assert.strictEqual(s.age, ageOf('2000-01'))
-})
+describe('用户档案 Store', () => {
+  it('age getter 从出生年月倒推', () => {
+    const s = useUserInMemoryProfileStore()
+    s.updateProfile({ birthDate: '2000-01' })
+    expect(s.age).toBe(ageOf('2000-01'))
+  })
 
-test('getMaxHeartRate = 220 - age(由出生年月倒推)', () => {
-  const s = useUserInMemoryProfileStore()
-  s.updateProfile({ birthDate: '1996-05' })
-  assert.strictEqual(s.getMaxHeartRate(), 220 - ageOf('1996-05'))
-})
+  it('getMaxHeartRate = 220 - age(由出生年月倒推)', () => {
+    const s = useUserInMemoryProfileStore()
+    s.updateProfile({ birthDate: '1996-05' })
+    expect(s.getMaxHeartRate()).toBe(220 - ageOf('1996-05'))
+  })
 
-test('birthDate 格式校验', () => {
-  const s = useUserInMemoryProfileStore()
-  assert.throws(() => s.updateProfile({ birthDate: 'abc' }), /格式/)
-})
+  it('birthDate 格式校验', () => {
+    const s = useUserInMemoryProfileStore()
+    expect(() => s.updateProfile({ birthDate: 'abc' })).toThrow(/格式/)
+  })
 
-test('birthDate 年份不合理', () => {
-  const s = useUserInMemoryProfileStore()
-  assert.throws(() => s.updateProfile({ birthDate: '1899-01' }), /年份/)
-  assert.throws(() => s.updateProfile({ birthDate: '3000-01' }), /年份/)
-})
+  it('birthDate 年份不合理', () => {
+    const s = useUserInMemoryProfileStore()
+    expect(() => s.updateProfile({ birthDate: '1899-01' })).toThrow(/年份/)
+    expect(() => s.updateProfile({ birthDate: '3000-01' })).toThrow(/年份/)
+  })
 
-test('birthDate 月份校验', () => {
-  const s = useUserInMemoryProfileStore()
-  assert.throws(() => s.updateProfile({ birthDate: '2000-13' }), /月份/)
-  assert.throws(() => s.updateProfile({ birthDate: '2000-00' }), /月份/)
-})
+  it('birthDate 月份校验', () => {
+    const s = useUserInMemoryProfileStore()
+    expect(() => s.updateProfile({ birthDate: '2000-13' })).toThrow(/月份/)
+    expect(() => s.updateProfile({ birthDate: '2000-00' })).toThrow(/月份/)
+  })
 
-test('gender 校验', () => {
-  const s = useUserInMemoryProfileStore()
-  assert.throws(() => s.updateProfile({ gender: 'x' }), /gender/)
-})
+  it('gender 校验', () => {
+    const s = useUserInMemoryProfileStore()
+    expect(() => s.updateProfile({ gender: 'x' })).toThrow(/gender/)
+  })
 
-test('weight 越界校验', () => {
-  const s = useUserInMemoryProfileStore()
-  assert.throws(() => s.updateProfile({ weight: 5 }), /weight/)
-})
+  it('weight 越界校验', () => {
+    const s = useUserInMemoryProfileStore()
+    expect(() => s.updateProfile({ weight: 5 })).toThrow(/weight/)
+  })
 
-test('isComplete 用 birthDate', () => {
-  const s = useUserInMemoryProfileStore()
-  s.updateProfile({ gender: 'male', birthDate: '1996-05', height: 175, weight: 75 })
-  assert.strictEqual(s.isComplete(), true)
-})
+  it('isComplete 用 birthDate', () => {
+    const s = useUserInMemoryProfileStore()
+    s.updateProfile({ gender: 'male', birthDate: '1996-05', height: 175, weight: 75 })
+    expect(s.isComplete()).toBe(true)
+  })
 
-test('档案缺失 isComplete=false', () => {
-  const s = useUserInMemoryProfileStore()
-  s.updateProfile({ birthDate: '1996-05' })
-  assert.strictEqual(s.isComplete(), false)
-})
+  it('档案缺失 isComplete=false', () => {
+    const s = useUserInMemoryProfileStore()
+    s.updateProfile({ birthDate: '1996-05' })
+    expect(s.isComplete()).toBe(false)
+  })
 
-test('toProfile 返回倒推 age', () => {
-  const s = useUserInMemoryProfileStore()
-  s.updateProfile({ gender: 'male', birthDate: '1996-05', height: 175, weight: 75 })
-  const p = s.toProfile()
-  assert.strictEqual(p.age, ageOf('1996-05'))
-  assert.strictEqual(p.gender, 'male')
+  it('toProfile 返回倒推 age', () => {
+    const s = useUserInMemoryProfileStore()
+    s.updateProfile({ gender: 'male', birthDate: '1996-05', height: 175, weight: 75 })
+    const p = s.toProfile()
+    expect(p.age).toBe(ageOf('1996-05'))
+    expect(p.gender).toBe('male')
+  })
 })
-
-console.log(`\n${passed} passed, ${failed} failed`)
-process.exit(failed ? 1 : 0)

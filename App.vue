@@ -12,6 +12,9 @@
   import {
     updateNavBar
   } from './utils/theme.js'
+  import {
+    CLOUD_ENV
+  } from './utils/serverConfig.js'
 
   const FIRST_LAUNCH_KEY = 'first_launch_done'
 
@@ -39,11 +42,14 @@
       // #ifdef MP-WEIXIN
       if (!wx.cloud) {
         console.error('请使用 2.2.3 或以上的基础库以使用云能力')
-      } else {
+      } else if (CLOUD_ENV && CLOUD_ENV !== 'fitnote-cloud-xxxx') {
+        // 仅在用户填写了真实云开发环境 ID 时初始化
         wx.cloud.init({
-          env: 'fitnote-cloud-xxxx',
+          env: CLOUD_ENV,
           traceUser: true,
         })
+      } else {
+        console.warn('[云开发] serverConfig.js 中 CLOUD_ENV 仍为占位符，跳过云开发初始化；非局域网备份将不可用')
       }
       // #endif
 

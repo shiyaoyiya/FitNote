@@ -1,5 +1,5 @@
 {
-  "pages": [ //pages数组中第一项表示应用启动页，参考：https://uniapp.dcloud.io/collocation/pages
+  "pages": [
     {
       "path": "pages/index/index",
       "style": {
@@ -55,10 +55,48 @@
       }
     },
     {
+      "path": "pages/login/login",
+      "style": {
+        "navigationBarTitleText": "登录"
+      }
+    },
+    {
+      "path": "pages/profile/profile",
+      "style": {
+        "navigationBarTitleText": "👤 个人资料"
+      }
+    },
+    {
       "path": "pages/manageActions/manageActions",
       "style": {
         "navigationBarTitleText": "管理动作"
       }
+    }
+  ],
+  "subPackages": [
+    {
+      "root": "subpkg-training",
+      "pages": [
+        {
+          "path": "trainingAnalysis/trainingAnalysis",
+          "style": {
+            "navigationBarTitleText": "训练分析",
+            "navigationBarBackgroundColor": "#121212",
+            "navigationBarTextStyle": "white"
+          }
+        }
+      ]
+    },
+    {
+      "root": "subpkg-template",
+      "pages": [
+        {
+          "path": "templateDetail/templateDetail",
+          "style": {
+            "navigationBarTitleText": "模板详情"
+          }
+        }
+      ]
     }
   ],
   "globalStyle": {
@@ -66,7 +104,6 @@
     "navigationBarBackgroundColor": "#121212",
     "navigationBarTextStyle": "white",
     "backgroundColor": "#121212"
-    // "navigationStyle": "custom"
   },
   "uniIdRouter": {}
 }

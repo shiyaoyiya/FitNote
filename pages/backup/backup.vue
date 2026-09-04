@@ -1,15 +1,25 @@
 <template>
-  <view class="container" :class="{ dark: daySettingsStore.isDarkMode, light: !daySettingsStore.isDarkMode }">
-    <view v-if="!isMpWeixin" class="tab-bar">
-      <view :class="['tab-item', { active: activeTab === 'local' }]" @click="switchTab('local')">
-        📂 本地备份
+  <view class="container" :class="{ dark: daySettingsStore.isDarkMode, light: !daySettingsStore.isDarkMode }"
+    @touchstart="onPageTouchStart" @touchmove="onPageTouchMove" @touchend="onPageTouchEnd">
+    <!-- 顶部 Tab 栏 + 高亮框 -->
+    <view class="tab-bar" :class="{ 'no-transition': swipeNoTransition }">
+      <view
+        v-for="(t, i) in tabs"
+        :key="t.key"
+        class="tab-item"
+        :class="{ active: activeTab === t.key }"
+        @click="switchTab(t.key, true)"
+      >
+        <text class="tab-label">{{ t.label }}</text>
       </view>
-      <view :class="['tab-item', { active: activeTab === 'exportImport' }]" @click="switchTab('exportImport')">
-        📤 导出导入
-      </view>
+      <view
+        class="tab-highlight"
+        :style="tabHighlightStyle"
+      ></view>
     </view>
 
-    <view v-if="!isMpWeixin && activeTab === 'local'" class="tab-content">
+    <!-- ========== 本地备份 ========== -->
+    <view v-show="activeTab === 'local'" class="tab-content">
       <view class="status-card card">
         <view class="path-header">
           <view class="title-group">
@@ -38,13 +48,12 @@
           </view>
           <view class="pulse-ring" v-if="isBackingUp"></view>
         </view>
-        
-        <!-- 进度显示 -->
+
         <view v-if="isBackingUp" class="progress-container">
           <progress :percent="backupProgress" stroke-width="4" activeColor="#007aff" />
           <text class="progress-text">{{ backupProgress }}%</text>
         </view>
-        
+
         <text class="hint-text">建议每个循环后备份，保障数据不丢失</text>
       </view>
 
@@ -61,35 +70,106 @@
       </view>
     </view>
 
-    <view v-if="isMpWeixin || activeTab === 'exportImport'" class="tab-content">
+    <!-- ========== 云端备份 ========== -->
+    <view v-show="activeTab === 'cloud'" class="tab-content">
+      <view class="status-card card">
+        <view class="path-header">
+          <view class="title-group">
+            <text class="label-text">备份模式</text>
+            <view class="path-badge mode-badge" :class="currentMode">
+              {{ currentMode === 'cloud' ? '☁️ 云开发' : currentMode === 'local' ? '🖥 本地服务器' : '❓ 未检测' }}
+            </view>
+          </view>
+          <text class="action-link" @click="testServerPing">测试连接</text>
+        </view>
+        <view class="path-display-area">
+          <view class="folder-circle">
+            <text class="folder-icon">{{ currentMode === 'cloud' ? '☁️' : '🖥' }}</text>
+          </view>
+          <view class="path-info">
+            <text class="path-filename-text">{{ serverAddress }}</text>
+            <text class="last-time-text">{{ isLoggedIn ? '已登录：' + (cloudUser?.nickname || cloudUser?.username || '') : '未登录' }}</text>
+          </view>
+        </view>
+      </view>
+
+      <!-- 登录引导（仅本地模式需要登录，云开发模式用 openid 隔离） -->
+      <view v-if="currentMode !== 'cloud' && !isLoggedIn" class="login-guide card">
+        <text class="guide-title">请先登录以使用云端备份</text>
+        <button class="btn-primary" @click="goToLogin">去登录</button>
+      </view>
+
+      <!-- 操作区 -->
+      <view v-else class="cloud-action-zone">
+        <view class="main-action-zone">
+          <view :class="['backup-orb', isUploading ? 'rotating' : '']" @click="handleCloudBackup">
+            <view class="orb-content">
+              <text class="orb-icon">{{ isUploading ? '⏳' : '☁️' }}</text>
+              <text class="orb-text">{{ isUploading ? '上传中...' : '立即备份' }}</text>
+            </view>
+            <view class="pulse-ring" v-if="isUploading"></view>
+          </view>
+
+          <view v-if="isUploading" class="progress-container">
+            <progress :percent="uploadProgress" stroke-width="4" activeColor="#007aff" />
+            <text class="progress-text">{{ uploadProgress }}%</text>
+          </view>
+
+          <text class="hint-text">最多保留 {{ maxBackups }} 份云端备份，超出自动删除最旧的</text>
+        </view>
+
+        <!-- 备份历史列表 -->
+        <view class="backup-history">
+          <view class="history-title">备份历史</view>
+          <view v-if="cloudBackupList.length === 0 && !isLoadingList" class="empty-history">
+            暂无云端备份记录
+          </view>
+          <view v-for="item in cloudBackupList" :key="item.id" class="history-item card">
+            <view class="history-info">
+              <text class="history-time">{{ formatCloudTime(item) }}</text>
+              <text class="history-note" v-if="item.note">备注：{{ item.note }}</text>
+              <text class="history-size" v-if="item.size">大小：{{ formatSize(item.size) }}</text>
+            </view>
+            <view class="history-actions">
+              <text class="history-btn" @click="downloadCloudBackup(item)">恢复</text>
+              <text class="history-btn danger" @click="deleteCloudBackup(item)">删除</text>
+            </view>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- ========== 文本备份（原导出导入） ========== -->
+    <view v-show="activeTab === 'text'" class="tab-content">
       <view class="export-import-tabs">
-        <view 
-          :class="['sub-tab', { active: exportImportTab === 'export' }]" 
+        <view
+          :class="['sub-tab', { active: exportImportTab === 'export' }]"
           @click="exportImportTab = 'export'"
         >
           📤 导出
         </view>
-        <view 
-          :class="['sub-tab', { active: exportImportTab === 'import' }]" 
+        <view
+          :class="['sub-tab', { active: exportImportTab === 'import' }]"
           @click="exportImportTab = 'import'"
         >
           📥 导入
         </view>
       </view>
-      
+
       <view class="export-import-content">
-        <ExportTab 
-          v-if="exportImportTab === 'export'" 
+        <ExportTab
+          v-if="exportImportTab === 'export'"
           @export-success="onExportSuccess"
         />
-        <ImportTab 
-          v-if="exportImportTab === 'import'" 
+        <ImportTab
+          v-if="exportImportTab === 'import'"
           @import-success="onImportSuccess"
         />
       </view>
     </view>
   </view>
 </template>
+
 <script>
   import {
     backupData,
@@ -107,6 +187,19 @@
   } from '@/stores/daySettings.js'
   import ExportTab from '@/components/ExportTab.vue'
   import ImportTab from '@/components/ImportTab.vue'
+  import {
+    uploadToServer,
+    listServerBackups,
+    downloadFromServer,
+    deleteServerBackup,
+    applyBackupToLocal,
+    isLocalServerAvailable,
+    getCurrentBackupMode,
+    BACKUP_MODE,
+    isLoggedIn,
+    me,
+  } from '@/utils/serverBackup.js'
+  import { SERVER_BASE_URL } from '@/utils/serverConfig.js'
 
   export default {
     components: {
@@ -121,6 +214,56 @@
         // #ifndef MP-WEIXIN
         return false
         // #endif
+      },
+      tabs() {
+        // 微信小程序无本地文件系统，隐藏「本地备份」tab
+        if (this.isMpWeixin) {
+          return [
+            { key: 'cloud', label: '☁️ 云端备份' },
+            { key: 'text', label: '📝 文本备份' },
+          ]
+        }
+        return [
+          { key: 'local', label: '📂 本地备份' },
+          { key: 'cloud', label: '☁️ 云端备份' },
+          { key: 'text', label: '📝 文本备份' },
+        ]
+      },
+      activeIndex() {
+        return this.tabs.findIndex(t => t.key === this.activeTab)
+      },
+      isLoggedIn() {
+        return isLoggedIn()
+      },
+      cloudUser() {
+        return me()
+      },
+      serverAddress() {
+        return this.currentMode === 'cloud' ? '微信云开发' : SERVER_BASE_URL
+      },
+      tabHighlightStyle() {
+        const count = this.tabs.length
+        if (count === 0) return {}
+        const itemWidth = 100 / count
+        const basePercent = this.activeIndex * itemWidth
+        // 滑动跟手偏移（百分比）
+        let deltaPercent = 0
+        if (this.swipeDeltaX !== 0 && this.swipeViewWidth > 0) {
+          deltaPercent = (this.swipeDeltaX / this.swipeViewWidth) * itemWidth
+        }
+        // 边界阻尼：首/末 Tab 跟手位移衰减为 0.3 倍
+        const isFirst = this.activeIndex === 0
+        const isLast = this.activeIndex === count - 1
+        if ((isFirst && this.swipeDeltaX > 0) || (isLast && this.swipeDeltaX < 0)) {
+          deltaPercent *= 0.3
+        }
+        return {
+          transform: `translateX(${basePercent + deltaPercent}%)`,
+          width: `calc(${itemWidth}%)`,
+        }
+      },
+      currentMode() {
+        return getCurrentBackupMode()
       }
     },
     data() {
@@ -137,27 +280,252 @@
           message: ''
         },
         activeTab: 'local',
-        exportImportTab: 'export'
+        exportImportTab: 'export',
+        // 侧滑手势
+        swipeStartX: 0,
+        swipeStartY: 0,
+        swipeStartTime: 0,
+        swipeDeltaX: 0,
+        swipeViewWidth: 0,
+        swipeNoTransition: false,
+        swipeIsTracking: false,
+        // 云端备份
+        isUploading: false,
+        isLoadingList: false,
+        uploadProgress: 0,
+        cloudBackupList: [],
+        maxBackups: 5,
       }
     },
 
     onLoad() {
       this.daySettingsStore.load()
       try {
-        // 读取上次备份时间
         const lastTime = uni.getStorageSync('last_backup_time');
         this.lastBackupTime = lastTime || '';
-        // 设置友好的路径显示
         this.backupPath = getFriendlyBackupPath()
-
+        // 微信小程序默认进云端备份 tab
+        if (this.isMpWeixin) {
+          this.activeTab = 'cloud'
+        }
+        // 异步探测备份模式
+        this.detectBackupMode()
         console.log('页面加载完成')
       } catch (err) {
         console.error('页面加载失败:', err)
       }
     },
 
+    onShow() {
+      // 登录返回后刷新云端列表
+      if (this.activeTab === 'cloud') {
+        this.refreshCloudList()
+      }
+    },
+
     methods: {
-      // 辅助函数：获取当前格式化时间
+      // ============ 侧滑手势 ============
+      onPageTouchStart(e) {
+        if (e.touches.length !== 1) return
+        this.swipeStartX = e.touches[0].pageX
+        this.swipeStartY = e.touches[0].pageY
+        this.swipeStartTime = Date.now()
+        this.swipeDeltaX = 0
+        this.swipeNoTransition = true
+        this.swipeIsTracking = true
+        // 测量容器宽度
+        uni.createSelectorQuery().in(this).select('.tab-bar').boundingClientRect(rect => {
+          if (rect) this.swipeViewWidth = rect.width
+        }).exec()
+      },
+
+      onPageTouchMove(e) {
+        if (!this.swipeIsTracking || e.touches.length !== 1) return
+        const dx = e.touches[0].pageX - this.swipeStartX
+        const dy = e.touches[0].pageY - this.swipeStartY
+        const absDx = Math.abs(dx)
+        const absDy = Math.abs(dy)
+        // 方向锁：横向必须明显大于纵向
+        if (absDx <= absDy * 1.9) return
+        // 记录 delta 用于高亮框跟手（不移动屏幕内容）
+        this.swipeDeltaX = dx
+        if (e.cancelable) e.preventDefault()
+      },
+
+      onPageTouchEnd(e) {
+        if (!this.swipeIsTracking) return
+        this.swipeIsTracking = false
+        this.swipeNoTransition = false
+        const dx = this.swipeDeltaX
+        const absDx = Math.abs(dx)
+        const dt = Date.now() - this.swipeStartTime
+        // 阈值判断：距离 > 视图宽度 15% 或 速度 > 0.3px/ms
+        const distThreshold = this.swipeViewWidth * 0.15
+        const speedThreshold = 0.3
+        if (absDx < distThreshold && dt > 0 && absDx / dt < speedThreshold) {
+          this.swipeDeltaX = 0
+          return
+        }
+        // 方向：dx > 0 右滑 → 上一个(i-1)；dx < 0 左滑 → 下一个(i+1)
+        const dir = dx > 0 ? -1 : 1
+        const nextIdx = this.activeIndex + dir
+        if (nextIdx < 0 || nextIdx >= this.tabs.length) {
+          this.swipeDeltaX = 0
+          return
+        }
+        this.swipeDeltaX = 0
+        uni.vibrateShort()
+        this.switchTab(this.tabs[nextIdx].key, false)
+      },
+
+      switchTab(key, fromClick) {
+        if (fromClick) {
+          uni.vibrateShort()
+        }
+        this.activeTab = key
+        if (key === 'cloud') {
+          this.refreshCloudList()
+        }
+      },
+
+      // ============ 备份模式检测 ============
+      async detectBackupMode() {
+        try {
+          await isLocalServerAvailable(false)
+        } catch (e) {
+          // 探测失败不阻塞
+        }
+      },
+
+      async testServerPing() {
+        uni.showLoading({ title: '检测中...' })
+        try {
+          await isLocalServerAvailable(true)
+          const mode = getCurrentBackupMode()
+          uni.showToast({
+            title: mode === 'cloud' ? '已切换到云开发模式' : '本地服务器已连接',
+            icon: 'none'
+          })
+          this.refreshCloudList()
+        } catch (e) {
+          uni.showToast({ title: '检测失败', icon: 'none' })
+        } finally {
+          uni.hideLoading()
+        }
+      },
+
+      goToLogin() {
+        uni.navigateTo({ url: '/pages/login/login' })
+      },
+
+      // ============ 云端备份 ============
+      async handleCloudBackup() {
+        if (this.isUploading) return
+        // 本地模式需要登录
+        if (this.currentMode !== 'cloud' && !this.isLoggedIn) {
+          uni.showToast({ title: '请先登录', icon: 'none' })
+          return
+        }
+        this.isUploading = true
+        this.uploadProgress = 0
+        uni.vibrateShort()
+        try {
+          await uploadToServer({
+            onProgress: (p) => { this.uploadProgress = p },
+          })
+          uni.showToast({ title: '备份成功', icon: 'success' })
+          this.refreshCloudList()
+        } catch (e) {
+          console.error('云端备份失败:', e)
+          uni.showToast({ title: '备份失败：' + (e.message || ''), icon: 'none' })
+        } finally {
+          this.isUploading = false
+        }
+      },
+
+      async refreshCloudList() {
+        // 云开发模式或未登录时不依赖 cloudUser
+        if (this.currentMode !== 'cloud' && !this.isLoggedIn) {
+          this.cloudBackupList = []
+          return
+        }
+        this.isLoadingList = true
+        try {
+          const res = await listServerBackups(1, 20)
+          this.cloudBackupList = res.list || res.records || []
+        } catch (e) {
+          console.error('获取备份列表失败:', e)
+          this.cloudBackupList = []
+        } finally {
+          this.isLoadingList = false
+        }
+      },
+
+      async downloadCloudBackup(item) {
+        uni.showLoading({ title: '下载中...' })
+        try {
+          const backupData = await downloadFromServer(item.id)
+          uni.hideLoading()
+          // 选择覆盖还是合并
+          uni.showActionSheet({
+            itemList: ['覆盖导入 (清除现有数据)', '合并导入 (保留现有数据)'],
+            success: async (res) => {
+              const mode = res.tapIndex === 0 ? 'overwrite' : 'merge'
+              uni.showLoading({ title: '恢复中...' })
+              try {
+                applyBackupToLocal(backupData, mode)
+                uni.$emit('backup-restored')
+                uni.showToast({ title: '恢复成功', icon: 'success' })
+              } catch (e) {
+                uni.showToast({ title: '恢复失败', icon: 'none' })
+              } finally {
+                uni.hideLoading()
+              }
+            }
+          })
+        } catch (e) {
+          uni.hideLoading()
+          uni.showToast({ title: '下载失败', icon: 'none' })
+        }
+      },
+
+      async deleteCloudBackup(item) {
+        uni.showModal({
+          title: '删除备份',
+          content: '确定删除这份云端备份吗？',
+          success: async (res) => {
+            if (res.confirm) {
+              try {
+                await deleteServerBackup(item.id)
+                uni.showToast({ title: '已删除', icon: 'success' })
+                this.refreshCloudList()
+              } catch (e) {
+                uni.showToast({ title: '删除失败', icon: 'none' })
+              }
+            }
+          }
+        })
+      },
+
+      formatCloudTime(item) {
+        const t = item.backupTime || item.createdAt || item.createTime
+        if (!t) return ''
+        try {
+          const d = new Date(t)
+          return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`
+        } catch (e) {
+          return String(t)
+        }
+      },
+
+      formatSize(bytes) {
+        if (!bytes) return ''
+        if (bytes < 1024) return bytes + ' B'
+        if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
+        return (bytes / 1024 / 1024).toFixed(1) + ' MB'
+      },
+
+      // ============ 本地备份（原有逻辑） ============
       getNowFormatDate() {
         const date = new Date();
         const month = (date.getMonth() + 1).toString().padStart(2, '0');
@@ -166,19 +534,16 @@
         const minute = date.getMinutes().toString().padStart(2, '0');
         return `${date.getFullYear()}-${month}-${strDate} ${hour}:${minute}`;
       },
-      // 备份操作
+
       handleStartBackup() {
         if (this.isBackingUp) return
 
         this.isBackingUp = true
         this.backupProgress = 0
         this.setStatus('', '')
-        // 震动反馈 (增强操作感)
         uni.vibrateShort();
-        // 使用 nextTick 让 UI 先渲染出 loading 状态
         this.$nextTick(async () => {
           try {
-            // 默认强制全备份，传入 dayDataCacheStore 和进度回调
             await backupData('full', this.dayDataCacheStore, (progress) => {
               this.backupProgress = progress
             })
@@ -204,22 +569,17 @@
         })
       },
 
-      // 导入操作
       handleStartImport() {
-        // 先让用户选：覆盖还是合并
         uni.showActionSheet({
           itemList: ['覆盖导入 (清除现有数据)', '合并导入 (保留现有数据)'],
           success: (res) => {
             const overwrite = res.tapIndex === 0
-            // 统一的文件选择逻辑
             this.chooseAndRestore(overwrite)
           }
         })
       },
 
-      // 统一的文件选择方法
       chooseAndRestore(overwrite) {
-        // H5 环境
         // #ifdef H5
         const input = document.createElement('input')
         input.type = 'file'
@@ -232,10 +592,8 @@
         input.click()
         // #endif
 
-        // Android App 环境
         // #ifdef APP-PLUS
         if (isAndroidApp()) {
-          // 使用SAF文件选择器
           chooseBackupFile().then(fileUri => {
             this.performRestore(fileUri, overwrite)
           }).catch(err => {
@@ -247,7 +605,6 @@
             }
           })
         } else {
-          // 非Android App
           plus.io.requestFileSystem(plus.io.PUBLIC_DOWNLOADS, (fs) => {
             fs.root.createReader().readEntries((entries) => {
               const jsonFiles = entries.filter(e => e.isFile && e.name.endsWith('.json'))
@@ -270,7 +627,6 @@
         }
         // #endif
 
-        // 小程序环境
         // #ifdef MP-WEIXIN
         if (uni.chooseMessageFile) {
           uni.chooseMessageFile({
@@ -292,10 +648,8 @@
         this.setStatus('', '')
 
         try {
-          // 1. 读取文件
           const payload = await readBackupFile(path)
 
-          // 2. 验证数据
           if (!payload || typeof payload !== 'object' || !payload.data || typeof payload.data !== 'object') {
             throw new Error('备份文件格式不正确')
           }
@@ -376,13 +730,11 @@
           const daydata = data.fitness_daydata || {}
           const annivsArr = Array.isArray(data.fitness_annivs) ? data.fitness_annivs : []
 
-          // 定义常量
           const TEMPLATE_KEY = 'fitness_templates'
           const ACTION_KEY = 'fitness_actions'
           const DAYDATA_PREFIX = 'fitness_daydata_'
           const INDEX_KEY = 'fitness_index'
 
-          // 清空所有数据的函数
           const clearAllData = () => {
             const info = uni.getStorageInfoSync()
             info.keys.forEach(key => {
@@ -393,7 +745,6 @@
             })
           }
 
-          // 数组合并函数
           const mergeArraysUnique = (arrA, arrB) => {
             const a = Array.isArray(arrA) ? arrA.slice() : []
             const b = Array.isArray(arrB) ? arrB : []
@@ -406,7 +757,6 @@
           }
 
           if (overwrite) {
-            // 执行覆盖导入
             clearAllData()
             uni.setStorageSync(TEMPLATE_KEY, tplArr)
             uni.setStorageSync(ACTION_KEY, migratedActArr)
@@ -416,12 +766,10 @@
               uni.setStorageSync(DAYDATA_PREFIX + date, value)
             })
 
-            // 恢复纪念日数据
             if (annivsArr.length > 0) {
               uni.setStorageSync('annivs', JSON.stringify(annivsArr))
             }
           } else {
-            // 执行合并导入
             const currentTpl = uni.getStorageSync(TEMPLATE_KEY) || []
             const currentAct = uni.getStorageSync(ACTION_KEY) || []
             const mergedTpl = mergeArraysUnique(currentTpl, tplArr)
@@ -437,7 +785,6 @@
               uni.setStorageSync(key, next)
             })
 
-            // 恢复纪念日数据（合并）
             if (annivsArr.length > 0) {
               const currentAnnivs = uni.getStorageSync('annivs') ? JSON.parse(uni.getStorageSync('annivs')) : []
               const mergedAnnivs = mergeArraysUnique(currentAnnivs, annivsArr)
@@ -445,12 +792,10 @@
             }
           }
 
-          // 重建索引并清除缓存，确保所有页面能立即看到新数据
           const cacheStore = useDayDataCacheStore()
           cacheStore.buildIndex()
           cacheStore.clearCache()
 
-          // 通知其他页面刷新数据
           uni.$emit('backup-restored')
 
           this.setStatus('success', '导入成功，数据已更新')
@@ -461,7 +806,6 @@
         } catch (err) {
           console.error('恢复数据失败:', err)
 
-          // 提供更详细的错误信息
           let errorMessage = err.message || '导入失败'
           if (errorMessage.includes('0字节') || errorMessage.includes('空')) {
             errorMessage = '备份文件为空或损坏，可能是备份过程中出现了问题。请重新备份。'
@@ -519,17 +863,10 @@
         }
       },
 
-      switchTab(tab) {
-        this.activeTab = tab
-      },
-
       onExportSuccess() {
-        // 导出成功后的处理
       },
 
       onImportSuccess() {
-        // 导入成功后的处理
-        // 可能需要刷新某些数据
       }
     }
   }
@@ -581,6 +918,16 @@
     background: #e1edff;
     color: #007aff;
     border-radius: 4px;
+  }
+
+  .mode-badge.cloud {
+    background: #e8f5e9;
+    color: #2e7d32;
+  }
+
+  .mode-badge.local {
+    background: #e1edff;
+    color: #007aff;
   }
 
   .path-display-area {
@@ -699,6 +1046,115 @@
     color: var(--text-primary);
   }
 
+  .btn-primary {
+    background: linear-gradient(135deg, #007aff, #0056b3);
+    color: #fff;
+    border-radius: 12px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    margin-top: 12px;
+  }
+
+  /* 登录引导 */
+  .login-guide {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 30px 20px;
+  }
+
+  .guide-title {
+    font-size: 15px;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+  }
+
+  /* 云端备份历史 */
+  .cloud-action-zone {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+  }
+
+  .backup-history {
+    margin-top: 16px;
+  }
+
+  .history-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 12px;
+  }
+
+  .empty-history {
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 14px;
+    padding: 40px 0;
+  }
+
+  .history-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 16px;
+    margin-bottom: 8px;
+    border-radius: 12px;
+    background: var(--bg-secondary);
+  }
+
+  .history-info {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  .history-time {
+    font-size: 14px;
+    color: var(--text-primary);
+    font-weight: 500;
+  }
+
+  .history-note {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 4px;
+  }
+
+  .history-size {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 2px;
+  }
+
+  .history-actions {
+    display: flex;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
+  .history-btn {
+    font-size: 13px;
+    color: #007aff;
+    padding: 6px 12px;
+    border: 1px solid #007aff;
+    border-radius: 8px;
+  }
+
+  .history-btn.danger {
+    color: #ff3b30;
+    border-color: #ff3b30;
+  }
+
+  .history-btn:active {
+    opacity: 0.6;
+  }
+
   /* 状态横幅 */
   .status-banner {
     display: flex;
@@ -738,7 +1194,6 @@
     transition: color 0.3s ease;
   }
 
-  /* 增加点击态反馈 */
   .action-link:active {
     opacity: 0.7;
   }
@@ -756,7 +1211,6 @@
     }
   }
 
-  /* 呼吸灯光圈：仅在 isBackingUp 为 true 时通过 rotating 类（或新增类）触发 */
   .rotating.backup-orb::after {
     content: '';
     position: absolute;
@@ -766,13 +1220,10 @@
     bottom: 0;
     border-radius: 50%;
     background: inherit;
-    /* 继承球体的蓝色渐变 */
     z-index: -1;
-    /* 放在球体下方 */
     animation: pulse 2s infinite ease-out;
   }
 
-  /* 深色模式下的光晕加强 */
   .container.dark .rotating.backup-orb::after {
     background: rgba(0, 122, 255, 0.6);
     box-shadow: 0 0 20px rgba(0, 122, 255, 0.4);
@@ -794,7 +1245,9 @@
     animation: orb-breath 2s infinite ease-in-out;
   }
 
+  /* ===== 顶部 Tab 栏 + 高亮框 ===== */
   .tab-bar {
+    position: relative;
     display: flex;
     background: var(--bg-secondary);
     border-radius: 12px;
@@ -803,18 +1256,39 @@
   }
 
   .tab-item {
+    position: relative;
+    z-index: 1;
     flex: 1;
     text-align: center;
     padding: 10px 0;
     border-radius: 8px;
     color: var(--text-muted);
     font-size: 14px;
-    transition: all 0.3s;
+    transition: color 0.28s cubic-bezier(0.22, 0.61, 0.36, 1);
   }
 
   .tab-item.active {
-    background: var(--primary);
     color: #ffffff;
+  }
+
+  .tab-item:active {
+    transform: scale(0.97);
+  }
+
+  .tab-highlight {
+    position: absolute;
+    top: 4px;
+    left: 4px;
+    height: calc(100% - 8px);
+    background: var(--primary);
+    border-radius: 8px;
+    z-index: 0;
+    transition: transform 0.38s cubic-bezier(0.22, 0.61, 0.36, 1), width 0.38s cubic-bezier(0.22, 0.61, 0.36, 1);
+    will-change: transform;
+  }
+
+  .tab-bar.no-transition .tab-highlight {
+    transition: none;
   }
 
   .tab-content {
@@ -831,7 +1305,7 @@
     padding: 4px;
     margin-bottom: 16px;
   }
-  
+
   .sub-tab {
     flex: 1;
     text-align: center;
@@ -841,12 +1315,12 @@
     font-size: 14px;
     transition: all 0.3s;
   }
-  
+
   .sub-tab.active {
     background: var(--primary);
     color: #ffffff;
   }
-  
+
   .export-import-content {
     flex: 1;
     overflow-y: auto;

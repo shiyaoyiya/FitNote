@@ -1,6 +1,7 @@
 <template>
   <view class="container"
-    :class="{ dark: daySettingsStore.isDarkMode, light: !daySettingsStore.isDarkMode, 'liquid-glass': daySettingsStore.liquidGlassEnabled }">
+    :class="{ dark: daySettingsStore.isDarkMode, light: !daySettingsStore.isDarkMode, 'liquid-glass': daySettingsStore.liquidGlassEnabled }"
+    @touchstart="onPageTouchStart" @touchmove="onPageTouchMove" @touchend="onPageTouchEnd">
     <view class="search-bar">
       <view class="search-inner">
         <text class="search-icon">🔍</text>
@@ -10,9 +11,10 @@
     </view>
 
     <view class="category-tabs">
-      <scroll-view class="category-scroll" scroll-x="true" show-scrollbar="false">
+      <scroll-view class="category-scroll" scroll-x="true" show-scrollbar="false"
+        @touchmove.stop>
         <view v-for="cat in allCategories" :key="cat.id" class="category-tab"
-          :class="{ active: activeCategory === cat.id }" @click="activeCategory = cat.id">
+          :class="{ active: activeCategory === cat.id }" @click="onTabClick(cat.id)">
           <text class="category-name">{{ cat.name }}</text>
           <text class="category-count">{{ categoryCounts[cat.id] || 0 }}</text>
         </view>
@@ -20,7 +22,7 @@
     </view>
 
     <scroll-view class="action-list" scroll-y="true" show-scrollbar="false">
-      <view class="action-list-content">
+      <view class="action-list-content" :class="contentAnimClass" :key="activeCategory + '__' + searchQuery">
         <view v-if="hasResults">
           <view v-for="group in groupedActions" :key="group.categoryId" class="category-section">
             <view v-if="activeCategory === 'all'" class="section-header" @click="toggleCollapse(group.categoryId)">
@@ -49,8 +51,8 @@
                     </view>
                     <view class="action-card"
                       :style="{ transform: 'translateX(' + ((slideOffset[act.id] !== undefined ? slideOffset[act.id] : 0)) + 'px)' }"
-                      @touchstart="onTouchStart($event, act.id)" @touchmove="onTouchMove($event, act.id)"
-                      @touchend="onTouchEnd($event, act.id)">
+                      @touchstart.stop="onTouchStart($event, act.id)" @touchmove.stop="onTouchMove($event, act.id)"
+                      @touchend.stop="onTouchEnd($event, act.id)">
                       <view class="action-info" @click.stop="openEditPopup(act)">
                         <text class="action-name">{{ act.name }}</text>
                         <view class="action-category-tags">
@@ -191,6 +193,14 @@
         isClick: false,
         formIsUnilateral: false,
         formBodyweightMode: false,
+        // 侧滑手势
+        swipeStartX: 0,
+        swipeStartY: 0,
+        swipeStartTime: 0,
+        swipeDeltaX: 0,
+        swipeViewWidth: 0,
+        swipeIsTracking: false,
+        contentAnimClass: '',
       }
     },
 
@@ -330,6 +340,70 @@
     },
 
     methods: {
+      // ============ 侧滑手势 ============
+      onPageTouchStart(e) {
+        if (this.showAddPopup) return
+        if (e.touches.length !== 1) return
+        this.swipeStartX = e.touches[0].pageX
+        this.swipeStartY = e.touches[0].pageY
+        this.swipeStartTime = Date.now()
+        this.swipeDeltaX = 0
+        this.swipeIsTracking = true
+        uni.createSelectorQuery().in(this).select('.action-list').boundingClientRect(rect => {
+          if (rect) this.swipeViewWidth = rect.width
+        }).exec()
+      },
+
+      onPageTouchMove(e) {
+        if (!this.swipeIsTracking || e.touches.length !== 1) return
+        const dx = e.touches[0].pageX - this.swipeStartX
+        const dy = e.touches[0].pageY - this.swipeStartY
+        const absDx = Math.abs(dx)
+        const absDy = Math.abs(dy)
+        if (absDx <= absDy * 1.9) return
+        this.swipeDeltaX = dx
+        if (e.cancelable) e.preventDefault()
+      },
+
+      onPageTouchEnd() {
+        if (!this.swipeIsTracking) return
+        this.swipeIsTracking = false
+        const dx = this.swipeDeltaX
+        const absDx = Math.abs(dx)
+        const dt = Date.now() - this.swipeStartTime
+        const distThreshold = this.swipeViewWidth * 0.15
+        const speedThreshold = 0.3
+        if (absDx < distThreshold && dt > 0 && absDx / dt < speedThreshold) {
+          this.swipeDeltaX = 0
+          return
+        }
+        // 方向：右滑 → 上一个；左滑 → 下一个
+        const dir = dx > 0 ? -1 : 1
+        const curIdx = this.allCategories.findIndex(c => c.id === this.activeCategory)
+        const nextIdx = curIdx + dir
+        if (nextIdx < 0 || nextIdx >= this.allCategories.length) {
+          this.swipeDeltaX = 0
+          return
+        }
+        this.swipeDeltaX = 0
+        uni.vibrateShort()
+        const targetCat = this.allCategories[nextIdx]
+        // 方向动效：左滑(dir=1) → 内容从右侧淡入；右滑(dir=-1) → 从左侧淡入
+        this.contentAnimClass = dir > 0 ? 'anim-right-in' : 'anim-left-in'
+        this.activeCategory = targetCat.id
+        setTimeout(() => { this.contentAnimClass = '' }, 360)
+      },
+
+      onTabClick(catId) {
+        if (this.activeCategory === catId) return
+        uni.vibrateShort()
+        const oldIdx = this.allCategories.findIndex(c => c.id === this.activeCategory)
+        const newIdx = this.allCategories.findIndex(c => c.id === catId)
+        this.contentAnimClass = newIdx > oldIdx ? 'anim-right-in' : 'anim-left-in'
+        this.activeCategory = catId
+        setTimeout(() => { this.contentAnimClass = '' }, 360)
+      },
+
       getCategoryNameById(catId) {
         const cat = this.actStore.categories.find(c => c.id === catId)
         return cat ? cat.name : catId
@@ -1394,5 +1468,38 @@
 
   .btn-confirm:active {
     opacity: 0.8;
+  }
+
+  /* ===== 侧滑切换方向动效 ===== */
+  .anim-right-in {
+    animation: animRightIn 0.36s cubic-bezier(0.22, 0.61, 0.36, 1);
+  }
+
+  .anim-left-in {
+    animation: animLeftIn 0.36s cubic-bezier(0.22, 0.61, 0.36, 1);
+  }
+
+  @keyframes animRightIn {
+    from {
+      opacity: 0;
+      transform: translateX(30px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  @keyframes animLeftIn {
+    from {
+      opacity: 0;
+      transform: translateX(-30px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
   }
 </style>

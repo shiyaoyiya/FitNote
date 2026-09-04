@@ -204,10 +204,12 @@ async function downloadFromCloud(backupId) {
 
 export {
   listUserBackups,
+  listUserBackups as listCloudBackups,
   countUserBackups,
   uploadToCloud,
   downloadFromCloud,
   deleteBackup,
+  deleteBackup as deleteCloudBackup,
   deleteOldestBackup,
   getOpenId,
   collectFullData

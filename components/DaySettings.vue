@@ -32,14 +32,6 @@
               <view class="switch-dot"></view>
             </view>
           </view>
-          <view class="setting-item" @click="$emit('open-body-profile')">
-            <text class="setting-label">身体数据</text>
-            <text class="setting-arrow">›</text>
-          </view>
-          <view class="setting-item" @click="$emit('open-met-selector')">
-            <text class="setting-label">运动类型 (MET)</text>
-            <text class="setting-arrow">›</text>
-          </view>
 
           <view class="settings-divider"></view>
 

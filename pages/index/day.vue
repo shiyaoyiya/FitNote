@@ -24,35 +24,29 @@
 
     <!-- 底部按钮行 -->
     <view class="save-row" v-if="!isRestDay && !showChooseTpl">
-      <HeartRateToggle v-if="settingsStore.hrButtonVisible"
-        :hr="hr" :hr-history="hrHistorySamples" :kcal-total="hrKcalTotal" :duration-sec="hrDurationSec"
-        :zone="hrZone" :zones="hrZones" :connected="hrConnected"
-        :trend="hrTrend" :signal-quality="signalQuality" :guidance="trainingGuidance"
-        @toggle-connect="onToggleHrConnect"
-        @show-chart="onShowHrChart"
-      >
-        <template #actions>
-          <view v-if="!timerActive" class="minimal-timer-btn" @click="startQuickTimer">
-            <text class="mini-icon">⏱</text><text class="mini-text">开始计时</text>
-          </view>
-          <view v-else class="mini-timer-chip" @click="showTimer = true">
-            <text class="mini-timer-text">{{ timerDisplay }}</text>
-          </view>
-          <view class="minimal-settings-btn" @click="showSettings = true">
-            <text class="mini-icon">⚙</text><text class="mini-text">设置</text>
-          </view>
-        </template>
-      </HeartRateToggle>
-      <!-- 心率隐藏时仍显示计时/设置 -->
-      <view v-else class="save-row-inner">
-        <view v-if="!timerActive" class="minimal-timer-btn" @click="startQuickTimer">
-          <text class="mini-icon">⏱</text><text class="mini-text">开始计时</text>
+      <view class="save-row-inner" style="width: 100%; justify-content: space-between;">
+        <!-- 左：保存主按钮 -->
+        <view class="btn-day-save" :class="{ saving: savingDay }" @click="saveAllDay">
+          <text class="btn-save-icon">💾</text>
+          <text class="btn-save-text">{{ savingDay ? '保存中…' : '保存训练' }}</text>
         </view>
-        <view v-else class="mini-timer-chip" @click="showTimer = true">
-          <text class="mini-timer-text">{{ timerDisplay }}</text>
-        </view>
-        <view class="minimal-settings-btn" @click="showSettings = true">
-          <text class="mini-icon">⚙</text><text class="mini-text">设置</text>
+        <!-- 右：训练分析 + 计时 + 设置 -->
+        <view class="day-action-group">
+          <view class="day-action-btn" @click="goToTrainingAnalysis">
+            <text class="dab-icon">📊</text>
+            <text class="dab-label">训练分析</text>
+          </view>
+          <view v-if="!timerActive" class="day-action-btn" @click="startQuickTimer">
+            <text class="dab-icon">⏱</text>
+            <text class="dab-label">开始计时</text>
+          </view>
+          <view v-else class="day-action-btn primary" @click="showTimer = true">
+            <text class="dab-label">{{ timerDisplay }}</text>
+          </view>
+          <view class="day-action-btn" @click="showSettings = true">
+            <text class="dab-icon">⚙</text>
+            <text class="dab-label">设置</text>
+          </view>
         </view>
       </view>
     </view>
@@ -69,8 +63,7 @@
       @toggle-hr-button="settingsStore.toggleHrButton()"
       @set-heavy-timer="(v) => settingsStore.setHeavyTimerDuration(v)"
       @set-light-timer="(v) => settingsStore.setLightTimerDuration(v)" @export-data="onExportData"
-      @import-data="onImportData" @open-body-profile="showBodyProfile=true"
-      @open-met-selector="showMetSelector=true" />
+      @import-data="onImportData" />
 
     <!-- 导入数据弹窗 -->
     <ImportDataModal
@@ -84,22 +77,6 @@
     <EditEntryPopup :visible="showEditEntryPopup" :entry-idx="editEntryInfo.entryIdx"
       :entry="editEntryInfo.actionIdx >= 0 && editEntryInfo.entryIdx >= 0 ? actionEntries[editEntryInfo.actionIdx]?.[editEntryInfo.entryIdx] : null"
       @close="closeEditEntryPopup" @save="onEditEntrySave" />
-
-    <BodyProfilePopup :visible="showBodyProfile" @close="showBodyProfile=false" />
-
-    <!-- MET值选择弹窗 -->
-    <view v-if="showMetSelector" class="bp-overlay">
-      <view class="bp-bg" @click="showMetSelector = false"></view>
-      <view class="bp-panel fade-in" @click.stop>
-        <view class="bp-header">
-          <text class="bp-title">选择运动类型</text>
-          <text class="bp-close" @click="showMetSelector = false">×</text>
-        </view>
-        <view class="bp-body">
-          <MetValueSelector v-model="metValue" :activity-key="metActivityKey" @input="onMetValueChange" @update:activityKey="onMetActivityKeyChange" />
-        </view>
-      </view>
-    </view>
 
     <!-- 心率折线图弹窗（未连接时点击心率按钮） -->
     <HeartRateChartPopup
@@ -145,10 +122,8 @@
   import DaySettings from '@/components/DaySettings.vue'
   import ImportDataModal from '@/components/ImportDataModal.vue'
   import EditEntryPopup from '@/components/EditEntryPopup.vue'
-  import BodyProfilePopup from '@/components/BodyProfilePopup.vue'
   import HeartRateToggle from '@/components/HeartRateToggle.vue'
   import HeartRateChartPopup from '@/components/HeartRateChartPopup.vue'
-  import MetValueSelector from '@/components/MetValueSelector.vue'
   import { createBleHeartRate } from '@/utils/bleHeartRate.js'
   import { startFloatTimer, updateFloatTimerText, stopFloatTimer, notifyTimerEnd, hasOverlayPermission, requestOverlayPermission } from '@/utils/floatTimer.js'
   import { estimateAvgHr } from '@/utils/calorieEstimate.js'
@@ -168,10 +143,8 @@
       DaySettings,
       ImportDataModal,
       EditEntryPopup,
-      BodyProfilePopup,
       HeartRateToggle,
       HeartRateChartPopup,
-      MetValueSelector
     },
     data() {
       return {
@@ -201,8 +174,7 @@
         showSettings: false,
         showEditEntryPopup: false,
         showImportModal: false,
-        showBodyProfile: false,
-        showMetSelector: false,
+        savingDay: false,
         // 心率与热量累计
         hrBle: null,            // createBleHeartRate() 实例
         hrConnected: false,
@@ -221,8 +193,6 @@
         hrHistorySamples: [],    // 历史心率采样（从 dayData 加载）
         hrHistoryKcal: 0,
         hrHistoryDur: 0,
-        metValue: 1.0,
-        metActivityKey: 'custom',
         totalCalories: 0,
         netCalories: 0,
         hrTrend: { trend: 'stable', change: 0 },
@@ -321,8 +291,6 @@
       }
       if (raw.caloriesTotal) this.hrKcalTotal = raw.caloriesTotal
       if (raw.hrSamples && Array.isArray(raw.hrSamples)) this.hrSamples = raw.hrSamples
-      if (raw.metValue) this.metValue = raw.metValue
-      if (raw.metActivityKey) this.metActivityKey = raw.metActivityKey
 
       // ★ 判定是否因为"手环停止广播"才结束上一次保存：
       //   hrPausedForNoHr=true  → 手环确实停了，gap（之后未训练的空白）不计入，startTs=0 等心率重连再新会话
@@ -1461,14 +1429,45 @@
         if (this.hrTimer) { clearInterval(this.hrTimer); this.hrTimer = null }
       },
       onOpenHrSettings() { this.showSettings = true },
-      onMetValueChange(val) {
-        const raw = this.dayDataCacheStore.getDayData(this.date)
-        this.dayDataCacheStore.saveDayData(this.date, { ...raw, metValue: val, metActivityKey: this.metActivityKey })
+      saveAllDay() {
+        // 保存当日所有动作到存储 + 训练通知
+        const today = this.date
+        const raw = { ...(this.dayDataCacheStore.getDayData(today) || {}) }
+        const dayData = {
+          templates: raw.templates || {},
+          actions: raw.actions || {},
+          entries: raw.entries || {},
+        }
+        for (let i = 0; i < this.chosenActions.length; i++) {
+          const actName = this.chosenActions[i]
+          dayData.entries[actName] = this.actionEntries[i] || []
+          dayData.actions[actName] = getTotalWeight(this.actionEntries[i])
+        }
+        if (this.chosenTplName) {
+          const tplInfo = dayData.templates[this.chosenTplName] || {
+            totalWeight: 0, actionWeights: {}, actionOrder: [...this.chosenActions]
+          }
+          tplInfo.actionOrder = [...this.chosenActions]
+          for (const act of this.chosenActions) tplInfo.actionWeights[act] = dayData.actions[act] || 0
+          tplInfo.totalWeight = Object.values(tplInfo.actionWeights).reduce((a, b) => a + b, 0)
+          dayData.templates[this.chosenTplName] = tplInfo
+        }
+        // 心率会话等扩展数据（原样保留）
+        if (raw.durationSec) dayData.durationSec = raw.durationSec
+        if (raw.hrSamples) dayData.hrSamples = raw.hrSamples
+        if (raw.caloriesTotal) dayData.caloriesTotal = raw.caloriesTotal
+        if (raw.startTs) dayData.startTs = raw.startTs
+        if (raw.hrPausedForNoHr) dayData.hrPausedForNoHr = raw.hrPausedForNoHr
+        if (raw.hrZonesSummary) dayData.hrZonesSummary = raw.hrZonesSummary
+        this.dayDataCacheStore.saveDayData(today, dayData)
+        uni.vibrateShort({ fail: () => {} })
+        uni.showToast({ title: '已保存', icon: 'success' })
       },
-      onMetActivityKeyChange(key) {
-        this.metActivityKey = key
-        const raw = this.dayDataCacheStore.getDayData(this.date)
-        this.dayDataCacheStore.saveDayData(this.date, { ...raw, metActivityKey: key })
+      goToTrainingAnalysis() {
+        uni.vibrateShort({ fail: () => {} })
+        uni.navigateTo({
+          url: '/subpkg-training/trainingAnalysis/trainingAnalysis'
+        })
       },
       onShowHrChart() {
         // 从 dayData 加载今日历史心率数据
@@ -1548,66 +1547,81 @@
   .save-row-inner {
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 14px;
     width: 100%;
   }
 
-  .minimal-timer-btn,
-  .minimal-settings-btn {
+  /* ===== 新底部按钮栏：保存 + 训练分析 + 计时 + 设置 ===== */
+  .btn-day-save {
+    flex: 1.35;
+    height: 50px;
+    border-radius: 25px;
+    background: linear-gradient(135deg, #379bff 0%, #2979cc 100%);
+    box-shadow: 0 4px 14px rgba(55, 155, 255, 0.32);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    color: #fff;
+    transition: transform 0.18s cubic-bezier(0.22, 0.61, 0.36, 1), box-shadow 0.18s;
+  }
+  .btn-day-save:active {
+    transform: scale(0.96);
+    box-shadow: 0 2px 8px rgba(55, 155, 255, 0.25);
+  }
+  .btn-day-save.saving {
+    opacity: 0.7;
+  }
+  .btn-save-icon {
+    font-size: 18px;
+  }
+  .btn-save-text {
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+  }
+  .day-action-group {
+    flex: 1.8;
+    display: flex;
+    align-items: stretch;
+    gap: 8px;
+  }
+  .day-action-btn {
     flex: 1;
-    height: 48px;
+    min-width: 0;
+    height: 50px;
+    border-radius: 18px;
     background: var(--bg-card);
     border: 1rpx solid var(--border-color);
-    border-radius: 24px;
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
-    transition: all 0.2s;
+    gap: 2px;
+    transition: transform 0.15s cubic-bezier(0.22, 0.61, 0.36, 1), background 0.15s;
   }
-
-  /* 微型计时器样式（微信计时器风格：长椭圆，只显示时间） */
-  .mini-timer-chip {
-    flex: 1;
-    height: 48px;
-    padding: 0 20px;
-    background: linear-gradient(135deg, #379bff, #2d82d6);
-    border-radius: 24px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 2px 8px rgba(55, 155, 255, 0.3);
-    transition: all 0.2s;
-  }
-
-  .mini-timer-chip:active {
-    transform: scale(0.95);
-    opacity: 0.9;
-  }
-
-  .mini-timer-text {
-    font-size: 18px;
-    font-weight: 700;
-    color: #ffffff;
-    font-variant-numeric: tabular-nums;
-    letter-spacing: 1px;
-  }
-
-  .mini-icon {
-    font-size: 16px;
-    color: #379bff;
-    margin-right: 8px;
-  }
-
-  .mini-text {
-    font-size: 15px;
-    color: var(--text-primary);
-    font-weight: 300;
-  }
-
-  .minimal-timer-btn:active,
-  .minimal-settings-btn:active {
-    transform: scale(0.97);
+  .day-action-btn:active {
+    transform: scale(0.94);
     background: var(--bg-tertiary);
+  }
+  .day-action-btn.primary {
+    background: linear-gradient(135deg, #379bff, #2d82d6);
+    border-color: transparent;
+    box-shadow: 0 2px 8px rgba(55, 155, 255, 0.28);
+  }
+  .day-action-btn.primary .dab-label {
+    color: #fff;
+    font-weight: 700;
+    font-size: 14px;
+  }
+  .dab-icon {
+    font-size: 16px;
+    line-height: 1;
+  }
+  .dab-label {
+    font-size: 11px;
+    color: var(--text-secondary);
+    line-height: 1;
   }
 
   /* ========== 休息日 ========== */

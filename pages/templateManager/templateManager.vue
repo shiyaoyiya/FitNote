@@ -1,14 +1,33 @@
 <template>
   <view class="container"
-    :class="{ dark: daySettingsStore.isDarkMode, light: !daySettingsStore.isDarkMode, 'liquid-glass': daySettingsStore.liquidGlassEnabled }">
+    :class="{ dark: daySettingsStore.isDarkMode, light: !daySettingsStore.isDarkMode, 'liquid-glass': daySettingsStore.liquidGlassEnabled }"
+    @touchstart="onPageSwipeStart" @touchmove="onPageSwipeMove" @touchend="onPageSwipeEnd">
 
     <view v-if="loading" class="loading-container">
       <view class="loading-spinner"></view>
       <text class="loading-text">加载中...</text>
     </view>
 
-    <view v-else class="mid-scroll">
-      <movable-area v-if="showList" class="movable-area"
+    <!-- 顶部主 Tab 栏：我的模板 / 模板广场 -->
+    <view v-else class="main-tab-bar" :class="{ 'no-transition': swipeTabNoTransition }">
+      <view
+        v-for="(t, i) in mainTabs" :key="t.key"
+        class="main-tab-item"
+        :class="{ active: activeMainTab === t.key }"
+        @click="switchMainTab(t.key, true)"
+      >
+        <text class="main-tab-text">{{ t.label }}</text>
+      </view>
+      <!-- 滑动高亮指示线 -->
+      <view
+        class="tab-highlight-bar"
+        :style="{ transform: `translateX(${tabHighlightX}px)`, width: tabHighlightW + 'px' }"
+      ></view>
+    </view>
+
+    <view v-if="!loading" class="mid-scroll">
+      <!-- ========== 我的模板 Tab ========== -->
+      <movable-area v-show="activeMainTab === 'mine'" v-if="showList" class="movable-area"
         :style="{ height: filteredTemplates.length * rowHeight + 'px' }">
         <view v-for="(item, index) in filteredTemplates" :key="'slot'+index" class="item-slot"
           :style="{ top: index * rowHeight + 'px' }"></view>
@@ -41,9 +60,65 @@
           <text class="empty-text">暂无模板，快去创建一个吧~</text>
         </view>
       </movable-area>
+
+      <!-- ========== 模板广场 Tab ========== -->
+      <view v-show="activeMainTab === 'square'" class="square-wrap">
+        <!-- 搜索 + 排序 -->
+        <view class="square-toolbar">
+          <view class="square-search">
+            <text class="sq-search-icon">🔍</text>
+            <input v-model="squareSearch" class="sq-search-input" placeholder="搜索模板名 / 动作 / 标签" />
+            <text v-if="squareSearch" class="sq-clear" @click="squareSearch=''">×</text>
+          </view>
+          <view class="square-sort">
+            <view
+              v-for="s in squareSorts" :key="s.key"
+              class="sq-sort-item"
+              :class="{ active: squareSort === s.key }"
+              @click="squareSort = s.key"
+            >{{ s.label }}</view>
+          </view>
+        </view>
+        <!-- 标签 chips -->
+        <scroll-view class="square-tags" scroll-x="true" show-scrollbar="false">
+          <view
+            v-for="tag in squareTagOptions" :key="tag.key"
+            class="sq-tag-chip"
+            :class="{ active: squareTag === tag.key }"
+            @click="squareTag = tag.key"
+          >{{ tag.label }}</view>
+        </scroll-view>
+        <!-- 网格卡片 -->
+        <view class="square-grid">
+          <view
+            v-for="(tpl, i) in filteredSquareTemplates" :key="i"
+            class="sq-card"
+            @click="openSquareDetail(tpl)"
+          >
+            <view class="sq-card-top" :style="{ background: `linear-gradient(135deg, ${tpl.color}, ${tpl.color2 || tpl.color})` }">
+              <text class="sq-card-name">{{ tpl.name }}</text>
+              <text class="sq-card-author">by {{ tpl.author }}</text>
+            </view>
+            <view class="sq-card-body">
+              <view class="sq-card-tags">
+                <text v-for="tg in tpl.tags" :key="tg" class="sq-card-tag">{{ tg }}</text>
+              </view>
+              <view class="sq-card-meta">
+                <text class="sq-meta">{{ tpl.actions.length }} 动作</text>
+                <text class="sq-meta">♥ {{ tpl.likes }}</text>
+                <text class="sq-meta">⬇ {{ tpl.downloads }}</text>
+              </view>
+            </view>
+          </view>
+        </view>
+        <view v-if="filteredSquareTemplates.length === 0" class="empty-state-inside">
+          <text class="empty-icon">🔍</text>
+          <text class="empty-text">没有找到匹配的模板</text>
+        </view>
+      </view>
     </view>
 
-    <view class="bottom-bar">
+    <view class="bottom-bar" v-show="activeMainTab === 'mine'">
       <view class="btn-import-export" @click="openImportExportPanel">
         <text class="btn-icon">📤</text>
         <text class="btn-label">导入/导出</text>
@@ -204,6 +279,44 @@
         </view>
       </view>
     </view>
+
+    <!-- 广场：模板详情弹窗 -->
+    <view v-if="showSquareDetail" class="popup-overlay" @click.self="closeSquareDetail">
+      <view class="overlay-bg" @click="closeSquareDetail"></view>
+      <view class="popup-panel square-detail-panel slide-up" @click.stop>
+        <view class="panel-header">
+          <text class="panel-title">{{ activeSquareTemplate?.name || '模板详情' }}</text>
+          <text class="close-btn" @click="closeSquareDetail">×</text>
+        </view>
+        <view v-if="activeSquareTemplate" class="panel-body" style="padding-bottom: 0;">
+          <view class="sq-detail-hero" :style="{ background: `linear-gradient(135deg, ${activeSquareTemplate.color}, ${activeSquareTemplate.color2 || activeSquareTemplate.color})` }">
+            <text class="sqd-author">作者：{{ activeSquareTemplate.author }}</text>
+            <view class="sqd-tags">
+              <text v-for="tg in activeSquareTemplate.tags" :key="tg" class="sqd-tag">{{ tg }}</text>
+            </view>
+            <view class="sqd-stat-row">
+              <view class="sqd-stat"><text class="sqd-stat-num">{{ activeSquareTemplate.actions.length }}</text><text class="sqd-stat-lb">动作</text></view>
+              <view class="sqd-stat"><text class="sqd-stat-num">{{ activeSquareTemplate.likes }}</text><text class="sqd-stat-lb">点赞</text></view>
+              <view class="sqd-stat"><text class="sqd-stat-num">{{ activeSquareTemplate.downloads }}</text><text class="sqd-stat-lb">导入</text></view>
+            </view>
+          </view>
+          <view class="sq-detail-actions-preview">
+            <view class="sqd-section-title">动作清单</view>
+            <view class="sqd-action-list">
+              <view v-for="(a, i) in activeSquareTemplate.actions" :key="i" class="sqd-action-row">
+                <text class="sqd-action-index">{{ i + 1 }}</text>
+                <text class="sqd-action-name">{{ a.name }}</text>
+                <text class="sqd-action-sets">{{ a.sets }}组</text>
+              </view>
+            </view>
+          </view>
+        </view>
+        <view class="panel-footer">
+          <view class="btn-cancel-popup" @click="shareSquareTemplate">📤 分享</view>
+          <view class="btn-confirm-popup" @click="importSquareTemplate" :style="{ background: 'linear-gradient(135deg,#379bff,#2d82d6)', color: '#fff' }">✨ 导入到我的模板</view>
+        </view>
+      </view>
+    </view>
   </view>
 </template>
 
@@ -263,7 +376,101 @@
         importText: '',
         parsedTemplates: [],
         showConflictPanel: false,
-        conflictItems: []
+        conflictItems: [],
+
+        // ===== 主 Tab：我的模板 / 模板广场 =====
+        activeMainTab: 'mine',
+        swipeTabNoTransition: false,
+        swipeStartX: 0, swipeStartY: 0, swipeStartTime: 0,
+        tabHighlightX: 0, tabHighlightW: 0, tabHighlightMeasured: false,
+        swipeDeltaX: 0, swipeViewWidth: 0, swipeIsTracking: false, baseTabHighlightX: 0,
+
+        // ===== 模板广场 =====
+        squareSearch: '',
+        squareSort: 'hot',
+        squareTag: 'all',
+        showSquareDetail: false,
+        activeSquareTemplate: null,
+        squareSorts: [
+          { key: 'hot', label: '🔥 热度' },
+          { key: 'newest', label: '🆕 最新' },
+          { key: 'downloads', label: '⬇ 下载' },
+        ],
+        squareTagOptions: [
+          { key: 'all', label: '全部' },
+          { key: '胸', label: '胸部' },
+          { key: '背', label: '背部' },
+          { key: '腿', label: '腿部' },
+          { key: '肩', label: '肩部' },
+          { key: '手臂', label: '手臂' },
+          { key: '核心', label: '核心' },
+          { key: '有氧', label: '有氧' },
+          { key: '全身', label: '全身' },
+        ],
+        squareTemplates: [
+          {
+            id: 'sq_001', name: '新手5x5全身', author: 'FitNote官方',
+            color: '#6366f1', color2: '#a855f7', likes: 3214, downloads: 8921,
+            tags: ['全身', '新手', '增肌'],
+            actions: [
+              { name: '深蹲', sets: 5 },
+              { name: '卧推', sets: 5 },
+              { name: '杠铃划船', sets: 5 },
+              { name: '推举', sets: 3 },
+              { name: '硬拉', sets: 1 },
+            ]
+          },
+          {
+            id: 'sq_002', name: '推拉腿三分化', author: '大骏',
+            color: '#0ea5e9', color2: '#14b8a6', likes: 2731, downloads: 7210,
+            tags: ['全身', '分化', '增肌'],
+            actions: [
+              { name: '卧推', sets: 4 }, { name: '上斜哑铃飞鸟', sets: 3 },
+              { name: '推举', sets: 4 }, { name: '侧平举', sets: 3 },
+              { name: '绳索下压', sets: 3 },
+            ]
+          },
+          {
+            id: 'sq_003', name: '胸背超级组', author: '铁锤教练',
+            color: '#f97316', color2: '#ef4444', likes: 1892, downloads: 4820,
+            tags: ['胸', '背', '中级'],
+            actions: [
+              { name: '卧推', sets: 4 }, { name: '引体向上', sets: 4 },
+              { name: '上斜卧推', sets: 3 }, { name: '高位下拉', sets: 3 },
+              { name: '绳索夹胸', sets: 3 }, { name: '坐姿划船', sets: 3 },
+            ]
+          },
+          {
+            id: 'sq_004', name: '臀腿塑形(女)', author: 'JennyFitness',
+            color: '#ec4899', color2: '#f43f5e', likes: 2540, downloads: 6100,
+            tags: ['腿', '塑形', '女性'],
+            actions: [
+              { name: '臀推', sets: 4 }, { name: '深蹲', sets: 3 },
+              { name: '保加利亚分腿蹲', sets: 3 }, { name: '罗马尼亚硬拉', sets: 3 },
+              { name: '腿举', sets: 3 }, { name: '腿弯举', sets: 3 },
+            ]
+          },
+          {
+            id: 'sq_005', name: '核心雕刻(30min)', author: 'CoreGuru',
+            color: '#10b981', color2: '#22d3ee', likes: 3980, downloads: 9280,
+            tags: ['核心', '快速', '居家'],
+            actions: [
+              { name: '平板支撑', sets: 3 }, { name: '卷腹', sets: 4 },
+              { name: '俄罗斯转体', sets: 3 }, { name: '悬垂举腿', sets: 3 },
+              { name: '死虫式', sets: 3 },
+            ]
+          },
+          {
+            id: 'sq_006', name: '肩手轰炸', author: 'IronBabe',
+            color: '#8b5cf6', color2: '#3b82f6', likes: 1721, downloads: 3340,
+            tags: ['肩', '手臂', '进阶'],
+            actions: [
+              { name: '推举', sets: 4 }, { name: '侧平举', sets: 4 },
+              { name: '前平举', sets: 3 }, { name: '杠铃弯举', sets: 4 },
+              { name: '臂屈伸', sets: 4 }, { name: '锤式弯举', sets: 3 },
+            ]
+          },
+        ],
       }
     },
 
@@ -315,10 +522,40 @@
         }
         return result
       },
+      mainTabs() {
+        return [
+          { key: 'mine', label: '我的模板' },
+          { key: 'square', label: '模板广场' },
+        ]
+      },
+      filteredSquareTemplates() {
+        const q = this.squareSearch.trim().toLowerCase()
+        let list = this.squareTemplates || []
+        if (this.squareTag !== 'all') {
+          list = list.filter(t => (t.tags || []).includes(this.squareTag))
+        }
+        if (q) {
+          list = list.filter(t => {
+            const names = (t.actions || []).map(a => a.name)
+            return (
+              (t.name || '').toLowerCase().includes(q) ||
+              (t.author || '').toLowerCase().includes(q) ||
+              (t.tags || []).some(tg => String(tg).toLowerCase().includes(q)) ||
+              names.some(n => String(n).toLowerCase().includes(q))
+            )
+          })
+        }
+        const sorted = list.slice()
+        if (this.squareSort === 'newest') sorted.reverse()
+        if (this.squareSort === 'downloads') sorted.sort((a, b) => (b.downloads || 0) - (a.downloads || 0))
+        if (this.squareSort === 'hot') sorted.sort((a, b) => (b.likes || 0) - (a.likes || 0))
+        return sorted
+      },
     },
 
     onShow() {
       this.loadData()
+      this.$nextTick(() => this.measureTabHighlight())
     },
 
     onHide() {
@@ -353,6 +590,89 @@
     },
 
     methods: {
+      // ===== 主 Tab 切换 + 页面级侧滑手势 =====
+      switchMainTab(key, fromClick) {
+        if (this.activeMainTab === key) return
+        if (fromClick) uni.vibrateShort()
+        this.activeMainTab = key
+        this.$nextTick(() => this.measureTabHighlight())
+      },
+
+      measureTabHighlight() {
+        this.$nextTick(() => {
+          uni.createSelectorQuery().in(this).selectAll('.main-tab-item').boundingClientRect().exec(res => {
+            if (res && res[0] && res[0].length > 0) {
+              const items = res[0]
+              const idx = this.mainTabs.findIndex(t => t.key === this.activeMainTab)
+              if (idx >= 0 && items[idx]) {
+                this.tabHighlightX = items[idx].left - items[0].left
+                this.tabHighlightW = items[idx].width
+                this.tabHighlightMeasured = true
+              }
+            }
+          })
+        })
+      },
+
+      onPageSwipeStart(e) {
+        if (this.isDragMode || this.showImportExportPanel) return
+        if (e.touches.length !== 1) return
+        this.swipeStartX = e.touches[0].pageX
+        this.swipeStartY = e.touches[0].pageY
+        this.swipeStartTime = Date.now()
+        this.swipeDeltaX = 0
+        this.swipeTabNoTransition = true
+        this.swipeIsTracking = true
+        this.baseTabHighlightX = this.tabHighlightX
+        if (!this.tabHighlightMeasured) this.measureTabHighlight()
+      },
+
+      onPageSwipeMove(e) {
+        if (!this.swipeIsTracking || e.touches.length !== 1) return
+        const dx = e.touches[0].pageX - this.swipeStartX
+        const dy = e.touches[0].pageY - this.swipeStartY
+        const absDx = Math.abs(dx)
+        const absDy = Math.abs(dy)
+        if (absDx <= absDy * 1.9) return
+        this.swipeDeltaX = dx
+        // 高亮框跟手（带边界阻尼）
+        const curIdx = this.mainTabs.findIndex(t => t.key === this.activeMainTab)
+        let deltaX = dx
+        if ((curIdx === 0 && dx > 0) || (curIdx === this.mainTabs.length - 1 && dx < 0)) {
+          deltaX = dx * 0.3
+        }
+        this.tabHighlightX = this.baseTabHighlightX + deltaX
+        if (e.cancelable) e.preventDefault()
+      },
+
+      onPageSwipeEnd() {
+        if (!this.swipeIsTracking) return
+        this.swipeIsTracking = false
+        this.swipeTabNoTransition = false
+        const dx = this.swipeDeltaX
+        const absDx = Math.abs(dx)
+        const dt = Date.now() - this.swipeStartTime
+        const distThreshold = (this.tabHighlightW || 80) * 0.5
+        const speedThreshold = 0.3
+        if (absDx < distThreshold && dt > 0 && absDx / dt < speedThreshold) {
+          this.swipeDeltaX = 0
+          this.measureTabHighlight()
+          return
+        }
+        // 方向：右滑 → 上一个；左滑 → 下一个
+        const dir = dx > 0 ? -1 : 1
+        const curIdx = this.mainTabs.findIndex(t => t.key === this.activeMainTab)
+        const nextIdx = curIdx + dir
+        if (nextIdx < 0 || nextIdx >= this.mainTabs.length) {
+          this.swipeDeltaX = 0
+          this.measureTabHighlight()
+          return
+        }
+        this.swipeDeltaX = 0
+        uni.vibrateShort()
+        this.switchMainTab(this.mainTabs[nextIdx].key, false)
+      },
+
       openImportExportPanel() {
         this.showImportExportPanel = true
         this.importExportTab = 'export'

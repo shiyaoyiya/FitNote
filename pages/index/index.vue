@@ -71,6 +71,13 @@
         </view>
         <text class="tab-label">动作库</text>
       </view>
+
+      <view class="tab-item" @click="goToProfile">
+        <view class="tab-icon">
+          <view class="icon-base icon-profile"></view>
+        </view>
+        <text class="tab-label">个人中心</text>
+      </view>
     </view>
 
     <!-- 纪念日区域 -->
@@ -879,6 +886,11 @@
           url: '/pages/trainingStat/trainingStat'
         })
       },
+      goToProfile() {
+        uni.navigateTo({
+          url: '/pages/profile/profile'
+        })
+      },
 
       getDayData(fullDate) {
         if (!fullDate) return {};
@@ -1319,6 +1331,11 @@
   .icon-statistic {
     -webkit-mask-image: url('/static/statistic.svg');
     mask-image: url('/static/statistic.svg');
+  }
+
+  .icon-profile {
+    -webkit-mask-image: url('/static/profile.svg');
+    mask-image: url('/static/profile.svg');
   }
 
   .icon-moon {
