@@ -88,7 +88,8 @@
       :train-btn-visible="todayTrainBtnVisible" :liquid-glass-enabled="daySettingsStore.liquidGlassEnabled"
       @close="showMoreMenu = false" @read-guide="showGuidePanel = true"
       @add-anniv="$refs.annivSection.openAdd()" @toggle-train-btn="onToggleTrainBtn"
-      @toggle-theme="onToggleTheme" @toggle-liquid-glass="onToggleLiquidGlass" />
+      @toggle-theme="onToggleTheme" @toggle-liquid-glass="onToggleLiquidGlass"
+      @go-announce="goToAnnounce" @feedback="goToFeedback" />
     <!-- 阅读说明弹窗 -->
     <GuidePopup :visible="showGuidePanel" @close="showGuidePanel = false" />
     <!-- 有氧详情弹窗 -->
@@ -410,6 +411,19 @@
       goToTemplateManager() {
         uni.navigateTo({
           url: '/pages/templateManager/templateManager'
+        });
+      },
+      goToAnnounce() {
+        uni.navigateTo({
+          url: '/pages/announce/announce'
+        });
+      },
+      goToFeedback() {
+        uni.navigateTo({
+          url: '/pages/feedback/feedback',
+          fail: () => {
+            uni.showToast({ title: '反馈页未配置', icon: 'none' })
+          }
         });
       },
       goToYearPage() {

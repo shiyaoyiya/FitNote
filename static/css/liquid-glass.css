@@ -195,6 +195,26 @@ html .container.dark.liquid-glass .save-row {
   border-top: none !important;
 }
 
+/* 链接2: 清掉 .hr-toggle 自带的 background / box-shadow / backdrop-filter，杜绝外层容器残留"假卡" */
+.container.liquid-glass .hr-toggle {
+  background: transparent !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* 链接8: 模板广场分享 FAB 液态玻璃样式 */
+.container.liquid-glass .sq-share-fab {
+  background: var(--glass-bg) !important;
+  color: var(--primary, #379bff) !important;
+  backdrop-filter: blur(20px) saturate(160%) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(160%) !important;
+  border: 1rpx solid var(--glass-edge, rgba(255,255,255,0.65)) !important;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.12),
+    0 0 0 0.5px var(--glass-edge, rgba(255,255,255,0.65)) inset !important;
+}
+
+
 /* 计时�?设置按钮 */
 .container.liquid-glass .minimal-timer-btn,
 .container.liquid-glass .minimal-settings-btn {

@@ -48,11 +48,7 @@
         </view>
         <view class="chart-stat">
           <text class="stat-label">时长</text>
-          <text class="stat-val">{{ formatDur(durationSec) }}</text>
-        </view>
-        <view class="chart-stat">
-          <text class="stat-label">热量</text>
-          <text class="stat-val">{{ Math.round(kcalTotal) }} kcal</text>
+          <text class="stat-val">{{ samples.length }}s</text>
         </view>
       </view>
       <view v-if="!connected" class="chart-connect-btn" @click="$emit('connect')">
@@ -67,7 +63,9 @@ export default {
   props: {
     visible: { type: Boolean, default: false },
     samples: { type: Array, default: () => [] },
+    // @deprecated kcalTotal 不再使用，保留 prop 兼容父组件传参
     kcalTotal: { type: Number, default: 0 },
+    // @deprecated durationSec 不再使用，保留 prop 兼容父组件传参
     durationSec: { type: Number, default: 0 },
     connected: { type: Boolean, default: false },
   },

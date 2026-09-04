@@ -19,12 +19,24 @@
         @update-entry="(data) => onUpdateEntry(idx, data)" @delete-action="handleDeleteAction(idx)"
         @delete-entry="(eIdx) => handleDeleteEntry(idx, eIdx)" @edit-entry="(eIdx) => openEditEntryPopup(idx, eIdx)"
         @go-history="goHistory(idx)" />
+      <!-- 链接1: 训练分析折叠卡片（在 list-bottom-space 之前） -->
+      <TrainingAnalysisCard
+        v-if="!isRestDay && chosenActions.length > 0"
+        :entries="trainingEntries"
+        :hr-samples-with-ts="hrSamplesWithTsComputed"
+        :current-date-str="date"
+        :profile="profileForAnalysis"
+        :existing-analysis="existingTrainingAnalysis"
+        :hr-paused-for-no-hr="hrPausedForNoHrFlag"
+        :hr-last-active-ts="hrLastActiveTsValue"
+        @go-full-report="goToTrainingAnalysis"
+      />
       <view class="list-bottom-space"></view>
     </scroll-view>
 
     <!-- 底部按钮行 -->
     <view class="save-row" v-if="!isRestDay && !showChooseTpl">
-      <view class="save-row-inner" style="width: 100%; justify-content: space-between;">
+      <view class="save-row-inner" style="flex: 1; min-width: 0; justify-content: space-between;">
         <!-- 左：保存主按钮 -->
         <view class="btn-day-save" :class="{ saving: savingDay }" @click="saveAllDay">
           <text class="btn-save-icon">💾</text>
@@ -124,6 +136,7 @@
   import EditEntryPopup from '@/components/EditEntryPopup.vue'
   import HeartRateToggle from '@/components/HeartRateToggle.vue'
   import HeartRateChartPopup from '@/components/HeartRateChartPopup.vue'
+  import TrainingAnalysisCard from '@/components/TrainingAnalysisCard.vue'
   import { createBleHeartRate } from '@/utils/bleHeartRate.js'
   import { startFloatTimer, updateFloatTimerText, stopFloatTimer, notifyTimerEnd, hasOverlayPermission, requestOverlayPermission } from '@/utils/floatTimer.js'
   import { estimateAvgHr } from '@/utils/calorieEstimate.js'
@@ -145,6 +158,7 @@
       EditEntryPopup,
       HeartRateToggle,
       HeartRateChartPopup,
+      TrainingAnalysisCard,
     },
     data() {
       return {
@@ -258,6 +272,43 @@
           4: '极限强度，谨慎使用'
         }
         return guidanceMap[this.hrZone.index] || ''
+      },
+      // 链接1: TrainingAnalysisCard 所需 props
+      trainingEntries() {
+        // actionEntries 是数组形式，转换为 {动作名: [...entries]} 对象
+        const obj = {}
+        this.chosenActions.forEach((name, i) => {
+          obj[name] = this.actionEntries[i] || []
+        })
+        return obj
+      },
+      profileForAnalysis() {
+        const p = useUserProfileStore()
+        return {
+          age: p.age,
+          weight: p.weight,
+          restingHr: p.restingHr,
+        }
+      },
+      hrSamplesWithTsComputed() {
+        // hrSamples 格式 [{hr, durMin}]，转换为 [{hr, ts}]
+        const now = Date.now()
+        return (this.hrSamples || []).map((s, i) => ({
+          hr: s.hr,
+          ts: now - ((this.hrSamples.length - 1 - i) * 60 * 1000)
+        }))
+      },
+      hrPausedForNoHrFlag() {
+        const raw = this.dayDataCacheStore.getDayData(this.date)
+        return raw?.hrPausedForNoHr === true
+      },
+      hrLastActiveTsValue() {
+        const raw = this.dayDataCacheStore.getDayData(this.date)
+        return Number(raw?.hrLastActiveTs) || 0
+      },
+      existingTrainingAnalysis() {
+        const raw = this.dayDataCacheStore.getDayData(this.date)
+        return raw?.trainingAnalysis || null
       },
     },
     watch: {},
@@ -1492,6 +1543,18 @@
     background: #f5f5f5 !important;
   }
 
+  /* 链接2: 液态玻璃模式下让 save-row 透明，避免 hr-toggle 出现半透明背景 */
+  html .container.light.liquid-glass .save-row,
+  html .container.dark.liquid-glass .save-row {
+    background: transparent !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+  html .container.light.liquid-glass .save-row-inner,
+  html .container.dark.liquid-glass .save-row-inner {
+    background: transparent !important;
+  }
+
   /* ========== 整体容器 & 深色模式 ========== */
   .container {
     position: relative;
@@ -1548,7 +1611,8 @@
     display: flex;
     align-items: center;
     gap: 14px;
-    width: 100%;
+    flex: 1;
+    min-width: 0;
   }
 
   /* ===== 新底部按钮栏：保存 + 训练分析 + 计时 + 设置 ===== */

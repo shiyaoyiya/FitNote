@@ -36,10 +36,6 @@
         <view class="hr-guidance" v-if="expanded && guidance">
           <text class="hr-guidance-text">{{ guidance }}</text>
         </view>
-        <view class="hr-kcal-blk">
-          <text class="hr-kcal">🔥{{ Math.round(kcalTotal) }} kcal</text>
-          <text class="hr-dur">{{ formatDur(durationSec) }}</text>
-        </view>
       </view>
     </view>
     <!-- 计时/设置按钮：展开时隐藏 -->
@@ -54,7 +50,9 @@ export default {
   props: {
     hr: { type: Number, default: null },
     hrHistory: { type: Array, default: () => [] },
+    // @deprecated kcalTotal 不再使用，保留 prop 兼容父组件传参
     kcalTotal: { type: Number, default: 0 },
+    // @deprecated durationSec 不再使用，保留 prop 兼容父组件传参
     durationSec: { type: Number, default: 0 },
     zone: { type: Object, default: null },
     zones: { type: Array, default: () => [] },
@@ -161,7 +159,7 @@ export default {
 .hr-connect-hint{display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.1}
 .hr-pulse-dot{width:8px;height:8px;border-radius:50%;background:#3b82f6;animation:dot-blink 1.2s ease-in-out infinite;margin-bottom:2px}
 .hr-connect-text{font-size:10px;font-weight:700;color:#3b82f6;white-space:nowrap}
-.hr-expanded{display:flex;align-items:center;justify-content:space-between;width:100%;padding:0 12px;box-sizing:border-box;gap:4px;position:relative;height:52px}
+.hr-expanded{display:flex;align-items:center;justify-content:space-between;width:100%;padding:0 12px;box-sizing:border-box;gap:8px;position:relative;height:52px}
 .hr-blk{display:flex;align-items:baseline}
 .hr-val{font-size:15px;font-weight:700;color:#ef4444;white-space:nowrap}
 .hr-unit{font-size:9px;color:var(--text-secondary);margin-left:2px}
@@ -170,11 +168,8 @@ export default {
 .hr-bar{display:flex;gap:2px;flex:1}
 .hr-seg{flex:1;height:7px;border-radius:2px;min-width:8vw}
 .hr-zone-label{font-size:10px;font-weight:700;white-space:nowrap}
-.hr-guidance{display:none}
-.hr-guidance-text{font-size:9px;color:var(--text-secondary);white-space:nowrap}
-.hr-kcal-blk{display:flex;flex-direction:column;align-items:flex-end;line-height:1.15}
-.hr-kcal{font-size:12px;font-weight:700;color:#f59e0b;white-space:nowrap}
-.hr-dur{font-size:9px;color:var(--text-secondary);white-space:nowrap}
+.hr-guidance{display:flex;align-items:center;flex:1;justify-content:flex-end}
+.hr-guidance-text{font-size:10px;color:var(--text-secondary);white-space:nowrap;text-align:right}
 @keyframes hr-pulse{
   0%,100%{box-shadow:0 0 0 0 rgba(59,130,246,0.4)}
   50%{box-shadow:0 0 0 6px rgba(59,130,246,0)}

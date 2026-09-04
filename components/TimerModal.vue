@@ -1,5 +1,5 @@
 <template>
-  <view v-show="visible" class="popup-overlay" style="z-index: 2000;">
+  <view v-if="visible" class="popup-overlay" style="z-index: 2000;">
     <view class="overlay-bg" @click="$emit('minimize')"></view>
     <view class="timer-panel fade-in">
       <view class="timer-full-body">
@@ -70,6 +70,7 @@
       // 仅未计时时初始化；计时中再打开弹窗（点微型）不重置
       visible(val) {
         if (val && !this.timerInterval) this.initTimer()
+        if (!val) this._teardownCanvas()
       },
     },
     created() {
@@ -80,6 +81,7 @@
     },
     beforeUnmount() {
       this.clearTimer()
+      this._teardownCanvas()
       if (this.audioCtx) {
         this.audioCtx.stop()
         this.audioCtx = null
@@ -201,7 +203,14 @@
       },
       completeTimer() {
         this.clearTimer()
+        this._teardownCanvas()
         this.$emit('complete')
+      },
+      // 销毁 canvas：微信小程序原生组件穿透 hidden，必须彻底销毁 DOM + 重置状态
+      _teardownCanvas() {
+        this.canvasReady = false
+        this.ctx = null
+        this.canvasNode = null
       },
       drawCircle() {
         if (!this.ctx) return

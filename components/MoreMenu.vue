@@ -22,6 +22,16 @@
         <text class="menu-icon">✨</text>
         <text class="menu-text">{{ liquidGlassEnabled ? '关闭液态玻璃' : '开启液态玻璃' }}</text>
       </view>
+      <!-- #ifndef MP-WEIXIN -->
+      <view class="menu-item" @click="$emit('go-announce'); close()">
+        <text class="menu-icon">📢</text>
+        <text class="menu-text">系统公告</text>
+      </view>
+      <view class="menu-item" @click="$emit('feedback'); close()">
+        <text class="menu-icon">💬</text>
+        <text class="menu-text">反馈与建议</text>
+      </view>
+      <!-- #endif -->
     </view>
   </view>
 </template>
@@ -35,7 +45,7 @@
       trainBtnVisible: { type: Boolean, default: true },
       liquidGlassEnabled: { type: Boolean, default: false },
     },
-    emits: ['close', 'read-guide', 'add-anniv', 'toggle-train-btn', 'toggle-theme', 'toggle-liquid-glass'],
+    emits: ['close', 'read-guide', 'add-anniv', 'toggle-train-btn', 'toggle-theme', 'toggle-liquid-glass', 'go-announce', 'feedback'],
     methods: {
       close() {
         this.$emit('close')

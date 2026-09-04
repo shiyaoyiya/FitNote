@@ -11,14 +11,13 @@
     </view>
 
     <view class="category-tabs">
-      <scroll-view class="category-scroll" scroll-x="true" show-scrollbar="false"
-        @touchmove.stop>
+      <view class="category-scroll" @touchmove.stop>
         <view v-for="cat in allCategories" :key="cat.id" class="category-tab"
           :class="{ active: activeCategory === cat.id }" @click="onTabClick(cat.id)">
           <text class="category-name">{{ cat.name }}</text>
           <text class="category-count">{{ categoryCounts[cat.id] || 0 }}</text>
         </view>
-      </scroll-view>
+      </view>
     </view>
 
     <scroll-view class="action-list" scroll-y="true" show-scrollbar="false">
@@ -56,8 +55,8 @@
                       <view class="action-info" @click.stop="openEditPopup(act)">
                         <text class="action-name">{{ act.name }}</text>
                         <view class="action-category-tags">
-                          <text v-for="catId in act.categories" :key="catId"
-                            class="action-category-tag">{{ getCategoryNameById(catId) }}</text>
+                          <view v-for="catId in act.categories" :key="catId"
+                            class="action-category-tag" @click.stop="onTabClick(catId)">{{ getCategoryNameById(catId) }}</view>
                         </view>
                       </view>
                       <view class="action-history-area" @click.stop="goToHistory(act)">
@@ -748,7 +747,9 @@
     display: flex;
     flex-direction: row;
     white-space: nowrap;
-    overflow: hidden;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
   }
 
   .category-tab {
@@ -1017,12 +1018,19 @@
   }
 
   .action-category-tag {
+    display: inline-flex;
+    align-items: center;
     font-size: 10px;
     color: var(--text-secondary);
     background-color: var(--bg-tertiary);
     padding: 1px 6px;
+    margin-right: 4px;
     border-radius: 8px;
     flex-shrink: 0;
+  }
+
+  .action-category-tag:active {
+    opacity: 0.6;
   }
 
   .container.light .action-category-tag {

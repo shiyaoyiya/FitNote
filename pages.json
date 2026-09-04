@@ -71,6 +71,18 @@
       "style": {
         "navigationBarTitleText": "管理动作"
       }
+    },
+    {
+      "path": "pages/templateSquare/templateSquare",
+      "style": {
+        "navigationBarTitleText": "模板广场"
+      }
+    },
+    {
+      "path": "pages/announce/announce",
+      "style": {
+        "navigationBarTitleText": "系统公告"
+      }
     }
   ],
   "subPackages": [

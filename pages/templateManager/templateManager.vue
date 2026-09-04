@@ -118,6 +118,12 @@
       </view>
     </view>
 
+    <!-- 模板广场：分享 FAB -->
+    <view class="sq-share-fab" v-show="activeMainTab === 'square'" @click="openSquareShare">
+      <text class="sq-share-fab-icon">📤</text>
+      <text class="sq-share-fab-text">分享我的模板</text>
+    </view>
+
     <view class="bottom-bar" v-show="activeMainTab === 'mine'">
       <view class="btn-import-export" @click="openImportExportPanel">
         <text class="btn-icon">📤</text>
@@ -317,6 +323,43 @@
         </view>
       </view>
     </view>
+
+    <!-- 模板广场：分享弹窗 -->
+    <view v-if="showSquareShare" class="popup-overlay" @click.self="closeSquareShare">
+      <view class="overlay-bg" @click="closeSquareShare"></view>
+      <view class="popup-panel slide-up" @click.stop>
+        <view class="panel-header">
+          <text class="panel-title">分享我的模板</text>
+          <text class="close-btn" @click="closeSquareShare">×</text>
+        </view>
+        <view class="panel-body">
+          <view v-if="!shareForm.templateId" class="sq-share-pick-list">
+            <view v-for="tpl in templateStore.templates" :key="tpl.id" class="sq-share-pick"
+              @click="shareForm.templateId = tpl.id; shareForm.name = tpl.name">
+              <text class="sq-share-pick-name">{{ tpl.name }}</text>
+              <text class="sq-share-pick-count">{{ tpl.actions?.length || 0 }} 动作</text>
+            </view>
+            <view v-if="templateStore.templates.length === 0" class="empty-state-inside">
+              <text class="empty-text">暂无模板可分享</text>
+            </view>
+          </view>
+          <view v-else>
+            <view class="form-group">
+              <text class="form-label">模板名称</text>
+              <input v-model="shareForm.name" class="sq-share-input" placeholder="不超过50字" maxlength="50" />
+            </view>
+            <view class="form-group">
+              <text class="form-label">模板介绍</text>
+              <textarea v-model="shareForm.desc" class="sq-share-textarea" placeholder="介绍一下这个模板..." maxlength="200" />
+            </view>
+          </view>
+        </view>
+        <view class="panel-footer">
+          <view class="btn-cancel-popup" @click="closeSquareShare">取消</view>
+          <view class="btn-confirm-popup" @click="doShareTemplate" :style="{ background: 'linear-gradient(135deg,#379bff,#2d82d6)', color: '#fff' }">📤 分享</view>
+        </view>
+      </view>
+    </view>
   </view>
 </template>
 
@@ -338,6 +381,7 @@
     data() {
       return {
         daySettingsStore: useDaySettingsStore(),
+        _isImportingSquare: false,
         loading: true,
         rowHeight: 0,
         showList: true,
@@ -391,6 +435,8 @@
         squareTag: 'all',
         showSquareDetail: false,
         activeSquareTemplate: null,
+        showSquareShare: false,
+        shareForm: { name: '', desc: '', templateId: '' },
         squareSorts: [
           { key: 'hot', label: '🔥 热度' },
           { key: 'newest', label: '🆕 最新' },
@@ -596,6 +642,118 @@
         if (fromClick) uni.vibrateShort()
         this.activeMainTab = key
         this.$nextTick(() => this.measureTabHighlight())
+      },
+
+      // 链接9: 从模板广场导入到我的模板（覆盖/跳过 选择）
+      async importSquareTemplate() {
+        if (this._isImportingSquare) return
+        const tpl = this.activeSquareTemplate
+        if (!tpl) return
+
+        const existing = this.templateStore.templates.find(t =>
+          t.id === tpl.id || t.name === tpl.name)
+
+        if (existing) {
+          uni.showModal({
+            title: '模板已存在',
+            content: `检测到「${existing.name}」已存在，是否覆盖？`,
+            confirmText: '覆盖',
+            cancelText: '跳过',
+            success: async (res) => {
+              if (res.cancel) {
+                uni.showToast({ title: '已跳过', icon: 'none' })
+                return
+              }
+              await this._doImportSquareTemplate(tpl, existing, true)
+            },
+          })
+        } else {
+          await this._doImportSquareTemplate(tpl, null, false)
+        }
+      },
+
+      async _doImportSquareTemplate(tpl, existing, isOverwrite) {
+        this._isImportingSquare = true
+        try {
+          const newTpl = {
+            id: isOverwrite && existing ? existing.id : ('sq_' + Date.now()),
+            name: tpl.name,
+            color: tpl.color || '#379bff',
+            actions: JSON.parse(JSON.stringify(tpl.actions || [])),
+            tags: tpl.tags || [],
+            source: 'square',
+            squareId: tpl.id,
+            importedAt: Date.now(),
+          }
+
+          if (isOverwrite && existing) {
+            const idx = this.templateStore.templates.findIndex(t => t.id === existing.id)
+            if (idx >= 0) {
+              this.templateStore.templates.splice(idx, 1, newTpl)
+            }
+            uni.showToast({ title: '已覆盖', icon: 'success' })
+          } else {
+            this.templateStore.templates.push(newTpl)
+            uni.showToast({ title: '导入成功', icon: 'success' })
+          }
+          this.templateStore.saveTemplates()
+          this.loadData()
+          this.closeSquareDetail()
+        } catch (e) {
+          console.error('导入失败:', e)
+          uni.showToast({ title: '导入失败: ' + (e.message || ''), icon: 'none' })
+        } finally {
+          this._isImportingSquare = false
+        }
+      },
+
+      // ===== 模板广场：分享 =====
+      openSquareShare() {
+        this.shareForm = { name: '', desc: '', templateId: '' }
+        this.showSquareShare = true
+      },
+      closeSquareShare() {
+        this.showSquareShare = false
+      },
+      // 详情弹窗里的"分享"：复制当前广场模板为分享码
+      shareSquareTemplate() {
+        const tpl = this.activeSquareTemplate
+        if (!tpl) return
+        try {
+          const code = JSON.stringify({ n: tpl.name, a: tpl.actions, t: tpl.tags, c: tpl.color })
+          uni.setClipboardData({
+            data: code,
+            success: () => uni.showToast({ title: '分享码已复制', icon: 'success' }),
+          })
+        } catch (e) {
+          uni.showToast({ title: '分享失败', icon: 'none' })
+        }
+      },
+      // FAB 分享：将我的模板复制为分享码
+      doShareTemplate() {
+        if (!this.shareForm.templateId) {
+          uni.showToast({ title: '请先选择模板', icon: 'none' })
+          return
+        }
+        const tpl = this.templateStore.templates.find(t => t.id === this.shareForm.templateId)
+        if (!tpl) return
+        try {
+          const code = JSON.stringify({
+            n: this.shareForm.name || tpl.name,
+            d: this.shareForm.desc,
+            a: tpl.actions,
+            c: tpl.color,
+          })
+          uni.setClipboardData({
+            data: code,
+            success: () => {
+              uni.showToast({ title: '分享码已复制', icon: 'success' })
+              this.closeSquareShare()
+            },
+          })
+        } catch (e) {
+          uni.showToast({ title: '分享失败', icon: 'none' })
+        }
       },
 
       measureTabHighlight() {
@@ -2138,4 +2296,133 @@
     background: var(--primary);
     color: #fff;
   }
+
+  /* ========== 链接6: 平板适配 — 容器宽度封顶 + rpx→px 媒体查询 ========== */
+  /* 第一层：水平宽度封顶（关键容器 + flex 居中） */
+  .main-tab-bar,
+  .mid-scroll,
+  .bottom-bar,
+  .square-wrap,
+  .popup-panel,
+  .square-detail-panel {
+    max-width: 480px;
+    margin-left: auto;
+    margin-right: auto;
+    box-sizing: border-box;
+  }
+
+  .bottom-bar {
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  /* 第二层：封面改用 aspect-ratio 替代固定高度 */
+  .sq-tpl-cover,
+  .sq-detail-cover {
+    aspect-ratio: 16 / 10;
+    width: 100%;
+    height: auto !important;
+  }
+
+  /* 第三层：@media (min-width: 500px) 把 rpx 关键尺寸回退到手机 375px 视觉比例 */
+  @media (min-width: 500px) {
+    /* 顶部 tab */
+    .main-tab-item { padding: 10px 12px !important; font-size: 14px !important; }
+    .main-tab-text { font-size: 14px !important; }
+
+    /* 卡片 */
+    .item-slot,
+    .movable-item { height: 90px !important; }
+    .slide-wrapper { height: 78px !important; }
+    .delete-btn { width: 65px !important; height: 50px !important; font-size: 13px !important; }
+    .action-card { padding: 10px 12px !important; }
+    .card-name { font-size: 15px !important; }
+    .card-count { font-size: 11px !important; }
+    .card-arrow { font-size: 18px !important; }
+    .card-color-bar { width: 3px !important; }
+
+    /* 底部按钮 */
+    .btn-import-export,
+    .btn-create { height: 44px !important; font-size: 14px !important; padding: 0 16px !important; }
+    .btn-icon,
+    .btn-create-icon { font-size: 16px !important; }
+    .btn-label,
+    .btn-create-label { font-size: 13px !important; }
+
+    /* 广场版 */
+    .square-wrap { padding: 12px !important; }
+    .sq-search-input { height: 36px !important; font-size: 13px !important; padding: 0 10px !important; }
+    .sq-sort-item { font-size: 12px !important; padding: 4px 10px !important; }
+    .sq-tpl-card { padding: 10px !important; }
+    .sq-tpl-title { font-size: 15px !important; }
+    .sq-tpl-stat { font-size: 11px !important; }
+    .sq-tpl-cover-icon { font-size: 32px !important; }
+
+    /* 详情/分享弹窗 */
+    .popup-panel { padding: 14px 16px !important; }
+    .popup-header { font-size: 16px !important; padding-bottom: 10px !important; }
+    .sq-detail-cover { aspect-ratio: 16 / 9 !important; }
+
+    /* 颜色选择 */
+    .color-item { padding: 4px 0 !important; }
+    .color-circle { width: 28px !important; height: 28px !important; }
+    .color-name { font-size: 10px !important; }
+  }
+
+  /* ===== 模板广场：分享 FAB ===== */
+  .sq-share-fab {
+    position: fixed;
+    bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 36px;
+    border-radius: 999px;
+    background: var(--bg-secondary);
+    color: var(--primary, #379bff);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+    z-index: 100;
+    white-space: nowrap;
+    width: max-content;
+    max-width: calc(100% - 32px);
+  }
+  .sq-share-fab:active { transform: translateX(-50%) scale(0.96); }
+  .sq-share-fab-icon { font-size: 18px; white-space: nowrap; }
+  .sq-share-fab-text { font-size: 16px; font-weight: 700; white-space: nowrap; }
+
+  /* ===== 模板广场：分享弹窗输入框 ===== */
+  .sq-share-input,
+  .sq-share-textarea {
+    width: 100%;
+    height: 88rpx;
+    background: var(--bg-tertiary);
+    border: 1rpx solid var(--border-color);
+    border-radius: 20rpx;
+    padding: 0 24rpx;
+    font-size: 28rpx;
+    box-sizing: border-box;
+  }
+  .sq-share-textarea {
+    height: 160rpx;
+    padding: 16rpx 24rpx;
+    line-height: 1.5;
+  }
+  .sq-share-pick-list {
+    max-height: 50vh;
+    overflow-y: auto;
+  }
+  .sq-share-pick {
+    padding: 12rpx 20rpx;
+    border: 1rpx solid var(--border-color);
+    border-radius: 12rpx;
+    margin-bottom: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .sq-share-pick:active { opacity: 0.7; }
+  .sq-share-pick-name { font-size: 28rpx; color: var(--text-primary); }
+  .sq-share-pick-count { font-size: 24rpx; color: var(--text-secondary); }
 </style>
