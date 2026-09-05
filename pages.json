@@ -39,7 +39,7 @@
     {
       "path": "pages/templateManager/templateManager",
       "style": {
-        "navigationBarTitleText": "模板管理"
+        "navigationBarTitleText": "模板中心"
       }
     },
     {
