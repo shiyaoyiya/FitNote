@@ -164,7 +164,6 @@ export default {
         this.$emit('reorder', { from: idx, to: targetIdx })
         this.dragIdx = targetIdx
         this.smoothUpdatePositions()
-        const now = Date.now()
         if (now - this.lastVibrateTime > 150) {
           try {
             uni.vibrateShort()
@@ -176,7 +175,7 @@ export default {
       } else {
         const minY = 0
         const maxY = (this.templates.length - 1) * this.rowHeight
-        const clampedY = Math.max(minY, Math.min(currentY, maxY))
+        const clampedY = Math.min(Math.max(currentY, minY), maxY)
         // Vue 2: 使用 $set 响应式更新数组。Vue 3 中可直接赋值。
         this.$set(this.itemY, idx, clampedY)
       }
@@ -192,10 +191,8 @@ export default {
       this.isDragMode = false
       this.dragIdx = -1
       this.lastTargetIdx = -1
-      if (this.isDragTriggered) {
-        this.initPositions()
-        this.$emit('save')
-      }
+      this.initPositions()
+      this.$emit('save')
       this.isDragTriggered = false
       this.hasSwapped = false
     },
