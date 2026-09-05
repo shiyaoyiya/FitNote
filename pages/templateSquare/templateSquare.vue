@@ -7,11 +7,7 @@
         <text class="sq-page-title">模板广场</text>
         <text class="sq-page-sub">{{ total }} 个模板 · 分享你的训练方案</text>
       </view>
-      <view class="sq-search-bar">
-        <text class="sq-search-icon">🔍</text>
-        <input v-model="search" class="sq-search-input" placeholder="搜索模板名 / 动作 / 标签" />
-        <text v-if="search" class="sq-clear" @click="search = ''">×</text>
-      </view>
+      <SearchBar />
       <view class="sq-sort">
         <view
           v-for="s in sorts" :key="s.key"
@@ -36,7 +32,7 @@
 
     <!-- 网格列表 -->
     <scroll-view class="sq-list" scroll-y show-scrollbar="false">
-      <view class="sq-list-content" :class="animClass" :key="search + sort + activeTag">
+      <view class="sq-list-content" :class="animClass" :key="templateSquareStore.keyword + sort + activeTag">
         <view v-if="filtered.length > 0">
           <view
             v-for="tpl in filtered"
@@ -160,18 +156,21 @@
 <script>
 import { useDaySettingsStore } from '@/stores/daySettings.js'
 import { useTemplateStore } from '@/stores/template.js'
+import { useTemplateSquareStore } from '@/stores/templateSquare.js'
 import { listSquareTemplates, shareTemplate, downloadTemplate, listTemplateTags } from '@/utils/serverCommunity.js'
+import SearchBar from './components/SearchBar.vue'
 
 export default {
+  components: { SearchBar },
   data() {
     return {
       daySettingsStore: useDaySettingsStore(),
       templateStore: useTemplateStore(),
+      templateSquareStore: useTemplateSquareStore(),
       loading: false,
       templates: [],
       tags: [],
       total: 0,
-      search: '',
       sort: 'latest',
       sorts: [
         { key: 'latest', label: '最新' },
@@ -191,16 +190,7 @@ export default {
   },
   computed: {
     filtered() {
-      let arr = this.templates
-      if (this.search) {
-        const kw = this.search.toLowerCase()
-        arr = arr.filter(t => (t.name || '').toLowerCase().includes(kw)
-          || (t.actions || []).some(a => (a.name || '').toLowerCase().includes(kw)))
-      }
-      if (this.activeTag) {
-        arr = arr.filter(t => (t.tags || []).includes(this.activeTag))
-      }
-      return arr
+      return this.templateSquareStore.filteredTemplates
     },
   },
   onLoad() {
