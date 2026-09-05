@@ -191,27 +191,13 @@ export default {
   },
   methods: {
     async loadData() {
-      this.loading = true
-      try {
-        const res = await listSquareTemplates({
-          page: this.page,
-          pageSize: this.pageSize,
-          sort: this.sort,
-        })
-        this.templates = res.list || []
-        this.total = res.total || 0
-      } catch (e) {
-        uni.showToast({ title: e.message || '加载失败', icon: 'none' })
-      } finally {
-        this.loading = false
-      }
+      await this.templateSquareStore.loadTemplates()
+      this.templates = this.templateSquareStore.templates
+      this.total = this.templateSquareStore.total
     },
     async loadTags() {
-      try {
-        this.tags = await listTemplateTags()
-      } catch (e) {
-        this.tags = []
-      }
+      await this.templateSquareStore.loadTags()
+      this.tags = this.templateSquareStore.tags
     },
     openDetail(tpl) {
       this.detailTpl = tpl
