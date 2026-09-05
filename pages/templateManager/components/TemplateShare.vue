@@ -30,7 +30,7 @@
       </view>
       <view class="panel-footer">
         <view class="btn-cancel-popup" @click="handleClose">取消</view>
-        <view class="btn-confirm-popup" @click="handleConfirm" :style="{ background: 'linear-gradient(135deg,#379bff,#2d82d6)', color: '#fff' }">📤 分享</view>
+        <view class="btn-confirm-popup" @click="handleConfirm" :style="{ background: 'linear-gradient(135deg,#379bff,#2d82d6)', color: '#fff' }">分享</view>
       </view>
     </view>
   </view>
@@ -67,18 +67,28 @@ export default {
         return
       }
       const tpl = this.templates.find(t => t.id === this.selectedTemplateId)
-      if (!tpl) return
+      if (!tpl) {
+        uni.showToast({ title: '模板不存在', icon: 'none' })
+        return
+      }
+      if (!tpl.actions || !Array.isArray(tpl.actions)) {
+        uni.showToast({ title: '模板数据异常', icon: 'none' })
+        return
+      }
       const code = JSON.stringify({
-        n: this.shareName || tpl.name,
-        d: this.shareDesc,
-        a: tpl.actions,
-        c: tpl.color
+        name: this.shareName || tpl.name,
+        desc: this.shareDesc,
+        actions: tpl.actions,
+        color: tpl.color
       })
       uni.setClipboardData({
         data: code,
         success: () => {
           uni.showToast({ title: '分享码已复制', icon: 'success' })
           this.handleClose()
+        },
+        fail: () => {
+          uni.showToast({ title: '复制失败，请重试', icon: 'none' })
         }
       })
     },
