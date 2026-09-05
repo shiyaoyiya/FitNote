@@ -19,16 +19,7 @@
     </view>
 
     <!-- 标签 chips -->
-    <scroll-view class="sq-tags" scroll-x show-scrollbar="false" @touchmove.stop>
-      <view class="sq-tags-inner">
-        <view
-          v-for="t in tags" :key="t"
-          class="sq-tag-chip"
-          :class="{ active: activeTag === t }"
-          @click="activeTag = activeTag === t ? '' : t"
-        >{{ t }}</view>
-      </view>
-    </scroll-view>
+    <TagFilter />
 
     <!-- 网格列表 -->
     <scroll-view class="sq-list" scroll-y show-scrollbar="false">
@@ -159,9 +150,10 @@ import { useTemplateStore } from '@/stores/template.js'
 import { useTemplateSquareStore } from '@/stores/templateSquare.js'
 import { listSquareTemplates, shareTemplate, downloadTemplate, listTemplateTags } from '@/utils/serverCommunity.js'
 import SearchBar from './components/SearchBar.vue'
+import TagFilter from './components/TagFilter.vue'
 
 export default {
-  components: { SearchBar },
+  components: { SearchBar, TagFilter },
   data() {
     return {
       daySettingsStore: useDaySettingsStore(),
