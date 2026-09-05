@@ -15,9 +15,8 @@
           :y="itemY[idx]" :disabled="!isDragMode" :class="{ 'is-dragging': dragIdx === idx }"
           @change="onDragMove($event, idx)" @touchend="isDragMode ? onDragEnd() : null">
           <view class="slide-wrapper">
-            <view class="delete-btn-container">
-              <view class="delete-btn" @click.stop="handleDelete(idx)"
-                :style="{ display: isDragMode ? 'none' : 'flex' }">
+            <view class="delete-btn-container" :style="{ display: (slideOffset[idx] || 0) < -10 ? 'flex' : 'none' }">
+              <view class="delete-btn" @click.stop="handleDelete(idx)">
                 删除
               </view>
             </view>
@@ -148,7 +147,7 @@ export default {
       isNavigating: false,
       longPressTimer: null,
       longPressThreshold: 500,
-      rowHeight: 70,
+      rowHeight: 90,
       showCreatePanel: false,
       newTemplateName: '',
       searchTerm: '',
