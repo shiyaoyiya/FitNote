@@ -114,9 +114,9 @@ export default {
     toggleTemplateSelect(tpl) {
       const idx = this.selectedTemplates.findIndex(t => t.id === tpl.id)
       if (idx === -1) {
-        this.selectedTemplates.push(tpl)
+        this.selectedTemplates = [...this.selectedTemplates, tpl]
       } else {
-        this.selectedTemplates.splice(idx, 1)
+        this.selectedTemplates = this.selectedTemplates.filter((_, i) => i !== idx)
       }
     },
     exportTemplates() {
@@ -130,8 +130,9 @@ export default {
         text += `${tpl.name}：\n`
         if (tpl.actions && tpl.actions.length > 0) {
           tpl.actions.forEach(act => {
-            const sets = (tpl.actionSets && tpl.actionSets[act]) || 4
-            text += `${act}×${sets}\n`
+            const trimmedAct = act.trim()
+            const sets = (tpl.actionSets && tpl.actionSets[trimmedAct]) || 4
+            text += `${trimmedAct}×${sets}\n`
           })
         }
       })
