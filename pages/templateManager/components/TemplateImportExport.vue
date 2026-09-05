@@ -1,7 +1,7 @@
 <template>
   <view v-if="visible" class="popup-overlay" @click.self="handleClose">
     <view class="overlay-bg" @click="handleClose"></view>
-    <view class="popup-panel import-export-panel slide-up" @click.stop>
+    <view class="popup-panel slide-up" @click.stop>
       <view class="panel-header">
         <text class="panel-title">导入/导出模板</text>
         <text class="close-btn" @click="handleClose">×</text>
@@ -130,8 +130,9 @@ export default {
         text += `${tpl.name}：\n`
         if (tpl.actions && tpl.actions.length > 0) {
           tpl.actions.forEach(act => {
-            const trimmedAct = act.trim()
-            const sets = (tpl.actionSets && tpl.actionSets[trimmedAct]) || 4
+            const actName = typeof act === 'string' ? act : act.name
+            const trimmedAct = actName.trim()
+            const sets = (typeof act === 'object' && act.sets) || (tpl.actionSets && tpl.actionSets[trimmedAct]) || 4
             text += `${trimmedAct}×${sets}\n`
           })
         }
