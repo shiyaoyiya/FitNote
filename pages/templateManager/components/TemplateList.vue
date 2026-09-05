@@ -61,16 +61,7 @@ export default {
     this.rowHeight = (sys.windowWidth / 750) * 180
     this.initPositions()
   },
-  watch: {
-    templates: {
-      handler() {
-        this.$nextTick(() => {
-          this.initPositions()
-        })
-      },
-      deep: true
-    }
-  },
+
   methods: {
     initPositions() {
       if (this.templates.length === 0) return
