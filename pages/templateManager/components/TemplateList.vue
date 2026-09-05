@@ -52,13 +52,18 @@ export default {
       startY: 0,
       startTime: 0,
       isClick: false,
-      longPressTimer: null,
-      longPressThreshold: 500
+      longPressThreshold: 500,
+      lastDragTime: 0
     }
   },
   mounted() {
-    const sys = uni.getSystemInfoSync()
-    this.rowHeight = (sys.windowWidth / 750) * 180
+    try {
+      const sys = uni.getSystemInfoSync()
+      this.rowHeight = (sys.windowWidth / 750) * 180
+    } catch (e) {
+      console.error('获取系统信息失败:', e)
+      this.rowHeight = 180
+    }
     this.initPositions()
   },
 
@@ -80,6 +85,7 @@ export default {
       this.startTime = Date.now()
       this.isClick = true
       if (!this.isDragMode) {
+        // Vue 2: 使用 $set 响应式更新数组。Vue 3 中可直接赋值。
         this.$set(this.slideOffset, idx, 0)
       }
     },
@@ -103,6 +109,7 @@ export default {
           e.stopPropagation()
         }
       } else {
+        // Vue 2: 使用 $set 响应式更新数组。Vue 3 中可直接赋值。
         this.$set(this.slideOffset, idx, 0)
       }
     },
@@ -116,6 +123,7 @@ export default {
           }
         }, 50)
       }
+      // Vue 2: 使用 $set 响应式更新数组。Vue 3 中可直接赋值。
       if ((this.slideOffset[idx] || 0) < -50) {
         this.$set(this.slideOffset, idx, -80)
       } else {
@@ -130,11 +138,19 @@ export default {
       this.hasSwapped = false
       this.dragIdx = idx
       this.isDragMode = true
-      uni.vibrateShort()
+      try {
+        uni.vibrateShort()
+      } catch (e) {
+        console.error('振动反馈失败:', e)
+      }
+      // Vue 2: 使用 $set 响应式更新数组。Vue 3 中可直接赋值。
       this.$set(this.slideOffset, idx, 0)
     },
     onDragMove(e, idx) {
       if (!this.isDragMode || this.dragIdx !== idx) return
+      const now = Date.now()
+      if (now - this.lastDragTime < 16) return
+      this.lastDragTime = now
       const currentY = e.detail.y
       const baseY = idx * this.rowHeight
       const offsetY = currentY - baseY
@@ -150,18 +166,24 @@ export default {
         this.smoothUpdatePositions()
         const now = Date.now()
         if (now - this.lastVibrateTime > 150) {
-          uni.vibrateShort()
+          try {
+            uni.vibrateShort()
+          } catch (e) {
+            console.error('振动反馈失败:', e)
+          }
           this.lastVibrateTime = now
         }
       } else {
         const minY = 0
         const maxY = (this.templates.length - 1) * this.rowHeight
         const clampedY = Math.max(minY, Math.min(currentY, maxY))
+        // Vue 2: 使用 $set 响应式更新数组。Vue 3 中可直接赋值。
         this.$set(this.itemY, idx, clampedY)
       }
     },
     smoothUpdatePositions() {
       for (let i = 0; i < this.templates.length; i++) {
+        // Vue 2: 使用 $set 响应式更新数组。Vue 3 中可直接赋值。
         this.$set(this.itemY, i, i * this.rowHeight)
       }
     },
