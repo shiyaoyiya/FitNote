@@ -462,6 +462,12 @@ export default {
         },
       })
     },
+  },
+  beforeDestroy() {
+    if (this.longPressTimer) {
+      clearTimeout(this.longPressTimer)
+      this.longPressTimer = null
+    }
   }
 }
 </script>
