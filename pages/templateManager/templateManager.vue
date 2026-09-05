@@ -20,29 +20,41 @@
 
     <!-- Tab 内容 -->
     <view v-show="activeTab === 'local'" class="tab-content">
-      <LocalTemplates />
+      <LocalTemplates @open-import-export="showImportExport = true" />
     </view>
 
     <view v-show="activeTab === 'square'" class="tab-content">
       <TemplateSquareTab />
     </view>
+
+    <!-- 导入/导出弹窗 -->
+    <TemplateImportExport
+      :visible="showImportExport"
+      :templates="localTemplates"
+      @close="showImportExport = false"
+    />
   </view>
 </template>
 
 <script>
 import { useDaySettingsStore } from '@/stores/daySettings.js'
+import { useTemplateStore } from '@/stores/template.js'
 import LocalTemplates from './components/LocalTemplates.vue'
 import TemplateSquareTab from './components/TemplateSquareTab.vue'
+import TemplateImportExport from './components/TemplateImportExport.vue'
 
 export default {
   components: {
     LocalTemplates,
-    TemplateSquareTab
+    TemplateSquareTab,
+    TemplateImportExport
   },
   data() {
     return {
       daySettingsStore: useDaySettingsStore(),
+      templateStore: useTemplateStore(),
       activeTab: 'local',
+      showImportExport: false,
       tabs: [
         { key: 'local', label: '📁 本地模板' },
         { key: 'square', label: '🏪 模板广场' },
@@ -61,6 +73,9 @@ export default {
   computed: {
     activeIndex() {
       return this.tabs.findIndex(t => t.key === this.activeTab)
+    },
+    localTemplates() {
+      return this.templateStore.templates || []
     },
     tabHighlightStyle() {
       if (!this.tabRectsMeasured || this.tabRects.length === 0) return { opacity: 0 }
@@ -91,6 +106,7 @@ export default {
   },
   onLoad() {
     this.daySettingsStore.load()
+    this.templateStore.load()
     this.measureTabRects()
   },
   onShow() {
