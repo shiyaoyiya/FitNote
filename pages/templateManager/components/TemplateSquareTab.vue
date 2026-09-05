@@ -157,14 +157,12 @@
 </template>
 
 <script>
-import { useDaySettingsStore } from '@/stores/daySettings.js'
 import { useTemplateStore } from '@/stores/template.js'
 import { listSquareTemplates, shareTemplate, downloadTemplate, listTemplateTags } from '@/utils/serverCommunity.js'
 
 export default {
   data() {
     return {
-      daySettingsStore: useDaySettingsStore(),
       templateStore: useTemplateStore(),
       loading: false,
       templates: [],

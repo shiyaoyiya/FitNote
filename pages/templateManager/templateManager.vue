@@ -1,5 +1,5 @@
 <template>
-  <view class="container" :class="{ dark: daySettingsStore.isDarkMode, light: !daySettingsStore.isDarkMode }"
+  <view class="container" :class="{ dark: daySettingsStore.isDarkMode, light: !daySettingsStore.isDarkMode, 'liquid-glass': daySettingsStore.liquidGlassEnabled }"
     @touchstart="onPageTouchStart" @touchmove="onPageTouchMove" @touchend="onPageTouchEnd">
     <!-- 顶部 Tab 栏 + 高亮框 -->
     <view class="tab-bar" :class="{ 'no-transition': swipeNoTransition }">

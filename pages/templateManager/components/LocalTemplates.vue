@@ -122,14 +122,12 @@
 <script>
 import { useTemplateStore } from '@/stores/template.js'
 import { useActionStore } from '@/stores/action.js'
-import { useDaySettingsStore } from '@/stores/daySettings.js'
 
 const DAYDATA_PREFIX = 'fitness_daydata_'
 
 export default {
   data() {
     return {
-      daySettingsStore: useDaySettingsStore(),
       templateStore: useTemplateStore(),
       actionStore: useActionStore(),
       loading: false,
