@@ -26,12 +26,6 @@
               <view class="switch-dot"></view>
             </view>
           </view>
-          <view class="setting-item" @click="$emit('toggle-hr-button')">
-            <text class="setting-label">显示心率按钮</text>
-            <view class="setting-switch" :class="{ on: settings.hrButtonVisible }">
-              <view class="switch-dot"></view>
-            </view>
-          </view>
 
           <view class="settings-divider"></view>
 

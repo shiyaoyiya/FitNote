@@ -68,6 +68,13 @@ export const usePermissionStore = defineStore('permission', {
         component: () => import('@/views/preset/PresetEdit.vue'),
         meta: { title: '预设编辑', icon: 'Goods', hidden: true, perms: 'preset:edit' }
       })
+      // 固定补充：用户画像详情页（UserList 同目录，不在菜单中显示）
+      router.addRoute('LayoutRoot', {
+        path: '/user/detail',
+        name: 'UserDetail',
+        component: () => import('@/views/user/UserDetail.vue'),
+        meta: { title: '用户画像详情', icon: 'User', hidden: true, perms: 'user:list' }
+      })
       this.dynamicAdded = true
     },
     extractPerms(menusFlatList) {

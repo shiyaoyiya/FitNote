@@ -4,7 +4,8 @@
       <text class="month-title" @click="handleGoToYearPage">{{ year }}/{{ month + 1 }}</text>
       <view class="more-btn-wrap">
         <view class="more-btn" @click="$emit('open-more-menu')">
-          <text class="more-dots">⋮</text>
+          <image v-if="userAvatar" class="more-btn-avatar" :src="userAvatar" mode="aspectFill" />
+          <text v-else class="more-dots">👤</text>
         </view>
       </view>
     </view>
@@ -105,6 +106,10 @@
       isLightMode: {
         type: Boolean,
         default: false
+      },
+      userAvatar: {
+        type: String,
+        default: ''
       }
     },
     emits: ['date-click', 'date-longpress', 'go-to-year-page', 'open-anniv-popup', 'toggle-train-btn',
@@ -286,6 +291,13 @@
     font-size: 20px;
     color: #379bff;
     line-height: 1;
+  }
+
+  .more-btn-avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: transparent;
   }
 
   .template-name {

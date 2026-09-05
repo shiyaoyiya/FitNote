@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <view class="container" :class="{ dark: daySettingsStore.isDarkMode, light: !daySettingsStore.isDarkMode, 'liquid-glass': daySettingsStore.liquidGlassEnabled }">
     <!-- 顶部：年月 -->
     <view class="calendar-container" @touchstart="onTouchStart" @touchend="onTouchEnd">
@@ -7,17 +7,15 @@
         <CalendarMonth v-show="currentMonthView === 0" :year="curYear" :month="curMonth" :month-days="monthDays"
           :is-sliding="isSliding" :get-template-color="getTemplateColor" :get-total-weight="getTotalWeight"
           :is-aerobic-day="isAerobicDay" :get-template-name="getTemplateName" :get-contrast-color="getContrastColor"
-          :get-cell-style="getCellStyle" :train-btn-visible="todayTrainBtnVisible" :is-light-mode="!daySettingsStore.isDarkMode" @date-click="handleDateClick"
-          @date-longpress="onDateLongPress" @go-to-year-page="goToYearPage" @open-anniv-popup="$refs.annivSection.openAdd()"
-          @toggle-train-btn="onToggleTrainBtn" @open-more-menu="openMoreMenu" />
+          :get-cell-style="getCellStyle" :train-btn-visible="todayTrainBtnVisible" :is-light-mode="!daySettingsStore.isDarkMode" :user-avatar="moreBtnAvatar" @date-click="handleDateClick" @date-longpress="onDateLongPress" @go-to-year-page="goToYearPage" @toggle-train-btn="onToggleTrainBtn" @open-more-menu="openMoreMenu" />
 
         <!-- 上个月 -->
         <CalendarMonth v-show="currentMonthView === -1" :year="getPrevMonthYear()" :month="getPrevMonth()"
           :month-days="prevMonthDays" :is-sliding="isSliding" :get-template-color="getTemplateColor"
           :get-total-weight="getTotalWeight" :is-aerobic-day="isAerobicDay" :get-template-name="getTemplateName"
           :get-contrast-color="getContrastColor" :get-cell-style="getCellStyle"
-          :train-btn-visible="todayTrainBtnVisible" :is-light-mode="!daySettingsStore.isDarkMode" @date-click="handleDateClick" @date-longpress="onDateLongPress"
-          @go-to-year-page="goToYearPage" @open-anniv-popup="$refs.annivSection.openAdd()" @toggle-train-btn="onToggleTrainBtn"
+          :train-btn-visible="todayTrainBtnVisible" :is-light-mode="!daySettingsStore.isDarkMode" :user-avatar="moreBtnAvatar" @date-click="handleDateClick" @date-longpress="onDateLongPress"
+          @go-to-year-page="goToYearPage" @toggle-train-btn="onToggleTrainBtn"
           @open-more-menu="openMoreMenu" />
 
         <!-- 下个月 -->
@@ -25,8 +23,8 @@
           :month-days="nextMonthDays" :is-sliding="isSliding" :get-template-color="getTemplateColor"
           :get-total-weight="getTotalWeight" :is-aerobic-day="isAerobicDay" :get-template-name="getTemplateName"
           :get-contrast-color="getContrastColor" :get-cell-style="getCellStyle"
-          :train-btn-visible="todayTrainBtnVisible" :is-light-mode="!daySettingsStore.isDarkMode" @date-click="handleDateClick" @date-longpress="onDateLongPress"
-          @go-to-year-page="goToYearPage" @open-anniv-popup="$refs.annivSection.openAdd()" @toggle-train-btn="onToggleTrainBtn"
+          :train-btn-visible="todayTrainBtnVisible" :is-light-mode="!daySettingsStore.isDarkMode" :user-avatar="moreBtnAvatar" @date-click="handleDateClick" @date-longpress="onDateLongPress"
+          @go-to-year-page="goToYearPage" @toggle-train-btn="onToggleTrainBtn"
           @open-more-menu="openMoreMenu" />
       </view>
     </view>
@@ -71,27 +69,30 @@
         </view>
         <text class="tab-label">动作库</text>
       </view>
-
-      <view class="tab-item" @click="goToProfile">
-        <view class="tab-icon">
-          <view class="icon-base icon-profile"></view>
-        </view>
-        <text class="tab-label">个人中心</text>
-      </view>
     </view>
 
-    <!-- 纪念日区域 -->
+    <!-- 纪念日区域（从个人中心移回首页） -->
     <AnniversarySection ref="annivSection" />
 
-    <!-- 更多菜单弹窗 -->
+    <!-- MoreMenu（重设计为侧边抽屉，含个人中心入口 + 功能菜单） -->
     <MoreMenu :visible="showMoreMenu" :is-dark-mode="daySettingsStore.isDarkMode"
-      :train-btn-visible="todayTrainBtnVisible" :liquid-glass-enabled="daySettingsStore.liquidGlassEnabled"
-      @close="showMoreMenu = false" @read-guide="showGuidePanel = true"
-      @add-anniv="$refs.annivSection.openAdd()" @toggle-train-btn="onToggleTrainBtn"
-      @toggle-theme="onToggleTheme" @toggle-liquid-glass="onToggleLiquidGlass"
-      @go-announce="goToAnnounce" @feedback="goToFeedback" />
+      :liquid-glass-enabled="daySettingsStore.liquidGlassEnabled"
+      :train-btn-visible="todayTrainBtnVisible"
+      @close="showMoreMenu = false"
+      @go-profile="onGoProfileFromMenu"
+      @read-guide="showGuidePanel = true"
+      @add-anniv="$refs.annivSection.openAdd()"
+      @toggle-train-btn="onToggleTrainBtn"
+      @toggle-theme="onToggleTheme"
+      @toggle-liquid-glass="onToggleLiquidGlass"
+      @go-backup="goToBackup"
+      @go-template-manager="goToTemplateManager"
+      @go-announce="goToAnnounce"
+      @feedback="goToFeedback" />
+
     <!-- 阅读说明弹窗 -->
     <GuidePopup :visible="showGuidePanel" @close="showGuidePanel = false" />
+
     <!-- 有氧详情弹窗 -->
     <DayDetailPopup :visible="showAerobicDetail" type="aerobic" :detail="aerobicDetail"
       @close="showAerobicDetail = false" @color-change="selectAerobicColor" @save-edit="onSaveAerobicEdit" />
@@ -124,10 +125,11 @@
   } from '@/utils/backup.js'
   import CalendarMonth from '@/components/CalendarMonth.vue'
   import TrainingSplitPlan from '@/components/TrainingSplitPlan.vue'
-  import AnniversarySection from '@/components/AnniversarySection.vue'
   import DayDetailPopup from '@/components/DayDetailPopup.vue'
+  import AnniversarySection from '@/components/AnniversarySection.vue'
   import MoreMenu from '@/components/MoreMenu.vue'
   import GuidePopup from '@/components/GuidePopup.vue'
+  import { me } from '@/utils/serverBackup.js'
   import { PRESET_COLORS } from '@/utils/color.js'
   import { formatDate } from '@/utils/theme.js'
 
@@ -135,10 +137,10 @@
     components: {
       CalendarMonth,
       TrainingSplitPlan,
-      AnniversarySection,
       DayDetailPopup,
+      AnniversarySection,
       MoreMenu,
-      GuidePopup
+      GuidePopup,
     },
     data() {
       return {
@@ -201,6 +203,12 @@
           cycleDays: []
         }
         return this.daySettingsStore.splitPlan
+      },
+      moreBtnAvatar() {
+        try {
+          const u = me()
+          return (u && u.avatarUrl) || ''
+        } catch (e) { return '' }
       },
       todayBtnText() {
         this.dayDataCacheStore.cacheVersion
@@ -1095,7 +1103,6 @@
       },
       onToggleTheme() {
         this.daySettingsStore.toggleTheme()
-        this.showMoreMenu = false
         uni.showToast({
           title: this.daySettingsStore.isDarkMode ? '已切换为深色模式' : '已切换为浅色模式',
           icon: 'none'
@@ -1104,12 +1111,24 @@
       },
       onToggleLiquidGlass() {
         this.daySettingsStore.toggleLiquidGlass()
-        this.showMoreMenu = false
         uni.showToast({
           title: this.daySettingsStore.liquidGlassEnabled ? '已开启液态玻璃' : '已关闭液态玻璃',
           icon: 'none'
         })
         uni.$emit('liquidGlassChanged', this.daySettingsStore.liquidGlassEnabled)
+      },
+      goToAnnounce() {
+        uni.navigateTo({ url: '/pages/announce/announce' })
+      },
+      goToFeedback() {
+        uni.navigateTo({
+          url: '/pages/feedback/feedback',
+          fail: () => uni.showToast({ title: '反馈页未配置', icon: 'none' })
+        })
+      },
+      onGoProfileFromMenu() {
+        this.showMoreMenu = false
+        setTimeout(() => this.goToProfile(), 200)
       },
 
       /* ========== 智能推荐 ========== */

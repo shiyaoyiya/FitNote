@@ -242,24 +242,29 @@
         return this.currentMode === 'cloud' ? '微信云开发' : SERVER_BASE_URL
       },
       tabHighlightStyle() {
-        const count = this.tabs.length
-        if (count === 0) return {}
-        const itemWidth = 100 / count
-        const basePercent = this.activeIndex * itemWidth
-        // 滑动跟手偏移（百分比）
-        let deltaPercent = 0
+        if (!this.tabRectsMeasured || this.tabRects.length === 0) return { opacity: 0 }
+        const curIdx = this.activeIndex
+        if (curIdx < 0) return { opacity: 0 }
+        const cur = this.tabRects[curIdx]
+        if (!cur) return { opacity: 0 }
+        let left = cur.left
+        let width = cur.width
         if (this.swipeDeltaX !== 0 && this.swipeViewWidth > 0) {
-          deltaPercent = (this.swipeDeltaX / this.swipeViewWidth) * itemWidth
-        }
-        // 边界阻尼：首/末 Tab 跟手位移衰减为 0.3 倍
-        const isFirst = this.activeIndex === 0
-        const isLast = this.activeIndex === count - 1
-        if ((isFirst && this.swipeDeltaX > 0) || (isLast && this.swipeDeltaX < 0)) {
-          deltaPercent *= 0.3
+          const dir = this.swipeDeltaX > 0 ? -1 : 1
+          const nextIdx = curIdx + dir
+          if (nextIdx >= 0 && nextIdx < this.tabRects.length) {
+            const next = this.tabRects[nextIdx]
+            const progress = Math.min(Math.abs(this.swipeDeltaX) / (this.swipeViewWidth * 0.3), 1)
+            left = cur.left + (next.left - cur.left) * progress
+            width = cur.width + (next.width - cur.width) * progress
+          } else {
+            left = cur.left + this.swipeDeltaX * 0.2
+          }
         }
         return {
-          transform: `translateX(${basePercent + deltaPercent}%)`,
-          width: `calc(${itemWidth}%)`,
+          transform: `translateX(${left}px)`,
+          width: `${width}px`,
+          opacity: 1,
         }
       },
       currentMode() {
@@ -289,6 +294,8 @@
         swipeViewWidth: 0,
         swipeNoTransition: false,
         swipeIsTracking: false,
+        tabRects: [],
+        tabRectsMeasured: false,
         // 云端备份
         isUploading: false,
         isLoadingList: false,
@@ -321,10 +328,33 @@
       if (this.activeTab === 'cloud') {
         this.refreshCloudList()
       }
+      this.measureTabRects()
     },
 
     methods: {
       // ============ 侧滑手势 ============
+      measureTabRects() {
+        this.$nextTick(() => {
+          setTimeout(() => {
+            const query = uni.createSelectorQuery().in(this)
+            query.select('.tab-bar').boundingClientRect()
+            query.selectAll('.tab-item').boundingClientRect()
+            query.exec(res => {
+              const container = res && res[0]
+              const items = res && res[1]
+              if (container && items && items.length > 0) {
+                this.tabRects = items.map(it => ({
+                  left: it.left - container.left,
+                  width: it.width,
+                }))
+                this.tabRectsMeasured = true
+                this.swipeViewWidth = container.width
+              }
+            })
+          }, 50)
+        })
+      },
+
       onPageTouchStart(e) {
         if (e.touches.length !== 1) return
         this.swipeStartX = e.touches[0].pageX
@@ -333,10 +363,7 @@
         this.swipeDeltaX = 0
         this.swipeNoTransition = true
         this.swipeIsTracking = true
-        // 测量容器宽度
-        uni.createSelectorQuery().in(this).select('.tab-bar').boundingClientRect(rect => {
-          if (rect) this.swipeViewWidth = rect.width
-        }).exec()
+        if (!this.tabRectsMeasured) this.measureTabRects()
       },
 
       onPageTouchMove(e) {
@@ -376,6 +403,7 @@
         this.swipeDeltaX = 0
         uni.vibrateShort()
         this.switchTab(this.tabs[nextIdx].key, false)
+        this.measureTabRects()
       },
 
       switchTab(key, fromClick) {
@@ -386,6 +414,7 @@
         if (key === 'cloud') {
           this.refreshCloudList()
         }
+        this.measureTabRects()
       },
 
       // ============ 备份模式检测 ============
@@ -1278,12 +1307,12 @@
   .tab-highlight {
     position: absolute;
     top: 4px;
-    left: 4px;
+    left: 0;
     height: calc(100% - 8px);
     background: var(--primary);
     border-radius: 8px;
     z-index: 0;
-    transition: transform 0.38s cubic-bezier(0.22, 0.61, 0.36, 1), width 0.38s cubic-bezier(0.22, 0.61, 0.36, 1);
+    transition: transform 0.32s cubic-bezier(0.22, 0.61, 0.36, 1), width 0.32s cubic-bezier(0.22, 0.61, 0.36, 1);
     will-change: transform;
   }
 

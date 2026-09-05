@@ -144,10 +144,64 @@ echo.
 echo [4/5] Preparing backend build artifact...
 cd /d "%BACKEND_DIR%"
 if exist "%JAR_FILE%" goto :jar_ok
+
+REM --- Resolve Maven executable ---
+set "MVN_CMD="
 where mvn >nul 2>nul
-if !errorlevel! neq 0 goto :no_mvn
+if %errorlevel% equ 0 (
+    set "MVN_CMD=mvn"
+) else (
+    REM Try local portable Maven cache
+    set "LOCAL_MVN=%~dp0.tools\apache-maven\bin\mvn.cmd"
+    if exist "!LOCAL_MVN!" (
+        set "MVN_CMD=!LOCAL_MVN!"
+        echo   [INFO] Using local portable Maven: !LOCAL_MVN!
+    )
+)
+
+if not defined MVN_CMD goto :try_download_mvn
+
 echo   JAR not found, building with Maven (first build may take a while)...
-call mvn package -DskipTests -q
+call !MVN_CMD! package -DskipTests -q
+if !errorlevel! neq 0 goto :mvn_fail
+if not exist "%JAR_FILE%" goto :mvn_fail
+echo   [OK] Maven build complete
+goto :step5
+
+:try_download_mvn
+echo   [INFO] Maven not found in PATH, auto-downloading portable Maven...
+set "MVN_VER=3.9.9"
+set "MVN_URL=https://dlcdn.apache.org/maven/maven-3/!MVN_VER!/binaries/apache-maven-!MVN_VER!-bin.zip"
+set "MVN_ZIP=%TEMP%\apache-maven-!MVN_VER!.zip"
+set "MVN_DIR=%~dp0.tools\apache-maven"
+
+REM Try curl first, then PowerShell as fallback
+echo   Downloading Apache Maven !MVN_VER!...
+curl -L -o "!MVN_ZIP!" "!MVN_URL!" 2>nul
+if not exist "!MVN_ZIP!" (
+    echo   [INFO] curl not available, trying PowerShell...
+    powershell -Command "try { [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; Invoke-WebRequest -Uri '!MVN_URL!' -OutFile '!MVN_ZIP!' -UseBasicParsing } catch { exit 1 }"
+)
+if not exist "!MVN_ZIP!" goto :no_mvn
+
+echo   Extracting to !MVN_DIR!...
+powershell -Command "Expand-Archive -Path '!MVN_ZIP!' -DestinationPath '%~dp0.tools' -Force" 2>nul
+if !errorlevel! neq 0 goto :no_mvn
+
+REM Move nested folder to flat path
+if exist "%~dp0.tools\apache-maven-!MVN_VER!" (
+    if exist "!MVN_DIR!" rmdir /s /q "!MVN_DIR!" 2>nul
+    move "%~dp0.tools\apache-maven-!MVN_VER!" "!MVN_DIR!" >nul 2>nul
+)
+del "!MVN_ZIP!" 2>nul
+
+if not exist "!MVN_DIR!\bin\mvn.cmd" goto :no_mvn
+set "MVN_CMD=!MVN_DIR!\bin\mvn.cmd"
+set "PATH=!MVN_DIR!\bin;!PATH!"
+echo   [OK] Portable Maven !MVN_VER! installed at !MVN_DIR!
+
+echo   Building project (first build may take a while)...
+call !MVN_CMD! package -DskipTests -q
 if !errorlevel! neq 0 goto :mvn_fail
 if not exist "%JAR_FILE%" goto :mvn_fail
 echo   [OK] Maven build complete
@@ -158,8 +212,11 @@ echo   [OK] JAR found, skipping build (delete target\ folder to rebuild)
 goto :step5
 
 :no_mvn
-echo   [ERROR] Maven not found. Please install Maven 3.6+ and add to PATH.
-echo   Download: https://maven.apache.org/download.cgi
+echo   [ERROR] Maven auto-download failed. Please install Maven 3.6+ manually:
+echo     1. Download: https://maven.apache.org/download.cgi
+echo     2. Extract to e.g. C:\Program Files\apache-maven-3.9.9
+echo     3. Add its \bin folder to your PATH
+echo     4. Re-run this script
 goto :fail
 
 :mvn_fail

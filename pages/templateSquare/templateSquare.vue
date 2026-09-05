@@ -78,7 +78,12 @@
     <!-- 详情/分享弹窗 -->
     <view v-if="showDetail" class="sq-detail-overlay" @click="closeDetail">
       <view class="sq-detail-sheet" @click.stop>
-        <view class="sq-detail-cover" :style="{ backgroundColor: detailTpl?.color || '#379bff' }">
+        <text class="close-btn" @click="closeDetail">×</text>
+        <view class="sq-detail-cover" :style="{ background: `linear-gradient(135deg, ${detailTpl?.color || '#379bff'}, ${detailTpl?.color2 || detailTpl?.color || '#379bff'})` }">
+          <text class="sqd-author">作者：{{ maskAuthor(detailTpl?.author || detailTpl?.authorName || 'FitNote 用户') }}</text>
+          <view class="sqd-tags">
+            <text v-for="(tg, i) in normalizeTags(detailTpl)" :key="i" class="sqd-tag">{{ tg }}</text>
+          </view>
           <text class="sq-detail-cover-icon">📋</text>
         </view>
         <text class="sq-detail-title">{{ detailTpl?.name }}</text>
@@ -88,29 +93,35 @@
             <text class="sq-stats-label">动作数</text>
           </view>
           <view class="sq-stats-cell">
-            <text class="sq-stats-num">{{ detailTpl?.totalSets || 0 }}</text>
+            <text class="sq-stats-num">{{ calcTotalSets(detailTpl) }}</text>
             <text class="sq-stats-label">总组数</text>
           </view>
           <view class="sq-stats-cell">
-            <text class="sq-stats-num">{{ detailTpl?.downloadCount || 0 }}</text>
+            <text class="sq-stats-num">{{ detailTpl?.downloadCount ?? detailTpl?.downloads ?? 0 }}</text>
             <text class="sq-stats-label">下载量</text>
           </view>
           <view class="sq-stats-cell">
-            <text class="sq-stats-num">{{ detailTpl?.collectCount || 0 }}</text>
+            <text class="sq-stats-num">{{ detailTpl?.collectCount ?? detailTpl?.likes ?? 0 }}</text>
             <text class="sq-stats-label">收藏量</text>
           </view>
         </view>
-        <view class="sq-detail-section">
-          <text class="sq-detail-label">模板名称</text>
-          <input v-model="shareForm.name" class="sq-share-input" placeholder="不超过50字" maxlength="50" />
+        <view class="sq-detail-actions-preview">
+          <view class="sqd-section-title">动作清单</view>
+          <view class="sqd-action-list">
+            <view v-for="(a, i) in (detailTpl?.actions || [])" :key="i" class="sqd-action-row">
+              <text class="sqd-action-index">{{ i + 1 }}</text>
+              <text class="sqd-action-name">{{ a.name || a.actionName || ('动作' + (i + 1)) }}</text>
+              <text class="sqd-action-sets">{{ calcSetsOf(a) }}组</text>
+            </view>
+          </view>
         </view>
-        <view class="sq-detail-section">
-          <text class="sq-detail-label">简介</text>
-          <textarea v-model="shareForm.desc" class="sq-share-textarea" placeholder="介绍一下这个模板..." maxlength="200" />
+        <view class="sq-detail-section" v-if="detailTpl?.desc || detailTpl?.description">
+          <text class="sq-detail-label">模板描述</text>
+          <text class="sq-detail-desc">{{ detailTpl?.desc || detailTpl?.description }}</text>
         </view>
         <view class="sq-detail-actions">
-          <view class="sq-detail-btn ghost" @click="closeDetail">取消</view>
-          <view class="sq-detail-btn primary" @click="handleDownload">下载到我的模板</view>
+          <view class="sq-detail-btn ghost" @click="closeDetail">关闭</view>
+          <view class="sq-detail-btn primary" @click="handleDownload">导入到我的模板</view>
         </view>
       </view>
     </view>
@@ -120,11 +131,13 @@
         <text class="sq-detail-title">分享我的模板</text>
         <view class="sq-detail-section">
           <text class="sq-detail-label">选择要分享的模板</text>
-          <view v-for="tpl in myTemplates" :key="tpl.id" class="sq-share-pick"
-            :class="{ active: shareForm.tplId === tpl.id }"
-            @click="shareForm.tplId = tpl.id">
-            <text class="sq-share-pick-name">{{ tpl.name }}</text>
-            <text class="sq-share-pick-count">{{ tpl.actions?.length || 0 }} 动作</text>
+          <view class="sq-share-pick-list">
+            <view v-for="tpl in myTemplates" :key="tpl.id" class="sq-share-pick"
+              :class="{ active: shareForm.tplId === tpl.id }"
+              @click="shareForm.tplId = tpl.id">
+              <text class="sq-share-pick-name">{{ tpl.name }}</text>
+              <text class="sq-share-pick-count">{{ tpl.actions?.length || 0 }} 动作</text>
+            </view>
           </view>
         </view>
         <view class="sq-detail-section">
@@ -146,12 +159,14 @@
 
 <script>
 import { useDaySettingsStore } from '@/stores/daySettings.js'
-import { listSquareTemplates, shareTemplate, downloadTemplate, listMyTemplates, getTemplateTags } from '@/utils/serverCommunity.js'
+import { useTemplateStore } from '@/stores/template.js'
+import { listSquareTemplates, shareTemplate, downloadTemplate, listTemplateTags } from '@/utils/serverCommunity.js'
 
 export default {
   data() {
     return {
       daySettingsStore: useDaySettingsStore(),
+      templateStore: useTemplateStore(),
       loading: false,
       templates: [],
       tags: [],
@@ -211,25 +226,51 @@ export default {
     },
     async loadTags() {
       try {
-        this.tags = await getTemplateTags()
+        this.tags = await listTemplateTags()
       } catch (e) {
         this.tags = []
       }
     },
     openDetail(tpl) {
       this.detailTpl = tpl
-      this.shareForm.name = tpl.name
-      this.shareForm.desc = tpl.desc || ''
       this.showDetail = true
     },
     closeDetail() {
       this.showDetail = false
       this.detailTpl = null
     },
+    maskAuthor(name) {
+      if (!name) return 'FitNote 用户'
+      const s = String(name)
+      if (s.length <= 1) return s + '**'
+      return s[0] + '**'
+    },
+    normalizeTags(tpl) {
+      if (!tpl) return []
+      const raw = tpl.tags || tpl.tagList || []
+      if (!Array.isArray(raw)) return []
+      return raw.map((t) => (typeof t === 'string' ? t : (t && (t.name || t.label || t.tag)) || '')).filter(Boolean).slice(0, 6)
+    },
+    calcTotalSets(tpl) {
+      if (!tpl) return 0
+      if (Number.isFinite(Number(tpl.totalSets))) return Number(tpl.totalSets)
+      const actions = Array.isArray(tpl.actions) ? tpl.actions : []
+      let s = 0
+      for (const a of actions) s += this.calcSetsOf(a)
+      return s
+    },
+    calcSetsOf(action) {
+      if (!action || typeof action !== 'object') return 0
+      if (Number.isFinite(Number(action.sets))) return Number(action.sets)
+      if (Array.isArray(action.stages)) return action.stages.length
+      if (Array.isArray(action.sets_)) return action.sets_.length
+      if (Array.isArray(action)) return action.length
+      return 0
+    },
     async openShare() {
       try {
-        const list = await listMyTemplates()
-        this.myTemplates = list || []
+        this.templateStore.load()
+        this.myTemplates = this.templateStore.templates || []
         this.shareForm = { tplId: null, name: '', desc: '' }
         this.showShare = true
       } catch (e) {
@@ -531,6 +572,11 @@ export default {
     justify-content: space-between;
     align-items: center;
   }
+  .sq-share-pick-list {
+    max-height: 50vh;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
   .sq-share-pick.active {
     border-color: var(--primary);
     background: rgba(55, 155, 255, 0.1);
@@ -559,6 +605,135 @@ export default {
   .sq-detail-btn.primary {
     background: var(--primary);
     color: #fff;
+  }
+
+  /* —— 广场详情：新增样式（对齐 templateManager 广场详情视觉） —— */
+  .sq-detail-sheet { position: relative; }
+  .close-btn {
+    position: absolute;
+    top: 16rpx;
+    right: 20rpx;
+    font-size: 40rpx;
+    color: var(--text-secondary);
+    padding: 8rpx;
+    z-index: 5;
+  }
+  .sq-detail-cover {
+    position: relative;
+    overflow: hidden;
+    padding: 24rpx 24rpx 32rpx;
+    color: #fff;
+  }
+  .sqd-author {
+    position: relative;
+    z-index: 2;
+    font-size: 24rpx;
+    opacity: 0.9;
+    display: block;
+    margin-bottom: 10rpx;
+  }
+  .sqd-tags {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8rpx;
+    margin-bottom: 16rpx;
+  }
+  .sqd-tag {
+    padding: 4rpx 14rpx;
+    background: rgba(255,255,255,0.22);
+    border-radius: 24rpx;
+    font-size: 22rpx;
+    color: #fff;
+    backdrop-filter: blur(6rpx);
+  }
+  .sq-detail-cover-icon {
+    position: absolute;
+    right: 24rpx;
+    bottom: 20rpx;
+    font-size: 72rpx;
+    opacity: 0.35;
+  }
+  .sq-detail-actions-preview {
+    background: var(--bg-secondary);
+    border-radius: 16rpx;
+    padding: 16rpx;
+    margin-bottom: 16rpx;
+    max-height: 480rpx;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+  .container.light .sq-detail-actions-preview {
+    background: var(--bg-tertiary);
+  }
+  .sqd-section-title {
+    font-size: 28rpx;
+    font-weight: 700;
+    margin-bottom: 12rpx;
+    color: var(--text-primary);
+  }
+  .sqd-action-list { display: flex; flex-direction: column; gap: 10rpx; }
+  .sqd-action-row {
+    display: flex;
+    align-items: center;
+    gap: 12rpx;
+    padding: 10rpx 12rpx;
+    background: var(--bg-tertiary);
+    border-radius: 12rpx;
+    min-height: 64rpx;
+  }
+  .container.light .sqd-action-row {
+    background: var(--bg-secondary);
+    border: 1rpx solid var(--border-color);
+  }
+  .sqd-action-index {
+    width: 36rpx;
+    height: 36rpx;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--primary), #6ab6ff);
+    color: #fff;
+    font-size: 22rpx;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .sqd-action-name {
+    flex: 1;
+    font-size: 26rpx;
+    color: var(--text-primary);
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .sqd-action-sets {
+    padding: 4rpx 14rpx;
+    background: rgba(55,155,255,0.15);
+    color: var(--primary);
+    border-radius: 16rpx;
+    font-size: 22rpx;
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+  .sq-detail-desc {
+    display: block;
+    width: 100%;
+    padding: 16rpx 20rpx;
+    background: var(--bg-tertiary);
+    border-radius: 12rpx;
+    font-size: 26rpx;
+    color: var(--text-primary);
+    line-height: 1.6;
+    white-space: pre-wrap;
+    word-break: break-all;
+    box-sizing: border-box;
+  }
+  .container.light .sq-detail-desc {
+    background: var(--bg-secondary);
+    border: 1rpx solid var(--border-color);
   }
 
   /* 切换动画 */

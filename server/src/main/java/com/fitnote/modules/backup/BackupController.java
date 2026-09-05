@@ -5,6 +5,8 @@ import com.fitnote.common.Result;
 import com.fitnote.modules.backup.dto.BackupQueryDTO;
 import com.fitnote.modules.backup.vo.BackupListVO;
 import lombok.RequiredArgsConstructor;
+import org.springframework.core.io.Resource;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -22,6 +24,12 @@ public class BackupController {
     @GetMapping("/{id}")
     public Result<BackupListVO> detail(@PathVariable Long id) {
         return Result.ok(backupService.detail(id));
+    }
+
+    /** 管理端下载指定备份（不校验所属用户，ADMIN 可以下载任意用户备份） */
+    @GetMapping("/{id}/download")
+    public ResponseEntity<Resource> download(@PathVariable Long id) {
+        return backupService.downloadBackupAsResponse(id);
     }
 
     @DeleteMapping("/{id}")

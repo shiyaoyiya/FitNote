@@ -10,7 +10,8 @@
       </view>
     </view>
 
-    <view class="category-tabs">
+    <view class="category-tabs" :class="{ 'no-transition': swipeNoTransition }">
+      <view class="category-highlight" :style="categoryHighlightStyle"></view>
       <view class="category-scroll" @touchmove.stop>
         <view v-for="cat in allCategories" :key="cat.id" class="category-tab"
           :class="{ active: activeCategory === cat.id }" @click="onTabClick(cat.id)">
@@ -45,7 +46,7 @@
                 </view>
                 <view class="action-grid">
                   <view v-for="act in sub.actions" :key="act.id" class="slide-wrapper">
-                    <view class="delete-btn-container">
+                    <view class="delete-btn-container" :style="{ opacity: (slideOffset[act.id] || 0) < 0 ? 1 : 0, pointerEvents: (slideOffset[act.id] || 0) < 0 ? 'auto' : 'none' }">
                       <view class="delete-btn" @click.stop="handleDelete(act)">删除</view>
                     </view>
                     <view class="action-card"
@@ -199,6 +200,9 @@
         swipeDeltaX: 0,
         swipeViewWidth: 0,
         swipeIsTracking: false,
+        swipeNoTransition: false,
+        tabRects: [],
+        tabRectsMeasured: false,
         contentAnimClass: '',
       }
     },
@@ -325,6 +329,36 @@
       hasResults() {
         return this.filteredActions.length > 0
       },
+      // 分类高光跟手样式：滑动时在当前 tab 与目标 tab 之间插值
+      categoryHighlightStyle() {
+        if (!this.tabRectsMeasured || this.tabRects.length === 0) return { opacity: 0 }
+        const curIdx = this.allCategories.findIndex(c => c.id === this.activeCategory)
+        if (curIdx < 0) return { opacity: 0 }
+        const cur = this.tabRects[curIdx]
+        if (!cur) return { opacity: 0 }
+        let left = cur.left
+        let width = cur.width
+        if (this.swipeDeltaX !== 0 && this.swipeViewWidth > 0) {
+          // 方向：右滑(dx>0) → 上一个；左滑(dx<0) → 下一个
+          const dir = this.swipeDeltaX > 0 ? -1 : 1
+          const nextIdx = curIdx + dir
+          if (nextIdx >= 0 && nextIdx < this.tabRects.length) {
+            const next = this.tabRects[nextIdx]
+            // 进度：滑动达到视图宽度 30% 即完成高光迁移
+            const progress = Math.min(Math.abs(this.swipeDeltaX) / (this.swipeViewWidth * 0.3), 1)
+            left = cur.left + (next.left - cur.left) * progress
+            width = cur.width + (next.width - cur.width) * progress
+          } else {
+            // 边界阻尼
+            left = cur.left + this.swipeDeltaX * 0.2
+          }
+        }
+        return {
+          transform: `translateX(${left}px)`,
+          width: `${width}px`,
+          opacity: 1,
+        }
+      },
     },
 
     created() {
@@ -336,10 +370,34 @@
     onShow() {
       this.actStore.load();
       this.collapsedCategories = this.getSavedCollapsedState();
+      this.measureTabRects();
+    },
+
+    onReady() {
+      this.measureTabRects();
     },
 
     methods: {
       // ============ 侧滑手势 ============
+      measureTabRects() {
+        this.$nextTick(() => {
+          const query = uni.createSelectorQuery().in(this)
+          query.select('.category-scroll').boundingClientRect()
+          query.selectAll('.category-tab').boundingClientRect()
+          query.exec(res => {
+            const container = res && res[0]
+            const items = res && res[1]
+            if (container && items && items.length > 0) {
+              this.tabRects = items.map(it => ({
+                left: it.left - container.left,
+                width: it.width,
+              }))
+              this.tabRectsMeasured = true
+            }
+          })
+        })
+      },
+
       onPageTouchStart(e) {
         if (this.showAddPopup) return
         if (e.touches.length !== 1) return
@@ -347,7 +405,9 @@
         this.swipeStartY = e.touches[0].pageY
         this.swipeStartTime = Date.now()
         this.swipeDeltaX = 0
+        this.swipeNoTransition = true
         this.swipeIsTracking = true
+        if (!this.tabRectsMeasured) this.measureTabRects()
         uni.createSelectorQuery().in(this).select('.action-list').boundingClientRect(rect => {
           if (rect) this.swipeViewWidth = rect.width
         }).exec()
@@ -367,6 +427,7 @@
       onPageTouchEnd() {
         if (!this.swipeIsTracking) return
         this.swipeIsTracking = false
+        this.swipeNoTransition = false
         const dx = this.swipeDeltaX
         const absDx = Math.abs(dx)
         const dt = Date.now() - this.swipeStartTime
@@ -374,6 +435,7 @@
         const speedThreshold = 0.3
         if (absDx < distThreshold && dt > 0 && absDx / dt < speedThreshold) {
           this.swipeDeltaX = 0
+          this.measureTabRects()
           return
         }
         // 方向：右滑 → 上一个；左滑 → 下一个
@@ -382,6 +444,7 @@
         const nextIdx = curIdx + dir
         if (nextIdx < 0 || nextIdx >= this.allCategories.length) {
           this.swipeDeltaX = 0
+          this.measureTabRects()
           return
         }
         this.swipeDeltaX = 0
@@ -390,16 +453,19 @@
         // 方向动效：左滑(dir=1) → 内容从右侧淡入；右滑(dir=-1) → 从左侧淡入
         this.contentAnimClass = dir > 0 ? 'anim-right-in' : 'anim-left-in'
         this.activeCategory = targetCat.id
+        this.measureTabRects()
         setTimeout(() => { this.contentAnimClass = '' }, 360)
       },
 
       onTabClick(catId) {
         if (this.activeCategory === catId) return
         uni.vibrateShort()
+        this.swipeNoTransition = false
         const oldIdx = this.allCategories.findIndex(c => c.id === this.activeCategory)
         const newIdx = this.allCategories.findIndex(c => c.id === catId)
         this.contentAnimClass = newIdx > oldIdx ? 'anim-right-in' : 'anim-left-in'
         this.activeCategory = catId
+        this.measureTabRects()
         setTimeout(() => { this.contentAnimClass = '' }, 360)
       },
 
@@ -739,11 +805,31 @@
   }
 
   .category-tabs {
+    position: relative;
     flex-shrink: 0;
     padding: 0 16px 8px 16px;
   }
 
+  .category-highlight {
+    position: absolute;
+    top: 0;
+    bottom: 8px;
+    left: 16px;
+    border-radius: 20px;
+    background: linear-gradient(135deg, #379bff, #0048ff);
+    z-index: 0;
+    pointer-events: none;
+    transition: transform 0.32s cubic-bezier(0.22, 0.61, 0.36, 1), width 0.32s cubic-bezier(0.22, 0.61, 0.36, 1);
+    will-change: transform;
+  }
+
+  .category-tabs.no-transition .category-highlight {
+    transition: none;
+  }
+
   .category-scroll {
+    position: relative;
+    z-index: 1;
     display: flex;
     flex-direction: row;
     white-space: nowrap;
@@ -758,24 +844,22 @@
     padding: 6px 14px;
     margin-right: 8px;
     border-radius: 20px;
-    background-color: var(--bg-tertiary);
+    background-color: transparent;
     font-size: 13px;
     color: var(--text-secondary);
     flex-shrink: 0;
+    transition: color 0.28s cubic-bezier(0.22, 0.61, 0.36, 1);
   }
 
   .container.light .category-tab {
-    background-color: var(--bg-tertiary);
     color: var(--text-muted);
   }
 
   .container.light .category-tab.active {
-    background: linear-gradient(135deg, #379bff, #0048ff);
     color: #fff;
   }
 
   .category-tab.active {
-    background: linear-gradient(135deg, #379bff, #0048ff);
     color: #fff;
   }
 
@@ -958,6 +1042,9 @@
     display: flex;
     align-items: center;
     z-index: 1;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+    pointer-events: none;
   }
 
   .delete-btn {

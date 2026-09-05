@@ -1109,3 +1109,93 @@ html .container.liquid-glass.light .custom-color-card {
 .container.liquid-glass .btn-import-export:active {
   transform: scale(0.96) !important;
 }
+
+/* ===== templateManager 模板卡片液态玻璃 ===== */
+.container.liquid-glass .action-card {
+  background: var(--glass-bg) !important;
+  border: none !important;
+  border-radius: 16rpx !important;
+  box-shadow:
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 3px var(--glass-shadow-inner) inset,
+    0 1px 4px var(--glass-shadow-outer) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
+  backdrop-filter: blur(12px) saturate(140%) !important;
+}
+
+.container.liquid-glass .card-name {
+  color: var(--glass-text) !important;
+}
+
+.container.liquid-glass .card-count {
+  color: var(--glass-placeholder) !important;
+}
+
+.container.liquid-glass .card-arrow {
+  color: var(--glass-placeholder) !important;
+}
+
+/* 模板管理 tab 栏 */
+.container.liquid-glass .main-tab-bar {
+  background: var(--glass-bg) !important;
+  border-bottom: none !important;
+  -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
+  backdrop-filter: blur(12px) saturate(140%) !important;
+}
+
+.container.liquid-glass .main-tab-text {
+  color: var(--glass-text) !important;
+}
+
+.container.liquid-glass .main-tab-item.active .main-tab-text {
+  color: var(--primary) !important;
+}
+
+/* 模板广场卡片 */
+.container.liquid-glass .sq-card {
+  background: var(--glass-bg) !important;
+  border: none !important;
+  border-radius: 16rpx !important;
+  overflow: hidden;
+  box-shadow:
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 3px var(--glass-shadow-inner) inset,
+    0 1px 4px var(--glass-shadow-outer) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
+  backdrop-filter: blur(12px) saturate(140%) !important;
+}
+
+/* 模板广场搜索栏 */
+.container.liquid-glass .square-search {
+  background: var(--glass-bg) !important;
+  border: none !important;
+  border-radius: 20rpx !important;
+  -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
+  backdrop-filter: blur(12px) saturate(140%) !important;
+  box-shadow:
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 3px var(--glass-shadow-inner) inset !important;
+}
+
+/* 模板广场标签 */
+.container.liquid-glass .sq-tag-chip {
+  background: var(--glass-bg) !important;
+  border: none !important;
+  color: var(--glass-text) !important;
+  -webkit-backdrop-filter: blur(8px) saturate(120%) !important;
+  backdrop-filter: blur(8px) saturate(120%) !important;
+}
+
+.container.liquid-glass .sq-tag-chip.active {
+  background: rgba(55, 155, 255, 0.3) !important;
+  color: var(--primary) !important;
+}
+
+/* 模板广场排序 */
+.container.liquid-glass .sq-sort-item {
+  color: var(--glass-placeholder) !important;
+}
+
+.container.liquid-glass .sq-sort-item.active {
+  color: var(--primary) !important;
+}

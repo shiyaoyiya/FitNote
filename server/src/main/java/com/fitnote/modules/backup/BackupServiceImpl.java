@@ -12,9 +12,17 @@ import com.fitnote.mapper.SysUserMapper;
 import com.fitnote.modules.backup.dto.BackupQueryDTO;
 import com.fitnote.modules.backup.vo.BackupListVO;
 import lombok.RequiredArgsConstructor;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.Resource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
+import java.io.File;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -116,6 +124,31 @@ public class BackupServiceImpl implements BackupService {
             throw new BusinessException(ResultCode.FORBIDDEN, "无权操作该备份");
         }
         return r;
+    }
+
+    @Override
+    public ResponseEntity<Resource> downloadBackupAsResponse(Long id) {
+        BackupRecord r = backupRecordMapper.selectById(id);
+        if (r == null) throw new BusinessException(ResultCode.NOT_FOUND, "备份记录不存在");
+        File f = StringUtils.hasText(r.getFilePath()) ? new File(r.getFilePath()) : null;
+        if (f == null || !f.exists() || !f.isFile()) {
+            throw new BusinessException(ResultCode.NOT_FOUND, "备份文件不存在或已被清理");
+        }
+        Resource res = new FileSystemResource(f);
+        String name = r.getFileName() == null || r.getFileName().isEmpty()
+                ? ("backup_" + id + ".json") : r.getFileName();
+        String encoded;
+        try {
+            encoded = URLEncoder.encode(name, StandardCharsets.UTF_8.name()).replace("+", "%20");
+        } catch (Exception ex) {
+            encoded = "backup_" + id + ".json";
+        }
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType("application/json;charset=UTF-8"))
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=\"" + name + "\"; filename*=UTF-8''" + encoded)
+                .contentLength(f.length())
+                .body(res);
     }
 
     private BackupListVO toVO(BackupRecord r, Map<Long, String> userNames) {

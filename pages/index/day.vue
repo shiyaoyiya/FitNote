@@ -19,46 +19,23 @@
         @update-entry="(data) => onUpdateEntry(idx, data)" @delete-action="handleDeleteAction(idx)"
         @delete-entry="(eIdx) => handleDeleteEntry(idx, eIdx)" @edit-entry="(eIdx) => openEditEntryPopup(idx, eIdx)"
         @go-history="goHistory(idx)" />
-      <!-- 链接1: 训练分析折叠卡片（在 list-bottom-space 之前） -->
-      <TrainingAnalysisCard
-        v-if="!isRestDay && chosenActions.length > 0"
-        :entries="trainingEntries"
-        :hr-samples-with-ts="hrSamplesWithTsComputed"
-        :current-date-str="date"
-        :profile="profileForAnalysis"
-        :existing-analysis="existingTrainingAnalysis"
-        :hr-paused-for-no-hr="hrPausedForNoHrFlag"
-        :hr-last-active-ts="hrLastActiveTsValue"
-        @go-full-report="goToTrainingAnalysis"
-      />
       <view class="list-bottom-space"></view>
     </scroll-view>
 
-    <!-- 底部按钮行 -->
+    <!-- 底部按钮行：计时器 | 设置 对称分布各占一半 -->
     <view class="save-row" v-if="!isRestDay && !showChooseTpl">
-      <view class="save-row-inner" style="flex: 1; min-width: 0; justify-content: space-between;">
-        <!-- 左：保存主按钮 -->
-        <view class="btn-day-save" :class="{ saving: savingDay }" @click="saveAllDay">
-          <text class="btn-save-icon">💾</text>
-          <text class="btn-save-text">{{ savingDay ? '保存中…' : '保存训练' }}</text>
+      <view class="day-action-pair">
+        <view v-if="!timerActive" class="day-action-btn half" @click="startQuickTimer">
+          <text class="dab-icon">⏱</text>
+          <text class="dab-label">开始计时</text>
         </view>
-        <!-- 右：训练分析 + 计时 + 设置 -->
-        <view class="day-action-group">
-          <view class="day-action-btn" @click="goToTrainingAnalysis">
-            <text class="dab-icon">📊</text>
-            <text class="dab-label">训练分析</text>
-          </view>
-          <view v-if="!timerActive" class="day-action-btn" @click="startQuickTimer">
-            <text class="dab-icon">⏱</text>
-            <text class="dab-label">开始计时</text>
-          </view>
-          <view v-else class="day-action-btn primary" @click="showTimer = true">
-            <text class="dab-label">{{ timerDisplay }}</text>
-          </view>
-          <view class="day-action-btn" @click="showSettings = true">
-            <text class="dab-icon">⚙</text>
-            <text class="dab-label">设置</text>
-          </view>
+        <view v-else class="day-action-btn half primary" @click="showTimer = true">
+          <text class="dab-icon">⏱</text>
+          <text class="dab-label">{{ timerDisplay }}</text>
+        </view>
+        <view class="day-action-btn half" @click="showSettings = true">
+          <text class="dab-icon">⚙</text>
+          <text class="dab-label">设置</text>
         </view>
       </view>
     </view>
@@ -89,17 +66,6 @@
     <EditEntryPopup :visible="showEditEntryPopup" :entry-idx="editEntryInfo.entryIdx"
       :entry="editEntryInfo.actionIdx >= 0 && editEntryInfo.entryIdx >= 0 ? actionEntries[editEntryInfo.actionIdx]?.[editEntryInfo.entryIdx] : null"
       @close="closeEditEntryPopup" @save="onEditEntrySave" />
-
-    <!-- 心率折线图弹窗（未连接时点击心率按钮） -->
-    <HeartRateChartPopup
-      :visible="showHrChart"
-      :samples="hrHistorySamples"
-      :kcal-total="hrHistoryKcal"
-      :duration-sec="hrHistoryDur"
-      :connected="hrConnected"
-      @close="showHrChart=false"
-      @connect="showHrChart=false; onToggleHrConnect()"
-    />
   </view>
 </template>
 
@@ -366,8 +332,7 @@
         this.loadDayData()
       })
 
-      // 初始化蓝牙心率（无设备时静默不崩）
-      this.initHeartRate()
+      // 心率广播与训练分析功能已移除
       // 训练日提醒（无设备时静默不崩）
       checkAndNotifyTrainingDay()
     },
@@ -416,9 +381,11 @@
     },
     onHide() {
       // App 切后台时：
-      // 1) 立即保存心率计时数据（防止相机/内存杀进程丢失）
+      // 1) 自动保存当日训练数据（原保存按钮已移除，改为离开页面自动保存）
+      this.saveAllDay(true)
+      // 2) 立即保存心率计时数据（防止相机/内存杀进程丢失）
       this._saveHrToDayData()
-      // 2) 计时器后台提醒：
+      // 3) 计时器后台提醒：
       //    - 有悬浮窗权限：系统悬浮窗在后台/桌面也可见，无需额外操作
       //    - 无悬浮窗权限：推送本地通知作为降级提醒
       // #ifdef APP-PLUS
@@ -1480,8 +1447,8 @@
         if (this.hrTimer) { clearInterval(this.hrTimer); this.hrTimer = null }
       },
       onOpenHrSettings() { this.showSettings = true },
-      saveAllDay() {
-        // 保存当日所有动作到存储 + 训练通知
+      saveAllDay(silent = false) {
+        // 保存当日所有动作到存储 + 训练通知（silent=true 时为自动保存，不提示）
         const today = this.date
         const raw = { ...(this.dayDataCacheStore.getDayData(today) || {}) }
         const dayData = {
@@ -1511,6 +1478,7 @@
         if (raw.hrPausedForNoHr) dayData.hrPausedForNoHr = raw.hrPausedForNoHr
         if (raw.hrZonesSummary) dayData.hrZonesSummary = raw.hrZonesSummary
         this.dayDataCacheStore.saveDayData(today, dayData)
+        if (silent) return
         uni.vibrateShort({ fail: () => {} })
         uni.showToast({ title: '已保存', icon: 'success' })
       },
@@ -1553,6 +1521,18 @@
   html .container.light.liquid-glass .save-row-inner,
   html .container.dark.liquid-glass .save-row-inner {
     background: transparent !important;
+  }
+
+  /* 液态玻璃：底部两个按钮毛玻璃 */
+  html .container.liquid-glass .day-action-btn.half:not(.primary) {
+    background: rgba(255, 255, 255, 0.08) !important;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-color: rgba(255, 255, 255, 0.15);
+  }
+  html .container.liquid-glass .day-action-btn.half.primary {
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
   }
 
   /* ========== 整体容器 & 深色模式 ========== */
@@ -1615,7 +1595,13 @@
     min-width: 0;
   }
 
-  /* ===== 新底部按钮栏：保存 + 训练分析 + 计时 + 设置 ===== */
+  /* ===== 底部按钮栏：计时器 | 设置 对称分布各占一半 ===== */
+  .day-action-pair {
+    flex: 1;
+    display: flex;
+    align-items: stretch;
+    gap: 12px;
+  }
   .btn-day-save {
     flex: 1.35;
     height: 50px;
@@ -1663,6 +1649,19 @@
     justify-content: center;
     gap: 2px;
     transition: transform 0.15s cubic-bezier(0.22, 0.61, 0.36, 1), background 0.15s;
+  }
+  .day-action-btn.half {
+    flex: 1;
+    flex-direction: row;
+    gap: 8px;
+    border-radius: 25px;
+  }
+  .day-action-btn.half .dab-icon {
+    font-size: 18px;
+  }
+  .day-action-btn.half .dab-label {
+    font-size: 14px;
+    font-weight: 600;
   }
   .day-action-btn:active {
     transform: scale(0.94);

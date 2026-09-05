@@ -230,15 +230,6 @@ export function uploadMyAvatar(filePath) {
   })
 }
 
-// 导出新的API函数
-export {
-  fetchSquareTemplates,
-  fetchTemplateDetail,
-  fetchTemplateTags,
-  downloadTemplateById,
-  shareTemplateToSquare
-} from './api/templateSquare.js'
-
 export default {
   listSquareTemplates,
   listTemplateTags,

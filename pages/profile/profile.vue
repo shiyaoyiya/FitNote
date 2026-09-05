@@ -40,37 +40,6 @@
         <text class="info-value">{{ formatDate(profile.registerTime) }}</text>
       </view>
 
-      <!-- 身体数据（本地 UserProfileStore，编辑后用于估算心率区间与热量） -->
-      <view class="section-title">身体数据</view>
-      <view class="info-row" @click="showBodyProfile = true">
-        <text class="info-label">性别</text>
-        <view class="info-value-row">
-          <text class="info-value">{{ bodyProfileSummary.gender }}</text>
-          <text class="edit-arrow">›</text>
-        </view>
-      </view>
-      <view class="info-row" @click="showBodyProfile = true">
-        <text class="info-label">出生年月</text>
-        <view class="info-value-row">
-          <text class="info-value">{{ bodyProfileSummary.birthDate || '未设置' }}</text>
-          <text class="edit-arrow">›</text>
-        </view>
-      </view>
-      <view class="info-row" @click="showBodyProfile = true">
-        <text class="info-label">身高</text>
-        <view class="info-value-row">
-          <text class="info-value">{{ bodyProfileSummary.height }}</text>
-          <text class="edit-arrow">›</text>
-        </view>
-      </view>
-      <view class="info-row" @click="showBodyProfile = true">
-        <text class="info-label">体重</text>
-        <view class="info-value-row">
-          <text class="info-value">{{ bodyProfileSummary.weight }}</text>
-          <text class="edit-arrow">›</text>
-        </view>
-      </view>
-
       <!-- 训练统计（只读） -->
       <view class="section-title">训练统计</view>
       <view class="info-row">
@@ -95,15 +64,11 @@
         {{ loggingOut ? '退出中…' : '退出登录' }}
       </button>
     </view>
-
-    <BodyProfilePopup :visible="showBodyProfile" @close="showBodyProfile=false" />
   </scroll-view>
 </template>
 
 <script>
   import { useDaySettingsStore } from '@/stores/daySettings.js'
-  import { useUserProfileStore } from '@/stores/userProfile.js'
-  import BodyProfilePopup from '@/components/BodyProfilePopup.vue'
   import {
     isLoggedIn,
     me,
@@ -125,7 +90,7 @@
   // #endif
 
   export default {
-    components: { BodyProfilePopup },
+    components: {},
     data() {
       const today = new Date()
       const pad = (n) => n.toString().padStart(2, '0')
@@ -144,21 +109,9 @@
         editingNickname: false,
         statusType: '',
         statusMessage: '',
-        showBodyProfile: false,
       }
     },
     computed: {
-      bodyProfileSummary() {
-        const store = useUserProfileStore()
-        store.load()
-        const gender = store.gender === 'male' ? '男' : store.gender === 'female' ? '女' : '未设置'
-        return {
-          gender,
-          birthDate: store.birthDate || '',
-          height: store.height ? `${store.height} cm` : '未设置',
-          weight: store.weight ? `${store.weight} kg` : '未设置',
-        }
-      },
       /**
        * 训练统计：
        *  - 本地模式：直接用后端返回的 profile.totalTrainDays / totalVolumeKg

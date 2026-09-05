@@ -63,8 +63,12 @@
         <el-table-column label="注册时间" width="160">
           <template #default="{ row }">{{ formatTime(row.registerTime) }}</template>
         </el-table-column>
-        <el-table-column label="操作" width="110" fixed="right">
+        <el-table-column label="操作" width="180" fixed="right">
           <template #default="{ row }">
+            <el-button
+              link size="small" type="primary"
+              @click="$router.push({ path: '/user/detail', query: { id: row.id } })"
+            >查看详情</el-button>
             <el-button
               v-if="row.status === 1"
               v-hasPerm="'user:status'"

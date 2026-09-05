@@ -144,27 +144,14 @@ public class UserBackupController {
     }
 
     /**
-     * 下载当前用户自己的备份文件（返回 JSON 内容流）
+     * 下载当前用户自己的备份文件（返回 JSON 内容流）。
+     * 权限校验：必须是当前用户自己的备份；文件读取与响应头构造复用 BackupService。
      */
     @GetMapping("/download/{id}")
-    public ResponseEntity<Resource> download(@PathVariable Long id) throws Exception {
+    public ResponseEntity<Resource> download(@PathVariable Long id) {
         Long userId = com.fitnote.security.SecurityUtils.getUserIdOrThrow();
-        BackupRecord r = backupService.ensureOwned(id, userId);
-
-        File f = new File(r.getFilePath());
-        if (!f.exists() || !f.isFile()) {
-            return ResponseEntity.notFound().build();
-        }
-        Resource res = new FileSystemResource(f);
-        String name = r.getFileName() == null ? ("backup_" + id + ".json") : r.getFileName();
-        String encoded = URLEncoder.encode(name, StandardCharsets.UTF_8.name()).replace("+", "%20");
-
-        return ResponseEntity.ok()
-                .contentType(MediaType.parseMediaType("application/json;charset=UTF-8"))
-                .header(HttpHeaders.CONTENT_DISPOSITION,
-                        "attachment; filename=\"" + name + "\"; filename*=UTF-8''" + encoded)
-                .contentLength(f.length())
-                .body(res);
+        backupService.ensureOwned(id, userId);
+        return backupService.downloadBackupAsResponse(id);
     }
 
     /**

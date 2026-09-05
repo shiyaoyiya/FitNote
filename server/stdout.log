@@ -1,0 +1,139 @@
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+ :: Spring Boot ::               (v2.7.18)
+
+2026-09-01 18:17:15.404  INFO 41632 --- [           main] com.fitnote.FitNoteApplication           : Starting FitNoteApplication v1.0.0 using Java 17.0.18 on shiyaoyiya with PID 41632 (D:\小程序\FitNote\server\target\fitnote-server-1.0.0.jar started by liao in D:\小程序\FitNote\server)
+2026-09-01 18:17:15.413  INFO 41632 --- [           main] com.fitnote.FitNoteApplication           : No active profile set, falling back to 1 default profile: "default"
+Logging initialized using 'class org.apache.ibatis.logging.stdout.StdOutImpl' adapter.
+Initialization Sequence datacenterId:8 workerId:0
+ _ _   |_  _ _|_. ___ _ |    _ 
+| | |\/|_)(_| | |_\  |_)||_|_\ 
+     /               |         
+                        3.5.5 
+2026-09-01 18:17:19.198  INFO 41632 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port(s): 8080 (http)
+2026-09-01 18:17:19.238  INFO 41632 --- [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2026-09-01 18:17:19.238  INFO 41632 --- [           main] org.apache.catalina.core.StandardEngine  : Starting Servlet engine: [Apache Tomcat/9.0.83]
+2026-09-01 18:17:19.487  INFO 41632 --- [           main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2026-09-01 18:17:19.489  INFO 41632 --- [           main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 3988 ms
+2026-09-01 18:17:21.032  INFO 41632 --- [           main] o.s.s.web.DefaultSecurityFilterChain     : Will secure any request with [org.springframework.security.web.session.DisableEncodeUrlFilter@6c2d4cc6, org.springframework.security.web.context.request.async.WebAsyncManagerIntegrationFilter@30865a90, org.springframework.security.web.context.SecurityContextPersistenceFilter@4362d7df, org.springframework.security.web.header.HeaderWriterFilter@2db2cd5, org.springframework.web.filter.CorsFilter@6134ac4a, org.springframework.security.web.authentication.logout.LogoutFilter@82c57b3, com.fitnote.security.JwtAuthFilter@45be7cd5, org.springframework.security.web.savedrequest.RequestCacheAwareFilter@1c25b8a7, org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestFilter@200606de, org.springframework.security.web.authentication.AnonymousAuthenticationFilter@777c9dc9, org.springframework.security.web.session.SessionManagementFilter@1827a871, org.springframework.security.web.access.ExceptionTranslationFilter@241a53ef, org.springframework.security.web.access.intercept.FilterSecurityInterceptor@4c5204af]
+2026-09-01 18:17:21.504  INFO 41632 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port(s): 8080 (http) with context path ''
+2026-09-01 18:17:21.524  INFO 41632 --- [           main] com.fitnote.FitNoteApplication           : Started FitNoteApplication in 6.668 seconds (JVM running for 7.139)
+Creating a new SqlSession
+SqlSession [org.apache.ibatis.session.defaults.DefaultSqlSession@4a183d02] was not registered for synchronization because synchronization is not active
+2026-09-01 18:17:21.641  INFO 41632 --- [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2026-09-01 18:17:21.782  INFO 41632 --- [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+JDBC Connection [HikariProxyConnection@1675239551 wrapping com.mysql.cj.jdbc.ConnectionImpl@173373b4] will not be managed by Spring
+==>  Preparing: DELETE FROM template_tag_rel
+==> Parameters: 
+<==    Updates: 0
+Closing non transactional SqlSession [org.apache.ibatis.session.defaults.DefaultSqlSession@4a183d02]
+Creating a new SqlSession
+SqlSession [org.apache.ibatis.session.defaults.DefaultSqlSession@6b760460] was not registered for synchronization because synchronization is not active
+JDBC Connection [HikariProxyConnection@2036360618 wrapping com.mysql.cj.jdbc.ConnectionImpl@173373b4] will not be managed by Spring
+==>  Preparing: DELETE FROM template_tag
+==> Parameters: 
+<==    Updates: 11
+Closing non transactional SqlSession [org.apache.ibatis.session.defaults.DefaultSqlSession@6b760460]
+Creating a new SqlSession
+SqlSession [org.apache.ibatis.session.defaults.DefaultSqlSession@38eb2fb0] was not registered for synchronization because synchronization is not active
+JDBC Connection [HikariProxyConnection@726107869 wrapping com.mysql.cj.jdbc.ConnectionImpl@173373b4] will not be managed by Spring
+==>  Preparing: INSERT INTO template_tag ( id, name, color, sort_order, create_time ) VALUES ( ?, ?, ?, ?, ? )
+==> Parameters: 1(Long), 胸(String), #d44848(String), 1(Integer), 2026-09-01T18:17:21.866543800(LocalDateTime)
+<==    Updates: 1
+Closing non transactional SqlSession [org.apache.ibatis.session.defaults.DefaultSqlSession@38eb2fb0]
+Creating a new SqlSession
+SqlSession [org.apache.ibatis.session.defaults.DefaultSqlSession@40368a46] was not registered for synchronization because synchronization is not active
+JDBC Connection [HikariProxyConnection@2124261761 wrapping com.mysql.cj.jdbc.ConnectionImpl@173373b4] will not be managed by Spring
+==>  Preparing: INSERT INTO template_tag ( id, name, color, sort_order, create_time ) VALUES ( ?, ?, ?, ?, ? )
+==> Parameters: 2(Long), 背(String), #002fa7(String), 2(Integer), 2026-09-01T18:17:21.897215600(LocalDateTime)
+<==    Updates: 1
+Closing non transactional SqlSession [org.apache.ibatis.session.defaults.DefaultSqlSession@40368a46]
+Creating a new SqlSession
+SqlSession [org.apache.ibatis.session.defaults.DefaultSqlSession@74ad8d05] was not registered for synchronization because synchronization is not active
+JDBC Connection [HikariProxyConnection@1735390128 wrapping com.mysql.cj.jdbc.ConnectionImpl@173373b4] will not be managed by Spring
+==>  Preparing: INSERT INTO template_tag ( id, name, color, sort_order, create_time ) VALUES ( ?, ?, ?, ?, ? )
+==> Parameters: 3(Long), 臀(String), #f2b9b2(String), 3(Integer), 2026-09-01T18:17:21.900950100(LocalDateTime)
+<==    Updates: 1
+Closing non transactional SqlSession [org.apache.ibatis.session.defaults.DefaultSqlSession@74ad8d05]
+Creating a new SqlSession
+SqlSession [org.apache.ibatis.session.defaults.DefaultSqlSession@476a736d] was not registered for synchronization because synchronization is not active
+JDBC Connection [HikariProxyConnection@1602288195 wrapping com.mysql.cj.jdbc.ConnectionImpl@173373b4] will not be managed by Spring
+==>  Preparing: INSERT INTO template_tag ( id, name, color, sort_order, create_time ) VALUES ( ?, ?, ?, ?, ? )
+==> Parameters: 4(Long), 腿(String), #4DB6AC(String), 4(Integer), 2026-09-01T18:17:21.904846900(LocalDateTime)
+<==    Updates: 1
+Closing non transactional SqlSession [org.apache.ibatis.session.defaults.DefaultSqlSession@476a736d]
+Creating a new SqlSession
+SqlSession [org.apache.ibatis.session.defaults.DefaultSqlSession@65bcf7c2] was not registered for synchronization because synchronization is not active
+JDBC Connection [HikariProxyConnection@1035357140 wrapping com.mysql.cj.jdbc.ConnectionImpl@173373b4] will not be managed by Spring
+==>  Preparing: INSERT INTO template_tag ( id, name, color, sort_order, create_time ) VALUES ( ?, ?, ?, ?, ? )
+==> Parameters: 5(Long), 肩(String), #eeb8c3(String), 5(Integer), 2026-09-01T18:17:21.909456300(LocalDateTime)
+<==    Updates: 1
+Closing non transactional SqlSession [org.apache.ibatis.session.defaults.DefaultSqlSession@65bcf7c2]
+Creating a new SqlSession
+SqlSession [org.apache.ibatis.session.defaults.DefaultSqlSession@55ecbafe] was not registered for synchronization because synchronization is not active
+JDBC Connection [HikariProxyConnection@945747249 wrapping com.mysql.cj.jdbc.ConnectionImpl@173373b4] will not be managed by Spring
+==>  Preparing: INSERT INTO template_tag ( id, name, color, sort_order, create_time ) VALUES ( ?, ?, ?, ?, ? )
+==> Parameters: 6(Long), 手臂(String), #8076a3(String), 6(Integer), 2026-09-01T18:17:21.917299500(LocalDateTime)
+<==    Updates: 1
+Closing non transactional SqlSession [org.apache.ibatis.session.defaults.DefaultSqlSession@55ecbafe]
+Creating a new SqlSession
+SqlSession [org.apache.ibatis.session.defaults.DefaultSqlSession@73044cdf] was not registered for synchronization because synchronization is not active
+JDBC Connection [HikariProxyConnection@1019009267 wrapping com.mysql.cj.jdbc.ConnectionImpl@173373b4] will not be managed by Spring
+==>  Preparing: INSERT INTO template_tag ( id, name, color, sort_order, create_time ) VALUES ( ?, ?, ?, ?, ? )
+==> Parameters: 7(Long), 推(String), #fa8c16(String), 7(Integer), 2026-09-01T18:17:21.922661400(LocalDateTime)
+<==    Updates: 1
+Closing non transactional SqlSession [org.apache.ibatis.session.defaults.DefaultSqlSession@73044cdf]
+Creating a new SqlSession
+SqlSession [org.apache.ibatis.session.defaults.DefaultSqlSession@58112bc4] was not registered for synchronization because synchronization is not active
+JDBC Connection [HikariProxyConnection@36707189 wrapping com.mysql.cj.jdbc.ConnectionImpl@173373b4] will not be managed by Spring
+==>  Preparing: INSERT INTO template_tag ( id, name, color, sort_order, create_time ) VALUES ( ?, ?, ?, ?, ? )
+==> Parameters: 8(Long), 拉(String), #13c2c2(String), 8(Integer), 2026-09-01T18:17:21.926774(LocalDateTime)
+<==    Updates: 1
+Closing non transactional SqlSession [org.apache.ibatis.session.defaults.DefaultSqlSession@58112bc4]
+Creating a new SqlSession
+SqlSession [org.apache.ibatis.session.defaults.DefaultSqlSession@4930539b] was not registered for synchronization because synchronization is not active
+JDBC Connection [HikariProxyConnection@1830231264 wrapping com.mysql.cj.jdbc.ConnectionImpl@173373b4] will not be managed by Spring
+==>  Preparing: INSERT INTO template_tag ( id, name, color, sort_order, create_time ) VALUES ( ?, ?, ?, ?, ? )
+==> Parameters: 9(Long), 蹲(String), #722ed1(String), 9(Integer), 2026-09-01T18:17:21.930697200(LocalDateTime)
+<==    Updates: 1
+Closing non transactional SqlSession [org.apache.ibatis.session.defaults.DefaultSqlSession@4930539b]
+Creating a new SqlSession
+SqlSession [org.apache.ibatis.session.defaults.DefaultSqlSession@3bb8aabc] was not registered for synchronization because synchronization is not active
+JDBC Connection [HikariProxyConnection@1847410999 wrapping com.mysql.cj.jdbc.ConnectionImpl@173373b4] will not be managed by Spring
+==>  Preparing: INSERT INTO template_tag ( id, name, color, sort_order, create_time ) VALUES ( ?, ?, ?, ?, ? )
+==> Parameters: 10(Long), 上肢(String), #52c41a(String), 10(Integer), 2026-09-01T18:17:21.933703600(LocalDateTime)
+<==    Updates: 1
+Closing non transactional SqlSession [org.apache.ibatis.session.defaults.DefaultSqlSession@3bb8aabc]
+Creating a new SqlSession
+SqlSession [org.apache.ibatis.session.defaults.DefaultSqlSession@57b75756] was not registered for synchronization because synchronization is not active
+JDBC Connection [HikariProxyConnection@1395105902 wrapping com.mysql.cj.jdbc.ConnectionImpl@173373b4] will not be managed by Spring
+==>  Preparing: INSERT INTO template_tag ( id, name, color, sort_order, create_time ) VALUES ( ?, ?, ?, ?, ? )
+==> Parameters: 11(Long), 下肢(String), #FF6B9A(String), 11(Integer), 2026-09-01T18:17:21.936214700(LocalDateTime)
+<==    Updates: 1
+Closing non transactional SqlSession [org.apache.ibatis.session.defaults.DefaultSqlSession@57b75756]
+2026-09-01 18:17:21.939  INFO 41632 --- [           main] c.fitnote.config.SeedTemplateTagEnsurer  : [SeedTag] ✅ 已重置 template_tag 为 11 个业务标签（胸/背/臀/腿/肩/手臂/推/拉/蹲/上肢/下肢）
+Creating a new SqlSession
+SqlSession [org.apache.ibatis.session.defaults.DefaultSqlSession@3350ebdd] was not registered for synchronization because synchronization is not active
+JDBC Connection [HikariProxyConnection@164733543 wrapping com.mysql.cj.jdbc.ConnectionImpl@173373b4] will not be managed by Spring
+==>  Preparing: SELECT id,username,password,nickname,role_code,status,last_login_time,deleted,create_time,update_time FROM sys_admin WHERE deleted=0 AND (username = ?)
+==> Parameters: admin(String)
+<==    Columns: id, username, password, nickname, role_code, status, last_login_time, deleted, create_time, update_time
+<==        Row: 1, admin, $2a$10$gVuVldLBB8Ixmbnbmk57lORx/OADTBl5Lh2yiBRBzrSGhgYvkBpQm, 超级管理员, ADMIN, 1, null, 0, 2026-09-01 18:02:24, 2026-09-01 18:02:24
+<==      Total: 1
+Closing non transactional SqlSession [org.apache.ibatis.session.defaults.DefaultSqlSession@3350ebdd]
+2026-09-01 18:17:22.038  INFO 41632 --- [           main] c.f.config.SeedAdminPasswordEnsurer      : [SeedPw] admin='admin' password hash already matches, no-op.
+Creating a new SqlSession
+SqlSession [org.apache.ibatis.session.defaults.DefaultSqlSession@3e4f80cb] was not registered for synchronization because synchronization is not active
+JDBC Connection [HikariProxyConnection@946884592 wrapping com.mysql.cj.jdbc.ConnectionImpl@173373b4] will not be managed by Spring
+==>  Preparing: SELECT id,username,password,nickname,role_code,status,last_login_time,deleted,create_time,update_time FROM sys_admin WHERE deleted=0 AND (username = ?)
+==> Parameters: auditor(String)
+<==    Columns: id, username, password, nickname, role_code, status, last_login_time, deleted, create_time, update_time
+<==        Row: 2, auditor, $2a$10$mJDQQLYu/nyawUS0FJAqD.eft0yYlHXOoPVcUqIbH7jZkTb7V3vbK, 审核员, AUDITOR, 1, null, 0, 2026-09-01 18:02:24, 2026-09-01 18:02:24
+<==      Total: 1
+Closing non transactional SqlSession [org.apache.ibatis.session.defaults.DefaultSqlSession@3e4f80cb]
+2026-09-01 18:17:22.109  INFO 41632 --- [           main] c.f.config.SeedAdminPasswordEnsurer      : [SeedPw] admin='auditor' password hash already matches, no-op.

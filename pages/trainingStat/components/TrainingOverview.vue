@@ -38,7 +38,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref, nextTick, getCurrentInstance } from 'vue'
 
 const DIM_TABS = ['days', 'sets', 'volume']
 
@@ -81,23 +81,65 @@ const periodText = computed(() => {
 
 const activeIndex = computed(() => DIM_TABS.indexOf(props.dimension))
 
+// tabRects 像素插值（与动作库一致）
+const tabRects = ref([])
+const tabRectsMeasured = ref(false)
+const instance = getCurrentInstance()
+
+function measureTabRects() {
+  nextTick(() => {
+    const query = uni.createSelectorQuery().in(instance)
+    query.select('.stats-row').boundingClientRect()
+    query.selectAll('.stat-item').boundingClientRect()
+    query.exec(res => {
+      const container = res && res[0]
+      const items = res && res[1]
+      if (container && items && items.length > 0) {
+        tabRects.value = items.map(it => ({
+          left: it.left - container.left,
+          width: it.width,
+        }))
+        tabRectsMeasured.value = true
+      }
+    })
+  })
+}
+
+// 首次挂载时测量
+nextTick(() => {
+  setTimeout(() => measureTabRects(), 100)
+})
+
+// dimension 变化时重新测量
+import { watch } from 'vue'
+watch(() => props.dimension, () => {
+  measureTabRects()
+})
+
 const highlightStyle = computed(() => {
-  const count = DIM_TABS.length
-  const itemWidth = 100 / count
-  const basePercent = activeIndex.value * itemWidth
-  let deltaPercent = 0
+  if (!tabRectsMeasured.value || tabRects.value.length === 0) return { opacity: 0 }
+  const curIdx = activeIndex.value
+  if (curIdx < 0) return { opacity: 0 }
+  const cur = tabRects.value[curIdx]
+  if (!cur) return { opacity: 0 }
+  let left = cur.left
+  let width = cur.width
   if (props.swipeDeltaX !== 0 && props.swipeViewWidth > 0) {
-    deltaPercent = (props.swipeDeltaX / props.swipeViewWidth) * itemWidth
-  }
-  // 边界阻尼
-  const isFirst = activeIndex.value === 0
-  const isLast = activeIndex.value === count - 1
-  if ((isFirst && props.swipeDeltaX > 0) || (isLast && props.swipeDeltaX < 0)) {
-    deltaPercent *= 0.3
+    const dir = props.swipeDeltaX > 0 ? -1 : 1
+    const nextIdx = curIdx + dir
+    if (nextIdx >= 0 && nextIdx < tabRects.value.length) {
+      const next = tabRects.value[nextIdx]
+      const progress = Math.min(Math.abs(props.swipeDeltaX) / (props.swipeViewWidth * 0.3), 1)
+      left = cur.left + (next.left - cur.left) * progress
+      width = cur.width + (next.width - cur.width) * progress
+    } else {
+      left = cur.left + props.swipeDeltaX * 0.2
+    }
   }
   return {
-    transform: `translateX(${basePercent + deltaPercent}%)`,
-    width: `calc(${itemWidth}%)`,
+    transform: `translateX(${left}px)`,
+    width: `${width}px`,
+    opacity: 1,
   }
 })
 </script>
@@ -142,7 +184,7 @@ const highlightStyle = computed(() => {
   background: rgba(55, 155, 255, 0.12);
   border-radius: 12px;
   z-index: 0;
-  transition: transform 0.38s cubic-bezier(0.22, 0.61, 0.36, 1), width 0.38s cubic-bezier(0.22, 0.61, 0.36, 1);
+  transition: transform 0.32s cubic-bezier(0.22, 0.61, 0.36, 1), width 0.32s cubic-bezier(0.22, 0.61, 0.36, 1);
   will-change: transform;
 }
 

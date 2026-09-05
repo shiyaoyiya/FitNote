@@ -418,7 +418,7 @@ export async function injectMockSession(opts = {}) {
   // 生成训练分析结果
   let analysis = null
   try {
-    const mod = await import('./strengthTrainingAnalyzer.js')
+    const mod = await import('@/utils/strengthTrainingAnalyzer.js')
     if (mod && mod.analyzeTrainingSession) {
       const profile = opts.profile || { age: 28, restingHR: mock.restingHR, weightKg: 70, heightCm: 175 }
       analysis = mod.analyzeTrainingSession({
