@@ -1,19 +1,18 @@
 <template>
   <view v-if="visible && template" class="popup-overlay" @click.self="handleClose">
-    <view class="overlay-bg" @click="handleClose"></view>
-    <view class="popup-panel square-detail-panel slide-up" @click.stop>
+    <view class="popup-panel slide-up" @click.stop>
       <view class="panel-header">
         <text class="panel-title">{{ template.name || '模板详情' }}</text>
-        <text class="close-btn" @click="handleClose">×</text>
+        <text class="close-btn" @click="handleClose" aria-label="关闭">×</text>
       </view>
-      <view class="panel-body" style="padding-bottom: 0;">
+      <view class="panel-body panel-body-no-padding">
         <view class="sq-detail-hero" :style="{ background: `linear-gradient(135deg, ${template.color}, ${template.color2 || template.color})` }">
           <text class="sqd-author">作者：{{ template.author }}</text>
           <view class="sqd-tags">
-            <text v-for="tag in template.tags" :key="tag" class="sqd-tag">{{ tag }}</text>
+            <text v-for="(tag, index) in (template.tags || [])" :key="index" class="sqd-tag">{{ tag }}</text>
           </view>
           <view class="sqd-stat-row">
-            <view class="sqd-stat"><text class="sqd-stat-num">{{ template.actions.length }}</text><text class="sqd-stat-lb">动作</text></view>
+            <view class="sqd-stat"><text class="sqd-stat-num">{{ (template.actions || []).length }}</text><text class="sqd-stat-lb">动作</text></view>
             <view class="sqd-stat"><text class="sqd-stat-num">{{ template.likes }}</text><text class="sqd-stat-lb">点赞</text></view>
             <view class="sqd-stat"><text class="sqd-stat-num">{{ template.downloads }}</text><text class="sqd-stat-lb">导入</text></view>
           </view>
@@ -21,7 +20,7 @@
         <view class="sq-detail-actions-preview">
           <view class="sqd-section-title">动作清单</view>
           <view class="sqd-action-list">
-            <view v-for="(a, i) in template.actions" :key="i" class="sqd-action-row">
+            <view v-for="(a, i) in (template.actions || [])" :key="i" class="sqd-action-row">
               <text class="sqd-action-index">{{ i + 1 }}</text>
               <text class="sqd-action-name">{{ a.name }}</text>
               <text class="sqd-action-sets">{{ a.sets }}组</text>
@@ -31,7 +30,7 @@
       </view>
       <view class="panel-footer">
         <view class="btn-cancel-popup" @click="handleShare">📤 分享</view>
-        <view class="btn-confirm-popup" @click="handleImport" :style="{ background: 'linear-gradient(135deg,#379bff,#2d82d6)', color: '#fff' }">✨ 导入到我的模板</view>
+        <view class="btn-confirm-popup" @click="handleImport">✨ 导入到我的模板</view>
       </view>
     </view>
   </view>
@@ -58,11 +57,21 @@ export default {
       this.$emit('import', this.template)
     },
     handleShare() {
-      const code = JSON.stringify({ n: this.template.name, a: this.template.actions, t: this.template.tags, c: this.template.color })
-      uni.setClipboardData({
-        data: code,
-        success: () => uni.showToast({ title: '分享码已复制', icon: 'success' })
-      })
+      try {
+        const code = JSON.stringify({ 
+          n: this.template.name, 
+          a: this.template.actions || [], 
+          t: this.template.tags || [], 
+          c: this.template.color 
+        })
+        uni.setClipboardData({
+          data: code,
+          success: () => uni.showToast({ title: '分享码已复制', icon: 'success' }),
+          fail: () => uni.showToast({ title: '复制失败，请重试', icon: 'none' })
+        })
+      } catch (e) {
+        uni.showToast({ title: '分享失败', icon: 'none' })
+      }
     }
   }
 }
@@ -83,16 +92,6 @@ export default {
   background: rgba(0, 0, 0, 0.5);
 }
 
-.overlay-bg {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 0;
-  background: transparent;
-}
-
 .popup-panel {
   position: relative;
   z-index: 1;
@@ -106,10 +105,6 @@ export default {
   border-radius: 28rpx 28rpx 0 0;
   box-shadow: 0 -8rpx 40rpx rgba(0, 0, 0, 0.25);
   overflow: hidden;
-}
-
-.square-detail-panel {
-  max-height: 86vh;
 }
 
 .slide-up {
@@ -146,6 +141,9 @@ export default {
   flex: 1;
   overflow-y: auto;
   padding: 24rpx 32rpx;
+}
+
+.panel-body-no-padding {
   padding-bottom: 0;
 }
 
