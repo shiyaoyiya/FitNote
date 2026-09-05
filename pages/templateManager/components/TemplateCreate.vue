@@ -16,7 +16,7 @@
         <view class="search-bar">
           <view class="search-bar-inner">
             <text class="search-icon">🔍</text>
-            <input v-model="searchTerm" placeholder="搜索动作名称..." class="search-input" />
+            <input v-model="searchTerm" placeholder="搜索动作名称..." class="search-input" confirm-type="search" @confirm="onSearchConfirm" />
             <text v-if="searchTerm" class="clear-icon" @click="searchTerm = ''">×</text>
           </view>
         </view>
@@ -30,15 +30,18 @@
         </scroll-view>
 
         <scroll-view class="action-list" scroll-y="true" show-scrollbar="false">
-          <view class="action-grid">
-            <view v-for="act in filteredActions" :key="act.id" class="action-item"
-              :class="{ selected: selectedActions.includes(act.name) }" @click="toggleAction(act.name)">
-              <text class="action-name">{{ act.name }}</text>
-              <text v-if="selectedActions.includes(act.name)" class="check-mark">✓</text>
-            </view>
+          <view v-if="isLoading" class="loading-state">
+            <text>加载动作中...</text>
           </view>
-          <view v-if="filteredActions.length === 0" class="no-actions">
+          <view v-else-if="filteredActions.length === 0" class="no-actions">
             <text>未找到匹配的动作</text>
+          </view>
+          <view v-else class="action-grid">
+            <view v-for="act in filteredActions" :key="act.id" class="action-item"
+              :class="{ selected: isActionSelected(act.name) }" @click="toggleAction(act.name)">
+              <text class="action-name">{{ act.name }}</text>
+              <text v-if="isActionSelected(act.name)" class="check-mark">✓</text>
+            </view>
           </view>
         </scroll-view>
 
@@ -67,6 +70,7 @@
 
 <script>
 import { useActionStore } from '@/stores/action'
+import { useTemplateStore } from '@/stores/template'
 import { PRESET_COLORS } from '@/utils/color.js'
 
 export default {
@@ -83,13 +87,17 @@ export default {
       searchTerm: '',
       activeCategory: 'all',
       selectedActions: [],
-      selectedColor: '#93d5dc',
-      presetColors: PRESET_COLORS
+      selectedColor: '',
+      presetColors: PRESET_COLORS,
+      isLoading: true
     }
   },
   computed: {
     actionStore() {
       return useActionStore()
+    },
+    templateStore() {
+      return useTemplateStore()
     },
     categories() {
       return [{ id: 'all', name: '全部' }, ...this.actionStore.categories]
@@ -124,12 +132,19 @@ export default {
         uni.showToast({ title: '请输入模板名称', icon: 'none' })
         return
       }
+      if (this.templateStore.templates.some(t => t.name === name)) {
+        uni.showToast({ title: '已存在同名模板', icon: 'none' })
+        return
+      }
       this.$emit('confirm', {
         name,
         actions: [...this.selectedActions],
         color: this.selectedColor
       })
       this.resetForm()
+    },
+    isActionSelected(name) {
+      return this.selectedActions.includes(name)
     },
     toggleAction(name) {
       const idx = this.selectedActions.indexOf(name)
@@ -139,13 +154,34 @@ export default {
         this.selectedActions.splice(idx, 1)
       }
     },
+    onSearchConfirm() {
+      // 键盘搜索确认后收起键盘
+      uni.hideKeyboard()
+    },
     resetForm() {
       this.templateName = ''
       this.searchTerm = ''
       this.activeCategory = 'all'
       this.selectedActions = []
-      this.selectedColor = this.presetColors[0].value
+      this.selectedColor = this.presetColors[0]?.value || '#93d5dc'
+    },
+    initDefaultColor() {
+      this.selectedColor = this.presetColors[0]?.value || '#93d5dc'
     }
+  },
+  watch: {
+    visible(val) {
+      if (val) {
+        this.initDefaultColor()
+        this.isLoading = true
+        setTimeout(() => {
+          this.isLoading = false
+        }, 300)
+      }
+    }
+  },
+  mounted() {
+    this.initDefaultColor()
   }
 }
 </script>
@@ -342,6 +378,13 @@ export default {
 }
 
 .no-actions {
+  text-align: center;
+  padding: 40rpx 0;
+  color: var(--text-muted);
+  font-size: 26rpx;
+}
+
+.loading-state {
   text-align: center;
   padding: 40rpx 0;
   color: var(--text-muted);
