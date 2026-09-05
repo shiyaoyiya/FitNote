@@ -532,12 +532,12 @@ export default {
   left: 50%;
   transform: translateX(-50%);
   width: 92%;
-  height: 180rpx;
+  height: 90px;
 }
 
 .movable-item {
   width: 100%;
-  height: 180rpx;
+  height: 90px;
   display: flex;
   align-items: center;
   transition: none !important;
@@ -555,10 +555,12 @@ export default {
 .slide-wrapper {
   position: relative;
   width: 100%;
-  height: 180rpx;
-  margin: 0 30rpx;
+  height: 90px;
+  margin: 0;
   overflow: hidden;
   background-color: transparent;
+  box-sizing: border-box;
+  padding: 0 15px;
 }
 
 .delete-btn-container {
