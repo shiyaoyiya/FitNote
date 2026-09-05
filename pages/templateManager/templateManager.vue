@@ -223,10 +223,11 @@ export default {
   color: var(--text-muted);
   font-size: 14px;
   transition: color 0.28s cubic-bezier(0.22, 0.61, 0.36, 1);
+  font-weight: 500;
 }
 
 .tab-item.active {
-  color: #ffffff;
+  color: #ffffff !important;
 }
 
 .tab-item:active {

@@ -282,6 +282,11 @@ export default {
       if (!this.isDragMode) {
         this.$set(this.slideOffset, idx, 0)
       }
+
+      // 阻止事件冒泡到父组件的页面切换手势
+      if (e.cancelable) {
+        e.stopPropagation()
+      }
     },
     onTouchMove(e, idx) {
       if (this.isDragMode) return
@@ -551,9 +556,9 @@ export default {
 .slide-wrapper {
   position: relative;
   width: 100%;
-  height: 156rpx;
+  height: 180rpx;
   margin: 0 30rpx;
-  overflow: visible;
+  overflow: hidden;
   background-color: transparent;
 }
 
