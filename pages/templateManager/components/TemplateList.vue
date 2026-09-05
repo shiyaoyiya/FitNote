@@ -85,8 +85,7 @@ export default {
       this.startTime = Date.now()
       this.isClick = true
       if (!this.isDragMode) {
-        // Vue 2: 使用 $set 响应式更新数组。Vue 3 中可直接赋值。
-        this.$set(this.slideOffset, idx, 0)
+        this.slideOffset[idx] = 0
       }
     },
     onTouchMove(e, idx) {
@@ -100,17 +99,16 @@ export default {
       }
       if (Math.abs(deltaX) > Math.abs(deltaY) * 1.5) {
         if (deltaX < 0) {
-          this.$set(this.slideOffset, idx, Math.max(deltaX, -100))
+          this.slideOffset[idx] = Math.max(deltaX, -100)
         } else if (deltaX > 0 && this.slideOffset[idx] < 0) {
-          this.$set(this.slideOffset, idx, Math.min(0, this.slideOffset[idx] + deltaX))
+          this.slideOffset[idx] = Math.min(0, this.slideOffset[idx] + deltaX)
         }
         if (e.cancelable) {
           e.preventDefault()
           e.stopPropagation()
         }
       } else {
-        // Vue 2: 使用 $set 响应式更新数组。Vue 3 中可直接赋值。
-        this.$set(this.slideOffset, idx, 0)
+        this.slideOffset[idx] = 0
       }
     },
     onTouchEnd(e, idx) {
@@ -123,11 +121,10 @@ export default {
           }
         }, 50)
       }
-      // Vue 2: 使用 $set 响应式更新数组。Vue 3 中可直接赋值。
       if ((this.slideOffset[idx] || 0) < -50) {
-        this.$set(this.slideOffset, idx, -80)
+        this.slideOffset[idx] = -80
       } else {
-        this.$set(this.slideOffset, idx, 0)
+        this.slideOffset[idx] = 0
       }
       this.isClick = false
       this.startX = 0
@@ -143,8 +140,7 @@ export default {
       } catch (e) {
         console.error('振动反馈失败:', e)
       }
-      // Vue 2: 使用 $set 响应式更新数组。Vue 3 中可直接赋值。
-      this.$set(this.slideOffset, idx, 0)
+        this.slideOffset[idx] = 0
     },
     onDragMove(e, idx) {
       if (!this.isDragMode || this.dragIdx !== idx) return
@@ -176,14 +172,12 @@ export default {
         const minY = 0
         const maxY = (this.templates.length - 1) * this.rowHeight
         const clampedY = Math.min(Math.max(currentY, minY), maxY)
-        // Vue 2: 使用 $set 响应式更新数组。Vue 3 中可直接赋值。
-        this.$set(this.itemY, idx, clampedY)
+        this.itemY[idx] = clampedY
       }
     },
     smoothUpdatePositions() {
       for (let i = 0; i < this.templates.length; i++) {
-        // Vue 2: 使用 $set 响应式更新数组。Vue 3 中可直接赋值。
-        this.$set(this.itemY, i, i * this.rowHeight)
+        this.itemY[i] = i * this.rowHeight
       }
     },
     onDragEnd() {
