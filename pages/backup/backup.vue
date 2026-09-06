@@ -1,21 +1,14 @@
 <template>
-  <view class="container" :class="{ dark: daySettingsStore.isDarkMode, light: !daySettingsStore.isDarkMode }"
+  <view class="container"
+    :class="{ dark: daySettingsStore.isDarkMode, light: !daySettingsStore.isDarkMode, 'liquid-glass': daySettingsStore.liquidGlassEnabled }"
     @touchstart="onPageTouchStart" @touchmove="onPageTouchMove" @touchend="onPageTouchEnd">
     <!-- 顶部 Tab 栏 + 高亮框 -->
     <view class="tab-bar" :class="{ 'no-transition': swipeNoTransition }">
-      <view
-        v-for="(t, i) in tabs"
-        :key="t.key"
-        class="tab-item"
-        :class="{ active: activeTab === t.key }"
-        @click="switchTab(t.key, true)"
-      >
+      <view v-for="(t, i) in tabs" :key="t.key" class="tab-item" :class="{ active: activeTab === t.key }"
+        @click="switchTab(t.key, true)">
         <text class="tab-label">{{ t.label }}</text>
       </view>
-      <view
-        class="tab-highlight"
-        :style="tabHighlightStyle"
-      ></view>
+      <view class="tab-highlight" :style="tabHighlightStyle"></view>
     </view>
 
     <!-- ========== 本地备份 ========== -->
@@ -77,7 +70,7 @@
           <view class="title-group">
             <text class="label-text">备份模式</text>
             <view class="path-badge mode-badge" :class="currentMode">
-              {{ currentMode === 'cloud' ? '☁️ 云开发' : currentMode === 'local' ? '🖥 本地服务器' : '❓ 未检测' }}
+              {{ currentMode === 'cloud' ? '☁️ 云开发' : currentMode === 'local' ? '🖥 本地服务器' : modeDetected ? '⚠️ 未连接' : '❓ 未检测' }}
             </view>
           </view>
           <text class="action-link" @click="testServerPing">测试连接</text>
@@ -88,7 +81,8 @@
           </view>
           <view class="path-info">
             <text class="path-filename-text">{{ serverAddress }}</text>
-            <text class="last-time-text">{{ isLoggedIn ? '已登录：' + (cloudUser?.nickname || cloudUser?.username || '') : '未登录' }}</text>
+            <text
+              class="last-time-text">{{ isLoggedIn ? '已登录：' + (cloudUser?.nickname || cloudUser?.username || '') : '未登录' }}</text>
           </view>
         </view>
       </view>
@@ -142,29 +136,17 @@
     <!-- ========== 文本备份（原导出导入） ========== -->
     <view v-show="activeTab === 'text'" class="tab-content">
       <view class="export-import-tabs">
-        <view
-          :class="['sub-tab', { active: exportImportTab === 'export' }]"
-          @click="exportImportTab = 'export'"
-        >
+        <view :class="['sub-tab', { active: exportImportTab === 'export' }]" @click="exportImportTab = 'export'">
           📤 导出
         </view>
-        <view
-          :class="['sub-tab', { active: exportImportTab === 'import' }]"
-          @click="exportImportTab = 'import'"
-        >
+        <view :class="['sub-tab', { active: exportImportTab === 'import' }]" @click="exportImportTab = 'import'">
           📥 导入
         </view>
       </view>
 
       <view class="export-import-content">
-        <ExportTab
-          v-if="exportImportTab === 'export'"
-          @export-success="onExportSuccess"
-        />
-        <ImportTab
-          v-if="exportImportTab === 'import'"
-          @import-success="onImportSuccess"
-        />
+        <ExportTab v-if="exportImportTab === 'export'" @export-success="onExportSuccess" />
+        <ImportTab v-if="exportImportTab === 'import'" @import-success="onImportSuccess" />
       </view>
     </view>
   </view>
@@ -199,7 +181,9 @@
     isLoggedIn,
     me,
   } from '@/utils/serverBackup.js'
-  import { SERVER_BASE_URL } from '@/utils/serverConfig.js'
+  import {
+    SERVER_BASE_URL
+  } from '@/utils/serverConfig.js'
 
   export default {
     components: {
@@ -218,15 +202,28 @@
       tabs() {
         // 微信小程序无本地文件系统，隐藏「本地备份」tab
         if (this.isMpWeixin) {
-          return [
-            { key: 'cloud', label: '☁️ 云端备份' },
-            { key: 'text', label: '📝 文本备份' },
+          return [{
+              key: 'cloud',
+              label: '☁️ 云端备份'
+            },
+            {
+              key: 'text',
+              label: '📝 文本备份'
+            },
           ]
         }
-        return [
-          { key: 'local', label: '📂 本地备份' },
-          { key: 'cloud', label: '☁️ 云端备份' },
-          { key: 'text', label: '📝 文本备份' },
+        return [{
+            key: 'local',
+            label: '📂 本地备份'
+          },
+          {
+            key: 'cloud',
+            label: '☁️ 云端备份'
+          },
+          {
+            key: 'text',
+            label: '📝 文本备份'
+          },
         ]
       },
       activeIndex() {
@@ -242,11 +239,17 @@
         return this.currentMode === 'cloud' ? '微信云开发' : SERVER_BASE_URL
       },
       tabHighlightStyle() {
-        if (!this.tabRectsMeasured || this.tabRects.length === 0) return { opacity: 0 }
+        if (!this.tabRectsMeasured || this.tabRects.length === 0) return {
+          opacity: 0
+        }
         const curIdx = this.activeIndex
-        if (curIdx < 0) return { opacity: 0 }
+        if (curIdx < 0) return {
+          opacity: 0
+        }
         const cur = this.tabRects[curIdx]
-        if (!cur) return { opacity: 0 }
+        if (!cur) return {
+          opacity: 0
+        }
         let left = cur.left
         let width = cur.width
         if (this.swipeDeltaX !== 0 && this.swipeViewWidth > 0) {
@@ -268,13 +271,15 @@
         }
       },
       currentMode() {
-        return getCurrentBackupMode()
+        return this.backupMode
       }
     },
     data() {
       return {
         daySettingsStore: useDaySettingsStore(),
         dayDataCacheStore: useDayDataCacheStore(),
+        backupMode: 'unknown',
+        modeDetected: false,
         backupPath: '',
         lastBackupTime: '',
         isBackingUp: false,
@@ -424,27 +429,37 @@
         } catch (e) {
           // 探测失败不阻塞
         }
+        this.backupMode = getCurrentBackupMode()
+        this.modeDetected = true
       },
 
       async testServerPing() {
-        uni.showLoading({ title: '检测中...' })
+        uni.showLoading({
+          title: '检测中...'
+        })
         try {
           await isLocalServerAvailable(true)
-          const mode = getCurrentBackupMode()
+          this.backupMode = getCurrentBackupMode()
+          this.modeDetected = true
           uni.showToast({
-            title: mode === 'cloud' ? '已切换到云开发模式' : '本地服务器已连接',
+            title: this.backupMode === 'cloud' ? '已切换到云开发模式' : this.backupMode === 'local' ? '本地服务器已连接' : '未连接到服务器',
             icon: 'none'
           })
           this.refreshCloudList()
         } catch (e) {
-          uni.showToast({ title: '检测失败', icon: 'none' })
+          uni.showToast({
+            title: '检测失败',
+            icon: 'none'
+          })
         } finally {
           uni.hideLoading()
         }
       },
 
       goToLogin() {
-        uni.navigateTo({ url: '/pages/login/login' })
+        uni.navigateTo({
+          url: '/pages/login/login'
+        })
       },
 
       // ============ 云端备份 ============
@@ -452,7 +467,10 @@
         if (this.isUploading) return
         // 本地模式需要登录
         if (this.currentMode !== 'cloud' && !this.isLoggedIn) {
-          uni.showToast({ title: '请先登录', icon: 'none' })
+          uni.showToast({
+            title: '请先登录',
+            icon: 'none'
+          })
           return
         }
         this.isUploading = true
@@ -460,13 +478,21 @@
         uni.vibrateShort()
         try {
           await uploadToServer({
-            onProgress: (p) => { this.uploadProgress = p },
+            onProgress: (p) => {
+              this.uploadProgress = p
+            },
           })
-          uni.showToast({ title: '备份成功', icon: 'success' })
+          uni.showToast({
+            title: '备份成功',
+            icon: 'success'
+          })
           this.refreshCloudList()
         } catch (e) {
           console.error('云端备份失败:', e)
-          uni.showToast({ title: '备份失败：' + (e.message || ''), icon: 'none' })
+          uni.showToast({
+            title: '备份失败：' + (e.message || ''),
+            icon: 'none'
+          })
         } finally {
           this.isUploading = false
         }
@@ -491,7 +517,9 @@
       },
 
       async downloadCloudBackup(item) {
-        uni.showLoading({ title: '下载中...' })
+        uni.showLoading({
+          title: '下载中...'
+        })
         try {
           const backupData = await downloadFromServer(item.id)
           uni.hideLoading()
@@ -500,13 +528,21 @@
             itemList: ['覆盖导入 (清除现有数据)', '合并导入 (保留现有数据)'],
             success: async (res) => {
               const mode = res.tapIndex === 0 ? 'overwrite' : 'merge'
-              uni.showLoading({ title: '恢复中...' })
+              uni.showLoading({
+                title: '恢复中...'
+              })
               try {
                 applyBackupToLocal(backupData, mode)
                 uni.$emit('backup-restored')
-                uni.showToast({ title: '恢复成功', icon: 'success' })
+                uni.showToast({
+                  title: '恢复成功',
+                  icon: 'success'
+                })
               } catch (e) {
-                uni.showToast({ title: '恢复失败', icon: 'none' })
+                uni.showToast({
+                  title: '恢复失败',
+                  icon: 'none'
+                })
               } finally {
                 uni.hideLoading()
               }
@@ -514,7 +550,10 @@
           })
         } catch (e) {
           uni.hideLoading()
-          uni.showToast({ title: '下载失败', icon: 'none' })
+          uni.showToast({
+            title: '下载失败',
+            icon: 'none'
+          })
         }
       },
 
@@ -526,10 +565,16 @@
             if (res.confirm) {
               try {
                 await deleteServerBackup(item.id)
-                uni.showToast({ title: '已删除', icon: 'success' })
+                uni.showToast({
+                  title: '已删除',
+                  icon: 'success'
+                })
                 this.refreshCloudList()
               } catch (e) {
-                uni.showToast({ title: '删除失败', icon: 'none' })
+                uni.showToast({
+                  title: '删除失败',
+                  icon: 'none'
+                })
               }
             }
           }
@@ -892,11 +937,9 @@
         }
       },
 
-      onExportSuccess() {
-      },
+      onExportSuccess() {},
 
-      onImportSuccess() {
-      }
+      onImportSuccess() {}
     }
   }
 </script>
@@ -918,6 +961,7 @@
     padding: 20px;
     border-radius: 24px;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.03);
+    margin-bottom: 20px;
   }
 
   .label-text {
@@ -1354,4 +1398,20 @@
     flex: 1;
     overflow-y: auto;
   }
+</style>
+
+<style>
+/* 禁用 backup-orb 的液态玻璃效果 */
+.container.liquid-glass .backup-orb {
+  background: linear-gradient(135deg, #007aff, #0056b3) !important;
+  border: none !important;
+  box-shadow: 0 15px 40px rgba(0, 122, 255, 0.3) !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+.container.liquid-glass .rotating.backup-orb::after {
+  background: inherit !important;
+  box-shadow: none !important;
+}
 </style>
