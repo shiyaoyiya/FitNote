@@ -81,7 +81,7 @@
 
     <!-- 导出按钮 -->
     <view class="export-action">
-      <view :class="['export-btn', { disabled: !canExport }]" @click="handleExport">
+      <view :class="['export-btn', 'glass-btn', { disabled: !canExport }]" @click="handleExport">
         <text class="btn-icon">📤</text>
         <text class="btn-text">导出到剪贴板</text>
       </view>
@@ -520,29 +520,7 @@
     cursor: not-allowed;
   }
 
-  .container.liquid-glass .export-btn {
-    background: var(--glass-bg);
-    border: none;
-    box-shadow:
-      0 0 0 0.5px var(--glass-edge) inset,
-      0 1px 2px var(--glass-shadow-inner) inset;
-    -webkit-backdrop-filter: blur(8px) saturate(120%);
-    backdrop-filter: blur(8px) saturate(120%);
-    color: var(--glass-text);
-  }
-
-  .container.liquid-glass .export-btn:not(.disabled) {
-    background: rgba(55, 155, 255, 0.6);
-    color: #ffffff;
-  }
-
-  .container.liquid-glass .export-btn.disabled {
-    opacity: 0.5;
-  }
-
-  .container.liquid-glass .export-btn:active {
-    transform: scale(0.96);
-  }
+  /* export-btn 已改用 glass-btn 工具类 */
 
   .btn-icon {
     font-size: 20px;

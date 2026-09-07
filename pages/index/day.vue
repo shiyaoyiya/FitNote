@@ -29,7 +29,7 @@
           <text class="dab-icon">⏱</text>
           <text class="dab-label">开始计时</text>
         </view>
-        <view v-else class="day-action-btn half primary minimal-timer-btn" @click="showTimer = true">
+        <view v-else class="day-action-btn half primary minimal-timer-btn glass-btn-primary" @click="showTimer = true">
           <text class="dab-icon">⏱</text>
           <text class="dab-label">{{ timerDisplay }}</text>
         </view>
@@ -1523,38 +1523,7 @@
     background: transparent !important;
   }
 
-  /* 液态玻璃：底部两个按钮交由 liquid-glass.css 的 .minimal-timer-btn / .minimal-settings-btn 统一渲染玻璃胶囊
-     这里处理 primary（计时中）状态：纪念日玻璃按钮样式 */
-  html .container.liquid-glass .day-action-btn.half.primary {
-    position: relative;
-    /* 半透明渐变底色，使用主题蓝 */
-    background: linear-gradient(
-      135deg,
-      rgba(55, 155, 255, 0.7) 0%,
-      rgba(0, 72, 255, 0.7) 100%
-    ) !important;
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    
-    /* 顶部亮白边，模拟玻璃弧面高光 */
-    border: 1px solid rgba(255, 255, 255, 0.2) !important;
-    border-top: 1px solid rgba(255, 255, 255, 0.4) !important;
-    
-    /* 外发光 + 内高光 */
-    box-shadow: 
-      0 4px 16px rgba(55, 155, 255, 0.3),
-      inset 0 1px 0 rgba(255, 255, 255, 0.3) !important;
-    
-    border-radius: 999rpx;
-  }
-  html .container.liquid-glass .day-action-btn.half.primary .dab-label,
-  html .container.liquid-glass .day-action-btn.half.primary .dab-icon {
-    color: #fff !important;
-  }
-  html .container.liquid-glass .day-action-btn.half .dab-label,
-  html .container.liquid-glass .day-action-btn.half .dab-icon {
-    color: var(--glass-text) !important;
-  }
+  /* 液态玻璃：底部两个按钮已改用 glass-btn-primary / glass-btn 工具类 */
 
   /* ========== 整体容器 & 深色模式 ========== */
   .container {

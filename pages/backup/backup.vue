@@ -51,7 +51,7 @@
       </view>
 
       <view class="bottom-actions">
-        <button class="btn-secondary" @click="handleStartImport" :disabled="isRestoring">
+        <button class="btn-secondary glass-capsule" @click="handleStartImport" :disabled="isRestoring">
           <text class="btn-icon">📥</text>
           <text>导入历史备份</text>
         </button>
@@ -1415,20 +1415,5 @@
   box-shadow: none !important;
 }
 
-/* btn-secondary 液态玻璃样式 */
-.container.liquid-glass .btn-secondary {
-  background: var(--glass-bg) !important;
-  border: none !important;
-  box-shadow:
-    0 0 0 0.5px var(--glass-edge) inset,
-    0 1px 2px var(--glass-shadow-inner) inset;
-  -webkit-backdrop-filter: blur(8px) saturate(120%);
-  backdrop-filter: blur(8px) saturate(120%);
-  color: var(--glass-text) !important;
-}
-
-.container.liquid-glass .btn-secondary:active {
-  transform: scale(0.96);
-  opacity: 0.8;
-}
+/* btn-secondary 已改用 glass-capsule 工具类 */
 </style>

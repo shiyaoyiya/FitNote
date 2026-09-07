@@ -115,7 +115,7 @@
     <!-- 导入按钮 -->
     <view v-if="parsedData" class="import-action">
       <view 
-        :class="['import-btn', { disabled: !canImport }]" 
+        :class="['import-btn', 'glass-btn', { disabled: !canImport }]" 
         @click="handleImport"
       >
         <text class="btn-icon">📥</text>
@@ -570,29 +570,7 @@ export default {
   font-weight: bold;
 }
 
-.container.liquid-glass .import-btn {
-  background: var(--glass-bg);
-  border: none;
-  box-shadow:
-    0 0 0 0.5px var(--glass-edge) inset,
-    0 1px 2px var(--glass-shadow-inner) inset;
-  -webkit-backdrop-filter: blur(8px) saturate(120%);
-  backdrop-filter: blur(8px) saturate(120%);
-  color: var(--glass-text);
-}
-
-.container.liquid-glass .import-btn:not(.disabled) {
-  background: rgba(55, 155, 255, 0.6);
-  color: #ffffff;
-}
-
-.container.liquid-glass .import-btn.disabled {
-  opacity: 0.5;
-}
-
-.container.liquid-glass .import-btn:active {
-  transform: scale(0.96);
-}
+/* import-btn 已改用 glass-btn 工具类 */
 
 .error-message {
   display: flex;

@@ -3,7 +3,7 @@
     :class="{ dark: daySettingsStore.isDarkMode, light: !daySettingsStore.isDarkMode, 'liquid-glass': daySettingsStore.liquidGlassEnabled }"
     @touchstart="onPageTouchStart" @touchmove="onPageTouchMove" @touchend="onPageTouchEnd">
     <view class="search-bar">
-      <view class="search-inner">
+      <view class="search-inner glass-base">
         <text class="search-icon">🔍</text>
         <input v-model="searchQuery" placeholder="搜索动作名称..." class="search-input" @input="onSearchInput" />
         <text v-if="searchQuery" class="search-clear" @click="clearSearch">×</text>
@@ -800,16 +800,7 @@
     color: var(--text-secondary);
   }
 
-  .container.liquid-glass .search-inner {
-    background: var(--glass-bg) !important;
-    border: none !important;
-    box-shadow:
-      0 0 0 0.5px var(--glass-edge) inset,
-      0 1px 3px var(--glass-shadow-inner) inset,
-      0 1px 4px var(--glass-shadow-outer) !important;
-    -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
-    backdrop-filter: blur(12px) saturate(140%) !important;
-  }
+  /* search-inner 已改用 glass-base 工具类 */
 
   .search-clear {
     font-size: 18px;

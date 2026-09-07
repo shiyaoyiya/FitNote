@@ -107,8 +107,8 @@
           <text class="sq-detail-desc">{{ detailTpl?.description }}</text>
         </view>
         <view class="sq-detail-actions">
-          <view class="sq-detail-btn ghost" @click="closeDetail">关闭</view>
-          <view class="sq-detail-btn primary" :class="{ disabled: isDownloading }" @click="handleDownload">导入到我的模板</view>
+          <view class="sq-detail-btn ghost glass-btn" @click="closeDetail">关闭</view>
+          <view class="sq-detail-btn primary glass-btn-primary" :class="{ disabled: isDownloading }" @click="handleDownload">导入到我的模板</view>
         </view>
       </view>
     </view>
@@ -151,8 +151,8 @@
           </view>
         </view>
         <view class="sq-detail-actions">
-          <view class="sq-detail-btn ghost" @click="closeShare">取消</view>
-          <view class="sq-detail-btn primary" :class="{ disabled: isSharing || !shareForm.tplId }" @click="submitShare">提交分享</view>
+          <view class="sq-detail-btn ghost glass-btn" @click="closeShare">取消</view>
+          <view class="sq-detail-btn primary glass-btn-primary" :class="{ disabled: isSharing || !shareForm.tplId }" @click="submitShare">提交分享</view>
         </view>
       </view>
     </view>
@@ -972,46 +972,8 @@
     color: var(--text-primary);
   }
 
-  .container.liquid-glass .sq-detail-btn.ghost {
-    background: var(--glass-bg);
-    border: none;
-    color: var(--glass-text);
-    box-shadow:
-      0 0 0 0.5px var(--glass-edge) inset,
-      0 1px 2px var(--glass-shadow-inner) inset;
-    -webkit-backdrop-filter: blur(8px) saturate(120%);
-    backdrop-filter: blur(8px) saturate(120%);
-  }
-
-  .sq-detail-btn.primary {
-    background: var(--primary);
-    color: #fff;
-  }
-
-  .container.liquid-glass .sq-detail-btn.primary {
-    background: var(--glass-bg);
-    border: none;
-    color: var(--glass-text);
-    box-shadow:
-      0 0 0 0.5px var(--glass-edge) inset,
-      0 1px 2px var(--glass-shadow-inner) inset;
-    -webkit-backdrop-filter: blur(8px) saturate(120%);
-    backdrop-filter: blur(8px) saturate(120%);
-  }
-
-  .container.liquid-glass .sq-detail-btn.primary:not(.disabled) {
-    background: rgba(55, 155, 255, 0.6);
-    color: #ffffff;
-    box-shadow: 0 2rpx 8rpx rgba(55, 155, 255, 0.3);
-  }
-
-  .container.liquid-glass .sq-detail-btn.primary.disabled {
-    opacity: 0.5;
-  }
-
-  .container.liquid-glass .sq-detail-btn.primary:active {
-    transform: scale(0.96);
-  }
+  /* sq-detail-btn.ghost 已改用 glass-btn 工具类 */
+  /* sq-detail-btn.primary 已改用 glass-btn-primary 工具类 */
 
   /* —— 广场详情：新增样式（对齐 templateManager 广场详情视觉） —— */
   .sq-detail-sheet {
