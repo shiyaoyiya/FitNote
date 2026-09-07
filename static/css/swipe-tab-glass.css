@@ -1,0 +1,106 @@
+/**
+ * 侧滑 Tab 切换 — 通用样式（配合 swipeTabMixin.js 使用）
+ *
+ * 通用类名约定：
+ *   .swipe-tab-bar        — tab 栏容器（position: relative）
+ *   .swipe-tab-item       — 单个 tab（可点击）
+ *   .swipe-tab-highlight  — 高光框（absolute，跟手移动）
+ *
+ * 使用方式：
+ *   1. 在页面 <style> 中 @import '/static/css/swipe-tab-glass.css';
+ *   2. 或在 App.vue 中全局引入
+ *   3. 模板使用上述类名结构
+ *   4. 引入 swipeTabMixin.js 并提供 swipeCurrentIndex 和 onSwipeTabChange
+ */
+
+/* ===== 基础样式（非液态玻璃下） ===== */
+
+.swipe-tab-bar {
+  position: relative;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+
+/* 跟手时关闭过渡 */
+.swipe-tab-bar.no-transition .swipe-tab-highlight {
+  transition: none;
+}
+
+.swipe-tab-highlight {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  border-radius: 20px;
+  background: linear-gradient(135deg, #379bff, #0048ff);
+  z-index: 0;
+  pointer-events: none;
+  transition: transform 0.32s cubic-bezier(0.22, 0.61, 0.36, 1),
+              width 0.32s cubic-bezier(0.22, 0.61, 0.36, 1);
+  will-change: transform;
+}
+
+.swipe-tab-item {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 14px;
+  border-radius: 20px;
+  background-color: transparent;
+  font-size: 13px;
+  color: var(--text-secondary, #999);
+  flex-shrink: 0;
+  transition: color 0.28s cubic-bezier(0.22, 0.61, 0.36, 1);
+  cursor: pointer;
+}
+
+.swipe-tab-item.active {
+  color: #fff;
+}
+
+/* 点击缩放反馈 */
+.swipe-tab-item:active {
+  transform: scale(0.97);
+}
+
+/* ===== 液态玻璃下统一样式 ===== */
+
+/* tab 栏容器：透明背景 + 间隙，让 tab 成为独立胶囊 */
+.container.liquid-glass .swipe-tab-bar {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  padding: 0 !important;
+  gap: 8px !important;
+}
+
+/* 每个 tab 独立玻璃背景 + 胶囊圆角 */
+.container.liquid-glass .swipe-tab-item {
+  background: var(--glass-bg) !important;
+  border-radius: 20px !important;
+  -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
+  backdrop-filter: blur(12px) saturate(140%) !important;
+  box-shadow:
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 3px var(--glass-shadow-inner) inset,
+    0 1px 4px var(--glass-shadow-outer) !important;
+}
+
+/* 高光框：贴满 tab 高度，蓝色渐变胶囊 */
+.container.liquid-glass .swipe-tab-highlight {
+  top: 0 !important;
+  height: 100% !important;
+  background: linear-gradient(135deg, #379bff, #0048ff) !important;
+  border-radius: 20px !important;
+}
+
+/* 液态玻璃下 active 文字改为白色 */
+.container.liquid-glass .swipe-tab-item.active {
+  color: #ffffff !important;
+}

@@ -570,6 +570,30 @@ export default {
   font-weight: bold;
 }
 
+.container.liquid-glass .import-btn {
+  background: var(--glass-bg);
+  border: none;
+  box-shadow:
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 2px var(--glass-shadow-inner) inset;
+  -webkit-backdrop-filter: blur(8px) saturate(120%);
+  backdrop-filter: blur(8px) saturate(120%);
+  color: var(--glass-text);
+}
+
+.container.liquid-glass .import-btn:not(.disabled) {
+  background: rgba(55, 155, 255, 0.6);
+  color: #ffffff;
+}
+
+.container.liquid-glass .import-btn.disabled {
+  opacity: 0.5;
+}
+
+.container.liquid-glass .import-btn:active {
+  transform: scale(0.96);
+}
+
 .error-message {
   display: flex;
   align-items: center;

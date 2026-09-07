@@ -729,7 +729,7 @@
           }
 
           const data = payload.data || {}
-          const tplArr = Array.isArray(data.fitness_templates) ? data.fitness_templates : []
+          const tplArr = Array.isArray(data.fitness_templates) ? data.fitness_templates.filter(t => !t.isAerobic) : []
           const actArr = Array.isArray(data.fitness_actions) ? data.fitness_actions : []
 
           const LEGACY_CATEGORY_MAP = {
@@ -1413,5 +1413,22 @@
 .container.liquid-glass .rotating.backup-orb::after {
   background: inherit !important;
   box-shadow: none !important;
+}
+
+/* btn-secondary 液态玻璃样式 */
+.container.liquid-glass .btn-secondary {
+  background: var(--glass-bg) !important;
+  border: none !important;
+  box-shadow:
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 2px var(--glass-shadow-inner) inset;
+  -webkit-backdrop-filter: blur(8px) saturate(120%);
+  backdrop-filter: blur(8px) saturate(120%);
+  color: var(--glass-text) !important;
+}
+
+.container.liquid-glass .btn-secondary:active {
+  transform: scale(0.96);
+  opacity: 0.8;
 }
 </style>

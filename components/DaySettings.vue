@@ -75,12 +75,24 @@
 
 <script setup>
   const props = defineProps({
-    visible: { type: Boolean, default: false },
-    availableActions: { type: Array, default: () => [] },
-    chosenActions: { type: Array, default: () => [] },
+    visible: {
+      type: Boolean,
+      default: false
+    },
+    availableActions: {
+      type: Array,
+      default: () => []
+    },
+    chosenActions: {
+      type: Array,
+      default: () => []
+    },
     settings: {
       type: Object,
-      default: () => ({ autoStartTimer: false, autoFillData: false })
+      default: () => ({
+        autoStartTimer: false,
+        autoFillData: false
+      })
     },
   })
 
@@ -140,8 +152,15 @@
   }
 
   @keyframes fadeIn {
-    from { opacity: 0; transform: scale(0.9); }
-    to { opacity: 1; transform: scale(1); }
+    from {
+      opacity: 0;
+      transform: scale(0.9);
+    }
+
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
   }
 
   .modal-header {
@@ -210,7 +229,7 @@
 
   .setting-switch {
     width: 44px;
-    height: 24px;
+    height: 22px;
     border-radius: 12px;
     background: var(--bg-tertiary);
     position: relative;

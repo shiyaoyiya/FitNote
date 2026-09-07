@@ -5,7 +5,7 @@
       <view class="more-btn-wrap">
         <view class="more-btn" @click="$emit('open-more-menu')">
           <image v-if="userAvatar" class="more-btn-avatar" :src="userAvatar" mode="aspectFill" />
-          <text v-else class="more-dots">👤</text>
+          <text v-else class="more-dots">⋮</text>
         </view>
       </view>
     </view>

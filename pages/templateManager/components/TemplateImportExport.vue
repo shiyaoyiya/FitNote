@@ -19,12 +19,12 @@
       <view class="panel-body" v-if="activeTab === 'export'">
         <view class="select-all-row">
           <view class="select-all-btn" @click="toggleSelectAll">
-            <text v-if="selectedTemplates.length === templates.length">✓ 取消全选</text>
+            <text v-if="selectedTemplates.length === exportTemplatesList.length">✓ 取消全选</text>
             <text v-else>☐ 全选</text>
           </view>
         </view>
         <scroll-view class="template-list" scroll-y="true">
-          <view v-for="(tpl, idx) in templates" :key="tpl.id" class="template-checkbox-item"
+          <view v-for="(tpl, idx) in exportTemplatesList" :key="tpl.id || idx" class="template-checkbox-item"
             @click="toggleTemplateSelect(tpl)">
             <view class="checkbox-box" :class="{ checked: isTemplateSelected(tpl) }">
               <text v-if="isTemplateSelected(tpl)" class="checkbox-check">✓</text>
@@ -34,6 +34,7 @@
               <text class="template-count">{{ tpl.actions ? tpl.actions.length : 0 }}个动作</text>
             </view>
           </view>
+          <view v-if="exportTemplatesList.length === 0" class="empty-tip">暂无可导出的模板</view>
         </scroll-view>
       </view>
 
@@ -60,6 +61,8 @@
 </template>
 
 <script>
+import { useTemplateStore } from '@/stores/template.js'
+
 export default {
   name: 'TemplateImportExport',
   props: {
@@ -87,6 +90,20 @@ export default {
       } else {
         return this.parsedTemplates.length > 0
       }
+    },
+    // 导出列表：直接从 store 读取，排除有氧模板
+    exportTemplatesList() {
+      const store = useTemplateStore()
+      const list = (store.templates && store.templates.length ? store.templates : this.templates) || []
+      return list.filter(t => t && t.isAerobic !== true)
+    }
+  },
+  watch: {
+    visible(val) {
+      if (val) {
+        // 确保模板数据已加载
+        useTemplateStore().load()
+      }
     }
   },
   methods: {
@@ -102,17 +119,19 @@ export default {
       }
     },
     toggleSelectAll() {
-      if (this.selectedTemplates.length === this.templates.length) {
+      if (this.selectedTemplates.length === this.exportTemplatesList.length) {
         this.selectedTemplates = []
       } else {
-        this.selectedTemplates = [...this.templates]
+        this.selectedTemplates = [...this.exportTemplatesList]
       }
     },
     isTemplateSelected(tpl) {
-      return this.selectedTemplates.some(t => t.id === tpl.id)
+      if (!tpl) return false
+      return this.selectedTemplates.some(t => t && t.id === tpl.id)
     },
     toggleTemplateSelect(tpl) {
-      const idx = this.selectedTemplates.findIndex(t => t.id === tpl.id)
+      if (!tpl) return
+      const idx = this.selectedTemplates.findIndex(t => t && t.id === tpl.id)
       if (idx === -1) {
         this.selectedTemplates = [...this.selectedTemplates, tpl]
       } else {
@@ -372,6 +391,13 @@ export default {
 
 .template-count {
   font-size: 22rpx;
+  color: var(--text-secondary);
+}
+
+.empty-tip {
+  padding: 40rpx 0;
+  text-align: center;
+  font-size: 26rpx;
   color: var(--text-secondary);
 }
 

@@ -1,23 +1,56 @@
 <template>
-  <scroll-view class="container" :class="{ dark: daySettingsStore.isDarkMode, light: !daySettingsStore.isDarkMode, 'liquid-glass': daySettingsStore.liquidGlassEnabled }" scroll-y="true">
+  <scroll-view class="container" :class="{ dark: daySettingsStore.isDarkMode, light: !daySettingsStore.isDarkMode, 'liquid-glass': daySettingsStore.liquidGlassEnabled }" scroll-y="true"
+    @touchstart="onSwipeTouchStart" @touchmove="onSwipeTouchMove" @touchend="onSwipeTouchEnd">
+    <!-- 分类筛选 -->
+    <view class="swipe-tab-bar" :class="{ 'no-transition': swipeNoTransition }">
+      <view class="swipe-tab-highlight" :style="swipeHighlightStyle"></view>
+      <view
+        v-for="(t, i) in typeTabs"
+        :key="t.value"
+        class="swipe-tab-item"
+        :class="{ active: i === swipeCurrentIndex }"
+        @click="onSwipeTabClick(i)"
+      >
+        <text>{{ t.label }}</text>
+      </view>
+    </view>
+
     <!-- 公告列表 -->
-    <view class="announce-list">
-      <view v-for="(item, idx) in announcements" :key="idx" class="announce-card" @click="openDetail(item)">
+    <view v-if="!loading" class="announce-list">
+      <view v-for="item in announcements" :key="item.id" class="announce-card" @click="openDetail(item)">
         <view class="announce-card-header">
-          <text class="announce-icon">{{ item.icon }}</text>
+          <text class="announce-icon">{{ typeIcon(item.type) }}</text>
           <view class="announce-card-info">
-            <text class="announce-title">{{ item.title }}</text>
-            <text class="announce-date">{{ item.date }}</text>
+            <view class="title-row">
+              <text class="announce-title">{{ item.title }}</text>
+              <text v-if="item.priority === 1" class="pin-badge">置顶</text>
+            </view>
+            <view class="meta-row">
+              <text class="announce-type-tag">{{ item.typeText || '公告' }}</text>
+              <text class="announce-date">{{ formatDate(item.publishTime) }}</text>
+              <text class="announce-views">👁 {{ item.viewCount || 0 }}</text>
+            </view>
           </view>
-          <text v-if="!item.read" class="announce-dot"></text>
         </view>
-        <text class="announce-summary">{{ item.summary }}</text>
+        <text class="announce-summary">{{ summaryOf(item.content) }}</text>
       </view>
 
       <view v-if="announcements.length === 0" class="empty-state">
         <text class="empty-icon">📢</text>
         <text class="empty-text">暂无公告</text>
       </view>
+
+      <view v-if="announcements.length > 0 && hasMore" class="load-more" @click="loadMore">
+        <text>{{ loadingMore ? '加载中...' : '加载更多' }}</text>
+      </view>
+    </view>
+
+    <view v-if="loading" class="loading-state">
+      <text>加载中...</text>
+    </view>
+
+    <view v-if="!loading && errorMsg" class="error-state" @click="reload">
+      <text>{{ errorMsg }}（点击重试）</text>
     </view>
 
     <!-- 公告详情弹窗 -->
@@ -25,15 +58,23 @@
       <view class="overlay-bg" @click="closeDetail"></view>
       <view class="detail-sheet" @click.stop>
         <view class="detail-header">
-          <text class="detail-icon">{{ activeDetail.icon }}</text>
+          <text class="detail-icon">{{ typeIcon(activeDetail.type) }}</text>
           <view class="detail-header-info">
-            <text class="detail-title">{{ activeDetail.title }}</text>
-            <text class="detail-date">{{ activeDetail.date }}</text>
+            <view class="detail-title-row">
+              <text class="detail-title">{{ activeDetail.title }}</text>
+              <text v-if="activeDetail.priority === 1" class="pin-badge">置顶</text>
+            </view>
+            <view class="detail-meta">
+              <text class="announce-type-tag">{{ activeDetail.typeText || '公告' }}</text>
+              <text class="detail-date">{{ formatDate(activeDetail.publishTime) }}</text>
+              <text class="announce-views">👁 {{ activeDetail.viewCount || 0 }}</text>
+            </view>
           </view>
           <text class="detail-close" @click="closeDetail">×</text>
         </view>
         <view class="detail-body">
           <text class="detail-content">{{ activeDetail.content }}</text>
+          <text v-if="activeDetail.publishAdminName" class="detail-admin">发布者：{{ activeDetail.publishAdminName }}</text>
         </view>
       </view>
     </view>
@@ -42,57 +83,177 @@
 
 <script>
   import { useDaySettingsStore } from '@/stores/daySettings.js'
+  import { listAnnounces, getAnnounceDetail } from '@/utils/serverCommunity.js'
+  import swipeTabMixin from '@/mixins/swipeTabMixin.js'
 
   export default {
+    mixins: [swipeTabMixin],
     data() {
       return {
         daySettingsStore: useDaySettingsStore(),
         activeDetail: null,
-        announcements: [
-          {
-            icon: '🎉',
-            title: 'FitNote v2.0 正式发布',
-            date: '2026-09-01',
-            summary: '全新液态玻璃 UI、训练分析、心率监测等功能上线，快来体验吧！',
-            content: 'FitNote v2.0 正式发布！本次更新带来以下重大功能：\n\n1. 液态玻璃 UI 主题 — 全新视觉体验，支持深色/浅色模式\n2. 训练分析模块 — 容量负荷、心率区间、心血管负荷等指标\n3. BLE 心率监测 — 实时心率显示与区间指导\n4. 模板广场 — 分享和导入训练模板\n5. 页面侧滑切换 — 更流畅的 Tab 切换体验\n\n感谢您的支持，祝您训练愉快！',
-            read: false,
-          },
-          {
-            icon: '🔧',
-            title: '微信小程序兼容性优化',
-            date: '2026-08-28',
-            summary: '修复了微信小程序中多项兼容性问题，提升稳定性。',
-            content: '本次更新修复了微信小程序环境下的多项兼容性问题：\n\n1. 修复计时器弹窗 canvas 穿透问题\n2. 修复底部按钮栏布局错乱\n3. 修复动作库分类标签点击无反应\n4. 优化云端备份流程\n\n请在微信中更新体验。',
-            read: true,
-          },
-          {
-            icon: '📊',
-            title: '训练数据分析功能上线',
-            date: '2026-08-20',
-            summary: '新增训练分析卡片，支持容量负荷、心率区间等指标查看。',
-            content: '训练数据分析功能已上线！\n\n现在您可以在训练日页面查看：\n- 机械训练负荷（总容量）\n- 心血管负荷（HRR 积分）\n- 平均/峰值心率\n- 心率区间分布\n- 训练强度指导\n\n点击训练分析卡片可查看完整报告。',
-            read: true,
-          },
+        announcements: [],
+        activeType: null, // null = 全部
+        typeTabs: [
+          { label: '全部', value: null },
+          { label: '系统', value: 1 },
+          { label: '活动', value: 2 },
+          { label: '版本', value: 3 },
         ],
+        page: 1,
+        size: 10,
+        total: 0,
+        loading: false,
+        loadingMore: false,
+        hasMore: true,
+        errorMsg: '',
       }
     },
+    onLoad() {
+      this.fetchList(true)
+    },
+    onShow() {
+      this.swipeMeasureTabRects()
+    },
+    onReady() {
+      this.swipeMeasureTabRects()
+    },
+    computed: {
+      swipeCurrentIndex() {
+        return this.typeTabs.findIndex(t => t.value === this.activeType)
+      },
+    },
     methods: {
-      openDetail(item) {
+      async fetchList(reset = false) {
+        if (reset) {
+          this.page = 1
+          this.announcements = []
+          this.hasMore = true
+        }
+        if (this.loading) return
+        this.errorMsg = ''
+        if (reset) this.loading = true
+        else this.loadingMore = true
+        try {
+          const res = await listAnnounces({
+            page: this.page,
+            size: this.size,
+            type: this.activeType,
+          })
+          const list = res?.list || []
+          this.total = res?.total ?? 0
+          if (reset) {
+            this.announcements = list
+          } else {
+            this.announcements = this.announcements.concat(list)
+          }
+          this.hasMore = this.announcements.length < this.total
+        } catch (e) {
+          this.errorMsg = e?.message || '加载失败'
+          if (reset) this.announcements = []
+        } finally {
+          this.loading = false
+          this.loadingMore = false
+        }
+      },
+      onSwipeTabChange(nextIdx) {
+        const tab = this.typeTabs[nextIdx]
+        this.activeType = tab.value
+        this.fetchList(true)
+      },
+      loadMore() {
+        if (this.loadingMore || !this.hasMore) return
+        this.page += 1
+        this.fetchList(false)
+      },
+      async openDetail(item) {
+        // 先用列表已有内容展示，再请求详情刷新浏览量与最新内容
         this.activeDetail = item
-        item.read = true
+        try {
+          const detail = await getAnnounceDetail(item.id)
+          if (detail) {
+            this.activeDetail = { ...item, ...detail }
+            // 同步更新列表中对应项的浏览量，无需刷新页面
+            const idx = this.announcements.findIndex(a => a.id === item.id)
+            if (idx >= 0) {
+              const updated = {
+                ...this.announcements[idx],
+                ...detail,
+              }
+              // Vue2 响应式替换数组项
+              this.announcements.splice(idx, 1, updated)
+            }
+          }
+        } catch (e) {
+          // 详情请求失败时仍展示列表已有内容
+        }
       },
       closeDetail() {
         this.activeDetail = null
+      },
+      reload() {
+        this.fetchList(true)
+      },
+      // ---------- 字段映射工具 ----------
+      typeIcon(type) {
+        switch (type) {
+          case 1: return '📢'
+          case 2: return '🎉'
+          case 3: return '🔧'
+          default: return '📢'
+        }
+      },
+      summaryOf(content) {
+        if (!content) return ''
+        const firstLine = String(content).split(/\r?\n/)[0] || ''
+        return firstLine.length > 50 ? firstLine.slice(0, 50) + '...' : firstLine
+      },
+      formatDate(dt) {
+        if (!dt) return ''
+        // 后端 LocalDateTime 序列化为 "2026-09-01T10:00:00" 或时间戳
+        const s = String(dt)
+        const m = s.match(/^(\d{4})-(\d{2})-(\d{2})/)
+        if (m) return `${m[1]}-${m[2]}-${m[3]}`
+        const n = Number(dt)
+        if (!isNaN(n) && n > 0) {
+          const d = new Date(n)
+          return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+        }
+        return s
       },
     },
   }
 </script>
 
 <style scoped>
+  @import '/static/css/swipe-tab-glass.css';
+
   .container {
     min-height: 100vh;
     padding: 16px 16px calc(20px + env(safe-area-inset-bottom, 0px));
     box-sizing: border-box;
+  }
+
+  /* 分类 Tab（页面特定布局，液态玻璃样式由 swipe-tab-glass.css 提供） */
+  .swipe-tab-bar {
+    margin-bottom: 16px;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .swipe-tab-item {
+    flex: 1;
+    padding: 8px 0;
+    font-size: 14px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+  }
+
+  .swipe-tab-item.active {
+    background: var(--primary, #379bff);
+    color: #fff;
+    border-color: var(--primary, #379bff);
   }
 
   .announce-list {
@@ -123,6 +284,7 @@
 
   .announce-icon {
     font-size: 28px;
+    flex-shrink: 0;
   }
 
   .announce-card-info {
@@ -130,7 +292,13 @@
     min-width: 0;
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 4px;
+  }
+
+  .title-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
   }
 
   .announce-title {
@@ -140,6 +308,34 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .pin-badge {
+    flex-shrink: 0;
+    font-size: 11px;
+    color: #fff;
+    background: #ff4d4f;
+    padding: 2px 6px;
+    border-radius: 6px;
+    line-height: 1.4;
+  }
+
+  .meta-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .announce-type-tag {
+    font-size: 11px;
+    color: var(--primary, #379bff);
+    background: rgba(55, 155, 255, 0.12);
+    padding: 2px 8px;
+    border-radius: 6px;
+    line-height: 1.6;
   }
 
   .announce-date {
@@ -147,12 +343,9 @@
     color: var(--text-secondary);
   }
 
-  .announce-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: #ff4d4f;
-    flex-shrink: 0;
+  .announce-views {
+    font-size: 12px;
+    color: var(--text-secondary);
   }
 
   .announce-summary {
@@ -165,24 +358,52 @@
     overflow: hidden;
   }
 
-  /* 详情弹窗 */
+  /* 加载/空/错误态 */
+  .loading-state,
+  .error-state {
+    text-align: center;
+    padding: 40px 0;
+    font-size: 14px;
+    color: var(--text-secondary);
+    max-width: 600px;
+    margin: 0 auto;
+  }
+
+  .load-more {
+    text-align: center;
+    padding: 16px 0;
+    font-size: 14px;
+    color: var(--primary, #379bff);
+  }
+
+  /* 详情弹窗（居中） */
   .detail-overlay {
     position: fixed;
     inset: 0;
     background: rgba(0, 0, 0, 0.5);
     z-index: 1000;
     display: flex;
-    align-items: flex-end;
+    align-items: center;
     justify-content: center;
+    padding: 20px;
+    box-sizing: border-box;
+  }
+
+  .overlay-bg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
   }
 
   .detail-sheet {
     width: 100%;
-    max-width: 600px;
-    max-height: 80vh;
+    max-width: 500px;
+    max-height: 75vh;
     background: var(--bg-primary);
-    border-radius: 20px 20px 0 0;
-    padding: 16px 20px calc(20px + env(safe-area-inset-bottom, 0px));
+    border-radius: 20px;
+    padding: 16px 20px;
     box-sizing: border-box;
     display: flex;
     flex-direction: column;
@@ -199,6 +420,7 @@
 
   .detail-icon {
     font-size: 28px;
+    flex-shrink: 0;
   }
 
   .detail-header-info {
@@ -206,13 +428,28 @@
     min-width: 0;
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 4px;
+  }
+
+  .detail-title-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
   }
 
   .detail-title {
     font-size: 18px;
     font-weight: 700;
     color: var(--text-primary);
+    flex: 1;
+    min-width: 0;
+  }
+
+  .detail-meta {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
   }
 
   .detail-date {
@@ -226,7 +463,6 @@
     padding: 4px 12px;
   }
 
-  /* detail-body: 用 view 替代 scroll-view，防越界 */
   .detail-body {
     width: 100%;
     min-width: 0;
@@ -241,6 +477,13 @@
     color: var(--text-primary);
     line-height: 1.8;
     white-space: pre-wrap;
+  }
+
+  .detail-admin {
+    display: block;
+    margin-top: 16px;
+    font-size: 12px;
+    color: var(--text-secondary);
   }
 
   .empty-state {

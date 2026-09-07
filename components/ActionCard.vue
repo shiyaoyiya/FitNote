@@ -6,11 +6,12 @@
       <text class="tag" @click.stop="$emit('go-history')">{{ actionName }}</text>
       <view class="header-right">
         <view class="input-pair">
-          <input type="digit" v-model="mainReps" placeholder="次数" class="input-reps"
-            @focus="onInputFocus('reps')" @blur="onInputBlur" />
+          <input type="digit" v-model="mainReps" placeholder="次数" class="input-reps" @focus="onInputFocus('reps')"
+            @blur="onInputBlur" />
           <text v-if="!isBodyweight || currentBWMode !== 'bodyweight'" class="input-mult">×</text>
           <input type="digit" v-model="mainWeight" :placeholder="weightPlaceholder" class="input-weight"
-            @focus="onInputFocus('weight')" @blur="onInputBlur" v-if="!isBodyweight || currentBWMode !== 'bodyweight'" />
+            @focus="onInputFocus('weight')" @blur="onInputBlur"
+            v-if="!isBodyweight || currentBWMode !== 'bodyweight'" />
         </view>
         <button class="confirm-btn" @click="confirmEntry">✓️</button>
       </view>
@@ -42,7 +43,7 @@
         @click="currentBWMode = 'weighted'">
         <text :class="{ 'bw-text-active': currentBWMode === 'weighted' }">负重</text>
       </view>
-      <text class="expand-icon" @click="expanded = !expanded">{{ expanded ? '▲' : '▼' }}</text>
+      <text class="expand-icon" @click="expanded = !expanded">{{ expanded ? '▼' : '▲' }}</text>
     </view>
 
     <!-- 次组数（动态添加） -->
@@ -56,7 +57,8 @@
           <input type="digit" v-model="stage.weight" placeholder="kg" class="input-weight"
             @focus="onExtraInputFocus(i, 'weight')" @blur="onInputBlur" />
         </view>
-        <text class="stage-type-badge" :class="'stage-type-' + getSubStageType(stage)">{{ getSubStageTypeLabel(stage) }}</text>
+        <text class="stage-type-badge"
+          :class="'stage-type-' + getSubStageType(stage)">{{ getSubStageTypeLabel(stage) }}</text>
         <text class="remove-stage-btn" @click="removeExtraStage(i)">×</text>
         <button class="extra-confirm-btn" @click="confirmExtraStages">✓️</button>
       </view>
@@ -199,7 +201,9 @@
         this.showBubble = true
       },
       onInputBlur() {
-        setTimeout(() => { this.showBubble = false }, 200)
+        setTimeout(() => {
+          this.showBubble = false
+        }, 200)
       },
       getHistoryDataForGroup() {
         if (!this.latestRecord || !this.latestRecord.entry) return null
@@ -243,7 +247,11 @@
           const history = this.getHistoryDataForExtraStage(this.focusedStageIndex)
           if (!history) return
           const stage = this.extraStages[this.focusedStageIndex]
-          if (!stage) { this.showBubble = false; this.focusedStageIndex = -1; return }
+          if (!stage) {
+            this.showBubble = false;
+            this.focusedStageIndex = -1;
+            return
+          }
           this.entryType = history.type !== ENTRY_TYPE.NORMAL ? ENTRY_TYPE.COMPOSITE : ENTRY_TYPE.NORMAL
           if (this.focusedField === 'reps' && !stage.reps) stage.reps = String(history.reps)
           if (this.focusedField === 'weight' && !stage.weight) stage.weight = String(history.weight)
@@ -255,7 +263,10 @@
         // 主输入框填充：填充主阶段 + 自动创建额外阶段
         const history = this.getHistoryDataForGroup()
         if (!history) return
-        const { stages, type } = history
+        const {
+          stages,
+          type
+        } = history
 
         // 填充主输入
         if (!this.mainReps) this.mainReps = String(stages[0].reps)
@@ -299,8 +310,8 @@
         if (!entry || !entry.stages) return null
         const stage = entry.stages[stageIndex + 1]
         if (!stage || (stage.reps <= 0 && stage.weight <= 0)) return null
-        return { 
-          reps: stage.reps, 
+        return {
+          reps: stage.reps,
           weight: stage.weight,
           type: entry.type || 'normal'
         }
@@ -345,11 +356,17 @@
         }
         const validStages = this.extraStages.filter(s => s.reps && Number(s.reps) > 0)
         if (validStages.length === 0) {
-          uni.showToast({ title: '请至少输入一个阶段', icon: 'none' })
+          uni.showToast({
+            title: '请至少输入一个阶段',
+            icon: 'none'
+          })
           return
         }
         if (!this.entries || this.entries.length === 0) {
-          uni.showToast({ title: '请先添加正式组', icon: 'none' })
+          uni.showToast({
+            title: '请先添加正式组',
+            icon: 'none'
+          })
           return
         }
         const lastIdx = this.entries.length - 1
@@ -369,12 +386,20 @@
           total,
           type: this.entryType,
           stages: mergedStages,
-          ...(this.isBodyweight ? { bwMode: this.currentBWMode } : {}),
+          ...(this.isBodyweight ? {
+            bwMode: this.currentBWMode
+          } : {}),
         }
-        this.$emit('update-entry', { entryIdx: lastIdx, entry: updatedEntry })
+        this.$emit('update-entry', {
+          entryIdx: lastIdx,
+          entry: updatedEntry
+        })
         this.extraStages = []
         this.entryType = ENTRY_TYPE.NORMAL
-        uni.showToast({ title: '已存入最后一组', icon: 'success' })
+        uni.showToast({
+          title: '已存入最后一组',
+          icon: 'success'
+        })
       },
 
       confirmEntry() {
@@ -475,6 +500,7 @@
     padding: 6px 12px;
     box-shadow: 0 4px 12px rgba(55, 155, 255, 0.4);
   }
+
   .bubble-text {
     font-size: 12px;
     color: #ffffff;

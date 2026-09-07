@@ -30,7 +30,7 @@
       </view>
       <view class="panel-footer">
         <view class="btn-cancel-popup" @click="handleClose">取消</view>
-        <view class="btn-confirm-popup" @click="handleConfirm" :style="{ background: 'linear-gradient(135deg,#379bff,#2d82d6)', color: '#fff' }">分享</view>
+        <view class="btn-confirm-popup" :class="{ disabled: !canShare }" @click="handleConfirm">分享</view>
       </view>
     </view>
   </view>
@@ -54,6 +54,11 @@ export default {
       selectedTemplateId: '',
       shareName: '',
       shareDesc: ''
+    }
+  },
+  computed: {
+    canShare() {
+      return this.selectedTemplateId && this.shareName.trim().length > 0
     }
   },
   methods: {

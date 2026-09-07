@@ -157,7 +157,7 @@
         </view>
         <view class="panel-footer btn-row">
           <text class="btn-return" @click="closeAddPopup">取消</text>
-          <text class="btn-confirm" @click="confirmAction">{{ isEditing ? '保存' : '添加' }}</text>
+          <text :class="['btn-confirm', { 'liquid-glass-btn': daySettingsStore.liquidGlassEnabled, 'is-enabled': canConfirm }]" @click="confirmAction" :style="{ opacity: canConfirm ? 1 : 0.5 }">{{ isEditing ? '保存' : '添加' }}</text>
         </view>
       </view>
     </view>
@@ -358,6 +358,9 @@
           width: `${width}px`,
           opacity: 1,
         }
+      },
+      canConfirm() {
+        return this.formName.trim().length > 0 && this.formCategories.length > 0
       },
     },
 
@@ -797,6 +800,17 @@
     color: var(--text-secondary);
   }
 
+  .container.liquid-glass .search-inner {
+    background: var(--glass-bg) !important;
+    border: none !important;
+    box-shadow:
+      0 0 0 0.5px var(--glass-edge) inset,
+      0 1px 3px var(--glass-shadow-inner) inset,
+      0 1px 4px var(--glass-shadow-outer) !important;
+    -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
+    backdrop-filter: blur(12px) saturate(140%) !important;
+  }
+
   .search-clear {
     font-size: 18px;
     color: var(--text-secondary);
@@ -946,8 +960,12 @@
     color: var(--text-secondary);
     transition: transform 0.2s ease;
     flex-shrink: 0;
-    width: 16px;
-    text-align: center;
+    width: 30px;
+    height: 30px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transform-origin: center center;
   }
 
   .container.light .collapse-arrow {
@@ -1559,6 +1577,26 @@
     color: #fff;
     background: linear-gradient(135deg, #379bff, #0048ff);
     box-shadow: 0 4px 12px rgba(55, 155, 255, 0.3);
+  }
+
+  .btn-confirm.liquid-glass-btn {
+    background: var(--glass-bg) !important;
+    border: none !important;
+    box-shadow:
+      0 0 0 0.5px var(--glass-edge) inset,
+      0 1px 2px var(--glass-shadow-inner) inset !important;
+    -webkit-backdrop-filter: blur(8px) saturate(120%) !important;
+    backdrop-filter: blur(8px) saturate(120%) !important;
+    color: var(--glass-text) !important;
+  }
+
+  .btn-confirm.liquid-glass-btn.is-enabled {
+    background: rgba(55, 155, 255, 0.6) !important;
+    color: #ffffff !important;
+  }
+
+  .btn-confirm.liquid-glass-btn:active {
+    transform: scale(0.96) !important;
   }
 
   .btn-confirm:active {
