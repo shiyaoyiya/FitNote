@@ -47,16 +47,27 @@
 }
 
 .container.liquid-glass .today-train-btn {
-  background: var(--glass-bg) !important;
-  border: none !important;
+  position: relative;
+  /* 半透明渐变底色，使用主题蓝 */
+  background: linear-gradient(
+    135deg,
+    rgba(55, 155, 255, 0.7) 0%,
+    rgba(0, 72, 255, 0.7) 100%
+  ) !important;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  
+  /* 顶部亮白边，模拟玻璃弧面高光 */
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.4) !important;
+  
+  /* 外发光 + 内高光 */
+  box-shadow: 
+    0 4px 16px rgba(55, 155, 255, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3) !important;
+  
   border-radius: 60rpx !important;
-  box-shadow:
-    var(--glass-float),
-    0 0 0 0.5px var(--glass-edge) inset,
-    0 1px 3px var(--glass-shadow-inner) inset,
-    0 1px 4px var(--glass-shadow-outer) !important;
-  -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
-  backdrop-filter: blur(12px) saturate(140%) !important;
+  color: #fff !important;
 }
 
 .container.liquid-glass .today-train-btn:active {
@@ -87,7 +98,7 @@
   color: var(--glass-text) !important;
 }
 
-/* Tab Bar 悬浮（仅液态玻璃下�?*/
+/* Tab Bar 悬浮（仅液态玻璃下） */
 .container.liquid-glass .tab-bar-fixed {
   bottom: calc(20px + env(safe-area-inset-bottom, 0px)) !important;
   left: 16px !important;
@@ -108,13 +119,17 @@
   min-height: 75px !important;
 }
 
-/* Tab Bar 内部 tab-item �?液态玻璃下清除原始背景 */
+/* Tab Bar 内部 tab-item — 液态玻璃下清除原始背景，不施加玻璃效果 */
 .container.liquid-glass .tab-bar-fixed .tab-item {
   background: transparent !important;
   background-color: transparent !important;
   border: none !important;
+  box-shadow: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
 }
 
+/* 液态玻璃下只显示图标，不显示文字 */
 .container.liquid-glass .tab-bar-fixed .tab-label {
   display: none;
 }
@@ -209,9 +224,9 @@ html .container.dark.liquid-glass .save-row {
   color: var(--primary, #379bff) !important;
   backdrop-filter: blur(20px) saturate(160%) !important;
   -webkit-backdrop-filter: blur(20px) saturate(160%) !important;
-  border: 1rpx solid var(--glass-edge, rgba(255,255,255,0.65)) !important;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.12),
-    0 0 0 0.5px var(--glass-edge, rgba(255,255,255,0.65)) inset !important;
+  border: 1rpx solid var(--glass-edge, rgba(255, 255, 255, 0.65)) !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12),
+    0 0 0 0.5px var(--glass-edge, rgba(255, 255, 255, 0.65)) inset !important;
 }
 
 
@@ -1050,7 +1065,7 @@ html .container.liquid-glass.light .custom-color-card {
 }
 
 .container.liquid-glass .tab-item.active {
-  color: #379bff;
+  color: #ffffff !important;
   opacity: 1;
 }
 
@@ -1193,9 +1208,1919 @@ html .container.liquid-glass.light .custom-color-card {
 
 /* 模板广场排序 */
 .container.liquid-glass .sq-sort-item {
+  background: var(--glass-bg) !important;
+  color: var(--glass-placeholder) !important;
+  -webkit-backdrop-filter: blur(8px) saturate(120%) !important;
+  backdrop-filter: blur(8px) saturate(120%) !important;
+}
+
+.container.liquid-glass .sq-sort-item.active {
+  background: linear-gradient(135deg, #379bff, #0048ff) !important;
+  color: #ffffff !important;
+  box-shadow: 0 2rpx 10rpx rgba(55, 155, 255, 0.35) !important;
+}
+
+/* ===== 侧滑页面切换高光统一为动作库部位 tag 样式 ===== */
+
+/* —— 数据备份 / 模板管理 —— */
+
+/* tab 栏容器：透明背景 + 间隙，让 tab 成为独立胶囊 */
+.container.liquid-glass .tab-bar {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  padding: 0 !important;
+  gap: 8px;
+}
+
+/* 每个 tab 独立玻璃背景 + 胶囊圆角 */
+.container.liquid-glass .tab-item {
+  background: var(--glass-bg) !important;
+  border-radius: 20px !important;
+  box-shadow:
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 3px var(--glass-shadow-inner) inset,
+    0 1px 4px var(--glass-shadow-outer) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
+  backdrop-filter: blur(12px) saturate(140%) !important;
+}
+
+/* 高光框：贴满 tab 高度，蓝色渐变胶囊 */
+.container.liquid-glass .tab-highlight {
+  top: 0 !important;
+  height: 100% !important;
+  background: linear-gradient(135deg, #379bff, #0048ff) !important;
+  border-radius: 20px !important;
+}
+
+/* —— 训练统计 TrainingOverview —— */
+
+/* stats-row 加间隙 */
+.container.liquid-glass .stats-row {
+  gap: 8px;
+}
+
+/* 每个维度项独立玻璃背景 + 胶囊圆角 */
+.container.liquid-glass .stat-item {
+  background: var(--glass-bg) !important;
+  border-radius: 20px !important;
+  padding: 12px 0 !important;
+  box-shadow:
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 3px var(--glass-shadow-inner) inset,
+    0 1px 4px var(--glass-shadow-outer) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
+  backdrop-filter: blur(12px) saturate(140%) !important;
+}
+
+/* 高光框：蓝色渐变胶囊 */
+.container.liquid-glass .stat-highlight {
+  background: linear-gradient(135deg, #379bff, #0048ff) !important;
+  border-radius: 20px !important;
+}
+
+/* active 文字改为白色，配合蓝色渐变高光 */
+.container.liquid-glass .stat-value-active,
+.container.liquid-glass .stat-label-active {
+  color: #ffffff !important;
+}
+
+/* ===== 分享模板弹窗 ShareDialog 液态玻璃 ===== */
+.container.liquid-glass .share-overlay {
+  background: rgba(0, 0, 0, 0.45) !important;
+}
+
+.container.liquid-glass .share-sheet {
+  background: var(--glass-bg) !important;
+  border: 1rpx solid var(--glass-border) !important;
+  border-radius: 24rpx 24rpx 0 0 !important;
+  box-shadow:
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 3px var(--glass-shadow-inner) inset,
+    0 -8rpx 40rpx var(--glass-shadow-outer) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(160%) !important;
+  backdrop-filter: blur(20px) saturate(160%) !important;
+}
+
+.container.liquid-glass .share-title {
+  color: var(--glass-text) !important;
+}
+
+.container.liquid-glass .close-btn {
+  color: var(--glass-placeholder) !important;
+}
+
+.container.liquid-glass .section-label {
+  color: var(--glass-placeholder) !important;
+}
+
+.container.liquid-glass .share-pick {
+  background: var(--glass-bg) !important;
+  border: 1rpx solid var(--glass-border) !important;
+  box-shadow:
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 2px var(--glass-shadow-inner) inset !important;
+  -webkit-backdrop-filter: blur(8px) saturate(120%) !important;
+  backdrop-filter: blur(8px) saturate(120%) !important;
+}
+
+.container.liquid-glass .share-pick.active {
+  background: rgba(55, 155, 255, 0.25) !important;
+  border-color: var(--primary) !important;
+}
+
+.container.liquid-glass .pick-name {
+  color: var(--glass-text) !important;
+}
+
+.container.liquid-glass .pick-count,
+.container.liquid-glass .empty-tip {
+  color: var(--glass-placeholder) !important;
+}
+
+.container.liquid-glass .share-input,
+.container.liquid-glass .share-textarea {
+  background: var(--glass-bg) !important;
+  border: 1rpx solid var(--glass-border) !important;
+  color: var(--glass-text) !important;
+  box-shadow:
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 2px var(--glass-shadow-inner) inset !important;
+  -webkit-backdrop-filter: blur(8px) saturate(120%) !important;
+  backdrop-filter: blur(8px) saturate(120%) !important;
+}
+
+.container.liquid-glass .share-input::placeholder,
+.container.liquid-glass .share-textarea::placeholder {
+  color: var(--glass-placeholder) !important;
+}
+
+.container.liquid-glass .color-dot {
+  box-shadow: 0 2rpx 8rpx var(--glass-shadow-outer) !important;
+}
+
+.container.liquid-glass .color-dot.active {
+  border-color: var(--glass-text) !important;
+}
+
+.container.liquid-glass .tag-opt {
+  background: var(--glass-bg) !important;
+  color: var(--glass-text) !important;
+  border: 1rpx solid var(--glass-border) !important;
+  box-shadow:
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 2px var(--glass-shadow-inner) inset !important;
+  -webkit-backdrop-filter: blur(8px) saturate(120%) !important;
+  backdrop-filter: blur(8px) saturate(120%) !important;
+}
+
+.container.liquid-glass .tag-opt.active {
+  background: linear-gradient(135deg, #379bff, #0048ff) !important;
+  color: #ffffff !important;
+}
+
+.container.liquid-glass .share-btn.ghost {
+  background: var(--glass-bg) !important;
+  color: var(--glass-text) !important;
+  border: 1rpx solid var(--glass-border) !important;
+  box-shadow:
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 2px var(--glass-shadow-inner) inset !important;
+  -webkit-backdrop-filter: blur(8px) saturate(120%) !important;
+  backdrop-filter: blur(8px) saturate(120%) !important;
+}
+
+.container.liquid-glass .share-btn.primary {
+  background: linear-gradient(135deg, #379bff, #0048ff) !important;
+  color: #ffffff !important;
+  box-shadow: 0 4rpx 16rpx rgba(55, 155, 255, 0.35) !important;
+}
+
+/* ===== TemplateSquareTab 分享弹窗液态玻璃 ===== */
+.container.liquid-glass .sq-detail-overlay {
+  background: rgba(0, 0, 0, 0.45) !important;
+}
+
+.container.liquid-glass .sq-detail-sheet {
+  background: var(--glass-bg) !important;
+  border: 1rpx solid var(--glass-border) !important;
+  border-radius: 24rpx 24rpx 0 0 !important;
+  box-shadow:
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 3px var(--glass-shadow-inner) inset,
+    0 -8rpx 40rpx var(--glass-shadow-outer) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(160%) !important;
+  backdrop-filter: blur(20px) saturate(160%) !important;
+}
+
+.container.liquid-glass .sq-detail-title {
+  color: var(--glass-text) !important;
+}
+
+.container.liquid-glass .sq-detail-label {
+  color: var(--glass-placeholder) !important;
+}
+
+.container.liquid-glass .sq-share-pick {
+  background: var(--glass-bg) !important;
+  border: 1rpx solid var(--glass-border) !important;
+  box-shadow:
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 2px var(--glass-shadow-inner) inset !important;
+  -webkit-backdrop-filter: blur(8px) saturate(120%) !important;
+  backdrop-filter: blur(8px) saturate(120%) !important;
+}
+
+.container.liquid-glass .sq-share-pick.active {
+  background: rgba(55, 155, 255, 0.25) !important;
+  border-color: var(--primary) !important;
+}
+
+.container.liquid-glass .sq-share-pick-name {
+  color: var(--glass-text) !important;
+}
+
+.container.liquid-glass .sq-share-pick-count {
+  color: var(--glass-placeholder) !important;
+}
+
+.container.liquid-glass .sq-share-input,
+.container.liquid-glass .sq-share-textarea {
+  background: var(--glass-bg) !important;
+  border: 1rpx solid var(--glass-border) !important;
+  color: var(--glass-text) !important;
+  box-shadow:
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 2px var(--glass-shadow-inner) inset !important;
+  -webkit-backdrop-filter: blur(8px) saturate(120%) !important;
+  backdrop-filter: blur(8px) saturate(120%) !important;
+}
+
+.container.liquid-glass .sq-share-input::placeholder,
+.container.liquid-glass .sq-share-textarea::placeholder {
+  color: var(--glass-placeholder) !important;
+}
+
+.container.liquid-glass .sq-color-dot {
+  box-shadow: 0 2rpx 8rpx var(--glass-shadow-outer) !important;
+}
+
+.container.liquid-glass .sq-color-dot.active {
+  border-color: var(--glass-text) !important;
+}
+
+.container.liquid-glass .sq-tag-opt {
+  background: var(--glass-bg) !important;
+  color: var(--glass-text) !important;
+  border: 1rpx solid var(--glass-border) !important;
+  box-shadow:
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 2px var(--glass-shadow-inner) inset !important;
+  -webkit-backdrop-filter: blur(8px) saturate(120%) !important;
+  backdrop-filter: blur(8px) saturate(120%) !important;
+}
+
+.container.liquid-glass .sq-tag-opt.active {
+  background: linear-gradient(135deg, #379bff, #0048ff) !important;
+  color: #ffffff !important;
+}
+
+.container.liquid-glass .sq-detail-btn.ghost {
+  background: var(--glass-bg) !important;
+  color: var(--glass-text) !important;
+  border: 1rpx solid var(--glass-border) !important;
+  box-shadow:
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 2px var(--glass-shadow-inner) inset !important;
+  -webkit-backdrop-filter: blur(8px) saturate(120%) !important;
+  backdrop-filter: blur(8px) saturate(120%) !important;
+}
+
+.container.liquid-glass .sq-detail-btn.primary {
+  background: linear-gradient(135deg, #379bff, #0048ff) !important;
+  color: #ffffff !important;
+  box-shadow: 0 4rpx 16rpx rgba(55, 155, 255, 0.35) !important;
+}
+
+/* ===== 模板广场独立页（templateSquare）组件液态玻璃 ===== */
+
+/* 搜索栏 */
+/* .container.liquid-glass .search-bar {
+  background: var(--glass-bg) !important;
+  border: none !important;
+  box-shadow:
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 3px var(--glass-shadow-inner) inset !important;
+  -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
+  backdrop-filter: blur(12px) saturate(140%) !important;
+} */
+
+.container.liquid-glass .search-input {
+  background: transparent !important;
+  color: var(--glass-text) !important;
+}
+
+.container.liquid-glass .search-input::placeholder {
+  color: var(--glass-placeholder) !important;
+}
+
+/* 排序按钮 */
+.container.liquid-glass .sort-item {
+  background: var(--glass-bg) !important;
+  color: var(--glass-placeholder) !important;
+  -webkit-backdrop-filter: blur(8px) saturate(120%) !important;
+  backdrop-filter: blur(8px) saturate(120%) !important;
+}
+
+.container.liquid-glass .sort-item.active {
+  background: linear-gradient(135deg, #379bff, #0048ff) !important;
+  color: #ffffff !important;
+  box-shadow: 0 2rpx 10rpx rgba(55, 155, 255, 0.35) !important;
+}
+
+/* 部位标签选择按钮 */
+.container.liquid-glass .tag-picker-btn {
+  background: var(--glass-bg) !important;
+  border: none !important;
+  color: var(--glass-text) !important;
+  -webkit-backdrop-filter: blur(8px) saturate(120%) !important;
+  backdrop-filter: blur(8px) saturate(120%) !important;
+}
+
+/* 模板卡片 */
+.container.liquid-glass .template-card {
+  background: var(--glass-bg) !important;
+  border: none !important;
+  box-shadow:
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 3px var(--glass-shadow-inner) inset,
+    0 1px 4px var(--glass-shadow-outer) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
+  backdrop-filter: blur(12px) saturate(140%) !important;
+}
+
+.container.liquid-glass .card-title {
+  color: var(--glass-text) !important;
+}
+
+.container.liquid-glass .stat-item {
+  color: var(--glass-placeholder) !important;
+}
+
+/* 详情弹窗底部面板 */
+.container.liquid-glass .detail-sheet {
+  background: var(--glass-bg) !important;
+  box-shadow:
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 3px var(--glass-shadow-inner) inset !important;
+  -webkit-backdrop-filter: blur(20px) saturate(160%) !important;
+  backdrop-filter: blur(20px) saturate(160%) !important;
+}
+
+.container.liquid-glass .detail-sheet .close-btn {
+  color: var(--glass-placeholder) !important;
+}
+
+.container.liquid-glass .detail-title {
+  color: var(--glass-text) !important;
+}
+
+.container.liquid-glass .stats-cell {
+  background: var(--glass-bg) !important;
+  box-shadow:
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 2px var(--glass-shadow-inner) inset !important;
+  -webkit-backdrop-filter: blur(8px) saturate(120%) !important;
+  backdrop-filter: blur(8px) saturate(120%) !important;
+}
+
+.container.liquid-glass .stats-num {
+  color: var(--glass-text) !important;
+}
+
+.container.liquid-glass .stats-label {
+  color: var(--glass-placeholder) !important;
+}
+
+.container.liquid-glass .actions-preview {
+  background: var(--glass-bg) !important;
+  box-shadow:
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 2px var(--glass-shadow-inner) inset !important;
+  -webkit-backdrop-filter: blur(8px) saturate(120%) !important;
+  backdrop-filter: blur(8px) saturate(120%) !important;
+}
+
+.container.liquid-glass .section-title {
+  color: var(--glass-text) !important;
+}
+
+.container.liquid-glass .action-row {
+  background: var(--glass-grid-bg) !important;
+  box-shadow: 0 0 0 0.5px var(--glass-edge) inset !important;
+}
+
+.container.liquid-glass .action-name {
+  color: var(--glass-text) !important;
+}
+
+.container.liquid-glass .detail-label {
+  color: var(--glass-placeholder) !important;
+}
+
+.container.liquid-glass .detail-desc {
+  background: var(--glass-bg) !important;
+  color: var(--glass-text) !important;
+  box-shadow:
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 2px var(--glass-shadow-inner) inset !important;
+  -webkit-backdrop-filter: blur(8px) saturate(120%) !important;
+  backdrop-filter: blur(8px) saturate(120%) !important;
+}
+
+.container.liquid-glass .detail-btn.ghost {
+  background: var(--glass-bg) !important;
+  color: var(--glass-text) !important;
+  box-shadow:
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 2px var(--glass-shadow-inner) inset !important;
+  -webkit-backdrop-filter: blur(8px) saturate(120%) !important;
+  backdrop-filter: blur(8px) saturate(120%) !important;
+}
+
+.container.liquid-glass .detail-btn.primary {
+  background: linear-gradient(135deg, #379bff, #0048ff) !important;
+  color: #ffffff !important;
+  box-shadow: 0 4rpx 16rpx rgba(55, 155, 255, 0.35) !important;
+}
+
+/* 空状态 / 加载状态文字 */
+.container.liquid-glass .empty-text,
+.container.liquid-glass .loading-text,
+.container.liquid-glass .loading-more-text {
+  color: var(--glass-placeholder) !important;
+}
+
+/* 页面标题与副标题 */
+.container.liquid-glass .sq-page-title {
+  color: var(--glass-text) !important;
+}
+
+.container.liquid-glass .sq-page-sub {
+  color: var(--glass-placeholder) !important;
+}
+
+/* ===== 模板管理内广场 Tab（TemplateSquareTab）液态玻璃 ===== */
+
+.container.liquid-glass .sq-search-bar {
+  background: var(--glass-bg) !important;
+  border: none !important;
+  box-shadow:
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 3px var(--glass-shadow-inner) inset !important;
+  -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
+  backdrop-filter: blur(12px) saturate(140%) !important;
+}
+
+.container.liquid-glass .sq-search-input {
+  background: transparent !important;
+  color: var(--glass-text) !important;
+}
+
+.container.liquid-glass .sq-search-input::placeholder {
+  color: var(--glass-placeholder) !important;
+}
+
+.container.liquid-glass .sq-tag-picker-btn {
+  background: var(--glass-bg) !important;
+  border: none !important;
+  color: var(--glass-text) !important;
+  -webkit-backdrop-filter: blur(8px) saturate(120%) !important;
+  backdrop-filter: blur(8px) saturate(120%) !important;
+}
+
+.container.liquid-glass .sq-tpl-card {
+  background: var(--glass-bg) !important;
+  border: none !important;
+  box-shadow:
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 3px var(--glass-shadow-inner) inset,
+    0 1px 4px var(--glass-shadow-outer) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
+  backdrop-filter: blur(12px) saturate(140%) !important;
+}
+
+.container.liquid-glass .sq-tpl-title {
+  color: var(--glass-text) !important;
+}
+
+.container.liquid-glass .sq-tpl-stat {
+  color: var(--glass-placeholder) !important;
+}
+
+.container.liquid-glass .sq-empty-text {
+  color: var(--glass-placeholder) !important;
+}
+
+/* TemplateSquareTab 详情弹窗内的动作清单与描述 */
+.container.liquid-glass .sq-detail-actions-preview {
+  background: var(--glass-bg) !important;
+  box-shadow:
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 2px var(--glass-shadow-inner) inset !important;
+  -webkit-backdrop-filter: blur(8px) saturate(120%) !important;
+  backdrop-filter: blur(8px) saturate(120%) !important;
+}
+
+.container.liquid-glass .sq-stats-cell {
+  background: var(--glass-bg) !important;
+  box-shadow:
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 2px var(--glass-shadow-inner) inset !important;
+  -webkit-backdrop-filter: blur(8px) saturate(120%) !important;
+  backdrop-filter: blur(8px) saturate(120%) !important;
+}
+
+.container.liquid-glass .sq-stats-num {
+  color: var(--glass-text) !important;
+}
+
+.container.liquid-glass .sq-stats-label {
+  color: var(--glass-placeholder) !important;
+}
+
+.container.liquid-glass .sqd-section-title {
+  color: var(--glass-text) !important;
+}
+
+.container.liquid-glass .sqd-action-row {
+  background: var(--glass-grid-bg) !important;
+  box-shadow: 0 0 0 0.5px var(--glass-edge) inset !important;
+}
+
+.container.liquid-glass .sqd-action-name {
+  color: var(--glass-text) !important;
+}
+
+.container.liquid-glass .sq-detail-desc {
+  background: var(--glass-bg) !important;
+  color: var(--glass-text) !important;
+  box-shadow:
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 2px var(--glass-shadow-inner) inset !important;
+  -webkit-backdrop-filter: blur(8px) saturate(120%) !important;
+  backdrop-filter: blur(8px) saturate(120%) !important;
+}
+
+/* ===== trainingStat 概览卡片 / 部位趋势 / 部位对比 液态玻璃 ===== */
+
+/* TrainingOverview 概览卡片 */
+.container.liquid-glass .overview-card {
+  position: relative;
+  /* 玻璃基底 */
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  
+  /* 边框：上下区分亮度，模拟光照方向 */
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  
+  /* 光影分层 */
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.4), /* 外阴影：悬浮下沉感 */
+    inset 0 1px 0 rgba(255, 255, 255, 0.08); /* 内阴影：顶部高光 */
+  
+  border-radius: 24rpx;
+  overflow: hidden;
+}
+
+.container.liquid-glass .overview-card .card-subtitle {
+  color: var(--glass-placeholder) !important;
+}
+
+/* BodyPartTrend 部位趋势卡片 */
+.container.liquid-glass .body-part-trend {
+  position: relative;
+  /* 玻璃基底 */
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  
+  /* 边框：上下区分亮度，模拟光照方向 */
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  
+  /* 光影分层 */
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.4), /* 外阴影：悬浮下沉感 */
+    inset 0 1px 0 rgba(255, 255, 255, 0.08); /* 内阴影：顶部高光 */
+  
+  border-radius: 24rpx;
+  overflow: hidden;
+}
+
+.container.liquid-glass .body-part-trend .manage-btn,
+.container.liquid-glass .grid-container .manage-btn {
+  color: var(--glass-text) !important;
+}
+
+/* 部位选择按钮保持蓝色但加玻璃质感 */
+.container.liquid-glass .part-select-btn {
+  background: rgba(55, 155, 255, 0.6) !important;
+  -webkit-backdrop-filter: blur(8px) saturate(120%) !important;
+  backdrop-filter: blur(8px) saturate(120%) !important;
+}
+
+/* BodyPartGrid 部位对比卡片 */
+.container.liquid-glass .grid .card {
+  position: relative;
+  /* 玻璃基底 */
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  
+  /* 边框：上下区分亮度，模拟光照方向 */
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  
+  /* 光影分层 */
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.4), /* 外阴影：悬浮下沉感 */
+    inset 0 1px 0 rgba(255, 255, 255, 0.08); /* 内阴影：顶部高光 */
+  
+  border-radius: 24rpx;
+  overflow: hidden;
+}
+
+.container.liquid-glass .grid .card.card-selected {
+  box-shadow:
+    0 0 0 1px var(--focus-glow),
+    0 1px 3px var(--glass-shadow-inner) inset,
+    0 1px 4px var(--glass-shadow-outer) !important;
+}
+
+.container.liquid-glass .grid .card .part-name {
+  color: var(--glass-text) !important;
+}
+
+.container.liquid-glass .grid .card .value-unit {
+  color: var(--glass-placeholder) !important;
+}
+
+/* ===== AnniversarySection 纪念日卡片 液态玻璃 ===== */
+
+.container.liquid-glass .anniv-item {
+  position: relative;
+  /* 玻璃基底 */
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  
+  /* 边框：上下区分亮度，模拟光照方向 */
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  
+  /* 光影分层 */
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.4), /* 外阴影：悬浮下沉感 */
+    inset 0 1px 0 rgba(255, 255, 255, 0.08); /* 内阴影：顶部高光 */
+  
+  border-radius: 24rpx;
+  overflow: hidden;
+}
+
+.container.liquid-glass .anniv-item .anniv-title-text {
+  color: var(--glass-text) !important;
+}
+
+.container.liquid-glass .anniv-item .anniv-sub-text {
+  color: var(--glass-placeholder) !important;
+}
+
+/* ===== backup 内容区（除 tab-bar）液态玻璃 ===== */
+
+/* tab-content 作为悬浮卡片的定位容器，滚动交给外层 .container */
+.container.liquid-glass .tab-content {
+  position: relative !important;
+  overflow: visible !important;
+  box-sizing: border-box !important;
+}
+
+/* 卡片：状态卡 / 登录引导 / 历史记录项 */
+/* 状态卡为 position:sticky 吸顶悬浮，backdrop-filter 不会遮挡下方球体 */
+.container.liquid-glass .tab-content .card,
+.container.liquid-glass .card {
+  position: relative;
+  /* 玻璃基底 */
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  
+  /* 边框：上下区分亮度，模拟光照方向 */
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  
+  /* 光影分层 */
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.4), /* 外阴影：悬浮下沉感 */
+    inset 0 1px 0 rgba(255, 255, 255, 0.08); /* 内阴影：顶部高光 */
+  
+  border-radius: 24rpx;
+  overflow: hidden;
+  z-index: 0;
+}
+
+/* 移除 ::before 伪元素方案 —— backdrop-filter 仍会创建合成层遮挡球体 */
+
+/* 状态卡：sticky 吸顶悬浮，滚动时固定在顶部 */
+.container.liquid-glass .tab-content .status-card {
+  position: -webkit-sticky !important;
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 10 !important;
+}
+
+.container.liquid-glass .tab-content .label-text {
+  color: var(--glass-placeholder) !important;
+}
+
+.container.liquid-glass .tab-content .path-filename-text {
+  color: var(--glass-text) !important;
+}
+
+.container.liquid-glass .tab-content .last-time-text {
+  color: var(--glass-placeholder) !important;
+}
+
+.container.liquid-glass .tab-content .guide-title {
+  color: var(--glass-placeholder) !important;
+}
+
+.container.liquid-glass .tab-content .history-title {
+  color: var(--glass-text) !important;
+}
+
+.container.liquid-glass .tab-content .history-time {
+  color: var(--glass-text) !important;
+}
+
+.container.liquid-glass .tab-content .history-note,
+.container.liquid-glass .tab-content .history-size,
+.container.liquid-glass .tab-content .empty-history {
+  color: var(--glass-placeholder) !important;
+}
+
+/* 文件夹圆圈 */
+.container.liquid-glass .tab-content .folder-circle {
+  background: var(--glass-bg) !important;
+  box-shadow:
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 3px var(--glass-shadow-inner) inset !important;
+  -webkit-backdrop-filter: blur(8px) saturate(120%) !important;
+  backdrop-filter: blur(8px) saturate(120%) !important;
+}
+
+/* 次级按钮（导入历史备份）玻璃化 */
+.container.liquid-glass .tab-content .btn-secondary {
+  position: relative;
+  /* 半透明渐变底色，使用主题蓝 */
+  background: linear-gradient(
+    135deg,
+    rgba(55, 155, 255, 0.7) 0%,
+    rgba(0, 72, 255, 0.7) 100%
+  ) !important;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  
+  /* 顶部亮白边，模拟玻璃弧面高光 */
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.4) !important;
+  
+  /* 外发光 + 内高光 */
+  box-shadow: 
+    0 4px 16px rgba(55, 155, 255, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3) !important;
+  
+  border-radius: 20rpx;
+  color: #fff !important;
+}
+
+.container.liquid-glass .tab-content .btn-secondary:active {
+  transform: scale(0.96) !important;
+}
+
+/* 主按钮（去登录）保持蓝色渐变 */
+.container.liquid-glass .tab-content .btn-primary {
+  background: linear-gradient(135deg, rgba(55, 155, 255, 0.8), rgba(45, 130, 214, 0.8)) !important;
+  box-shadow: 0 4px 12px rgba(55, 155, 255, 0.3) !important;
+  -webkit-backdrop-filter: blur(8px) saturate(120%) !important;
+  backdrop-filter: blur(8px) saturate(120%) !important;
+}
+
+/* 文本备份子 tab 栏 */
+.container.liquid-glass .tab-content .export-import-tabs {
+  background: transparent !important;
+  padding: 0 !important;
+  gap: 8px;
+}
+
+.container.liquid-glass .tab-content .sub-tab {
+  background: var(--glass-bg) !important;
+  border-radius: 20px !important;
+  color: var(--glass-text) !important;
+  box-shadow:
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 3px var(--glass-shadow-inner) inset,
+    0 1px 4px var(--glass-shadow-outer) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
+  backdrop-filter: blur(12px) saturate(140%) !important;
+}
+
+.container.liquid-glass .tab-content .sub-tab.active {
+  background: linear-gradient(135deg, #379bff, #0048ff) !important;
+  color: #ffffff !important;
+}
+
+/* ===== day ActionCard 液态玻璃 ===== */
+
+.container.liquid-glass .action-card-content {
+  position: relative;
+  /* 玻璃基底 */
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+
+  /* 边框：上下区分亮度，模拟光照方向 */
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+
+  /* 光影分层 */
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.4),
+    /* 外阴影：悬浮下沉感 */
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  /* 内阴影：顶部高光 */
+
+  border-radius: 24rpx;
+  overflow: hidden;
+}
+
+/* 环境光渐变叠加：从 type-btn-active 位置向外扩散的蓝色光芒 */
+.container.liquid-glass .action-card-content::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 200px 100px at 20% 35%,
+      rgba(55, 155, 255, 0.1) 0%,
+      rgba(55, 155, 255, 0.05) 10%,
+      transparent 50%);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* 动作名称标签玻璃化 */
+.container.liquid-glass .action-card-content .tag {
+  background: var(--glass-bg) !important;
+  border: none !important;
+  color: var(--glass-text) !important;
+  box-shadow:
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 3px var(--glass-shadow-inner) inset,
+    0 1px 4px var(--glass-shadow-outer) !important;
+  -webkit-backdrop-filter: blur(8px) saturate(120%) !important;
+  backdrop-filter: blur(8px) saturate(120%) !important;
+}
+
+/* 组类型 / 自重模式按钮玻璃化 */
+.container.liquid-glass .action-card-content .type-btn,
+.container.liquid-glass .action-card-content .bw-mode-btn {
+  background: var(--glass-bg) !important;
+  border: none !important;
+  color: var(--glass-text) !important;
+  box-shadow:
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 2px var(--glass-shadow-inner) inset !important;
+  -webkit-backdrop-filter: blur(8px) saturate(120%) !important;
+  backdrop-filter: blur(8px) saturate(120%) !important;
+}
+
+.container.liquid-glass .action-card-content .type-btn-active {
+  background: rgba(55, 155, 255, 0.25) !important;
+}
+
+.container.liquid-glass .action-card-content .bw-mode-active {
+  background: rgba(46, 213, 115, 0.25) !important;
+}
+
+/* 次组阶段行背景 */
+.container.liquid-glass .action-card-content .entry-text {
+  color: var(--glass-text) !important;
+}
+
+.container.liquid-glass .action-card-content .entry-index {
+  color: var(--glass-placeholder) !important;
+}
+
+.container.liquid-glass .action-card-content .total-weight,
+.container.liquid-glass .action-card-content .action-diff {
+  color: var(--glass-placeholder) !important;
+}
+
+/* ===== day ActionCard 输入框 液态玻璃 ===== */
+
+.container.liquid-glass .action-card-content .input-reps,
+.container.liquid-glass .action-card-content .input-weight {
+  background-color: var(--glass-bg) !important;
+  border: none !important;
+  color: var(--glass-text) !important;
+  box-shadow:
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 2px var(--glass-shadow-inner) inset !important;
+  -webkit-backdrop-filter: blur(8px) saturate(120%) !important;
+  backdrop-filter: blur(8px) saturate(120%) !important;
+}
+
+.container.liquid-glass .action-card-content .input-reps::placeholder,
+.container.liquid-glass .action-card-content .input-weight::placeholder {
+  color: var(--glass-placeholder) !important;
+}
+
+.container.liquid-glass .action-card-content .input-mult {
+  color: var(--glass-placeholder) !important;
+}
+
+/* ===== backup 文本备份（导出/导入）液态玻璃 ===== */
+
+/* 分区卡片 - training-card 样式 */
+.container.liquid-glass .export-tab .export-section,
+.container.liquid-glass .import-tab .paste-section,
+.container.liquid-glass .import-tab .preview-section,
+.container.liquid-glass .import-tab .options-section {
+  position: relative;
+  /* 玻璃基底 */
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  
+  /* 边框：上下区分亮度，模拟光照方向 */
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  
+  /* 光影分层 */
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.4), /* 外阴影：悬浮下沉感 */
+    inset 0 1px 0 rgba(255, 255, 255, 0.08); /* 内阴影：顶部高光 */
+  
+  border-radius: 24rpx;
+  overflow: hidden;
+}
+
+/* 分区标题文字 */
+.container.liquid-glass .export-tab .section-title,
+.container.liquid-glass .import-tab .section-title {
+  color: var(--glass-text) !important;
+}
+
+/* 开关轨道 */
+.container.liquid-glass .export-tab .toggle-switch {
+  background: var(--glass-bg) !important;
+  box-shadow:
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 2px var(--glass-shadow-inner) inset !important;
+  -webkit-backdrop-filter: blur(8px) saturate(120%) !important;
+  backdrop-filter: blur(8px) saturate(120%) !important;
+}
+
+.container.liquid-glass .export-tab .switch {
+  background: #ffffff !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2) !important;
+}
+
+.container.liquid-glass .export-tab .switch.active {
+  background: linear-gradient(135deg, #379bff, #0048ff) !important;
+}
+
+/* 模板项 / 预览项 / 日期选择 / 详情内容 / 导入选项 */
+.container.liquid-glass .export-tab .template-item,
+.container.liquid-glass .export-tab .plan-preview,
+.container.liquid-glass .export-tab .date-range-display,
+.container.liquid-glass .export-tab .date-chip,
+.container.liquid-glass .import-tab .preview-item,
+.container.liquid-glass .import-tab .detail-content,
+.container.liquid-glass .import-tab .detail-item,
+.container.liquid-glass .import-tab .option-item,
+.container.liquid-glass .import-tab .paste-btn {
+  background: var(--glass-bg) !important;
+  border: none !important;
+  box-shadow:
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 2px var(--glass-shadow-inner) inset !important;
+  -webkit-backdrop-filter: blur(8px) saturate(120%) !important;
+  backdrop-filter: blur(8px) saturate(120%) !important;
+}
+
+/* 选中态 */
+.container.liquid-glass .export-tab .template-item.selected,
+.container.liquid-glass .import-tab .option-item.selected {
+  background: rgba(55, 155, 255, 0.2) !important;
+}
+
+/* 文字颜色 */
+.container.liquid-glass .export-tab .template-name,
+.container.liquid-glass .export-tab .select-all,
+.container.liquid-glass .export-tab .plan-mode,
+.container.liquid-glass .export-tab .plan-days,
+.container.liquid-glass .export-tab .date-range-display text,
+.container.liquid-glass .import-tab .btn-text,
+.container.liquid-glass .import-tab .preview-value,
+.container.liquid-glass .import-tab .item-name,
+.container.liquid-glass .import-tab .option-title {
+  color: var(--glass-text) !important;
+}
+
+.container.liquid-glass .export-tab .template-actions-count,
+.container.liquid-glass .export-tab .date-chip,
+.container.liquid-glass .export-tab .more-dates,
+.container.liquid-glass .import-tab .paste-hint,
+.container.liquid-glass .import-tab .preview-label,
+.container.liquid-glass .import-tab .item-info,
+.container.liquid-glass .import-tab .option-desc,
+.container.liquid-glass .import-tab .no-data {
+  color: var(--glass-placeholder) !important;
+}
+
+/* 导出按钮保持蓝色渐变，导入按钮保持绿色渐变 */
+.container.liquid-glass .export-tab .export-btn {
+  background: linear-gradient(135deg, rgba(55, 155, 255, 0.85), rgba(45, 130, 214, 0.85)) !important;
+  box-shadow: 0 4px 12px rgba(55, 155, 255, 0.3) !important;
+}
+
+.container.liquid-glass .import-tab .import-btn {
+  background: linear-gradient(135deg, rgba(52, 199, 89, 0.85), rgba(40, 167, 69, 0.85)) !important;
+  box-shadow: 0 4px 12px rgba(52, 199, 89, 0.3) !important;
+}
+
+/* 复选框 / 单选框 */
+.container.liquid-glass .export-tab .checkbox,
+.container.liquid-glass .import-tab .radio {
+  border-color: var(--glass-edge) !important;
+}
+
+.container.liquid-glass .export-tab .checkbox.checked,
+.container.liquid-glass .import-tab .radio.checked {
+  background: linear-gradient(135deg, #379bff, #0048ff) !important;
+  border-color: transparent !important;
+}
+
+/* ===== backup DateRangePicker 日期范围选择器 液态玻璃 ===== */
+
+.container.liquid-glass .date-range-picker {
+  background: var(--glass-bg) !important;
+  border: none !important;
+  box-shadow:
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 3px var(--glass-shadow-inner) inset,
+    0 1px 4px var(--glass-shadow-outer) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
+  backdrop-filter: blur(12px) saturate(140%) !important;
+}
+
+.container.liquid-glass .date-range-picker .picker-title,
+.container.liquid-glass .date-range-picker .current-month,
+.container.liquid-glass .date-range-picker .info-text,
+.container.liquid-glass .date-range-picker .selected-title,
+.container.liquid-glass .date-range-picker .date-input,
+.container.liquid-glass .date-range-picker .day-number,
+.container.liquid-glass .date-range-picker .date-tag {
+  color: var(--glass-text) !important;
+}
+
+.container.liquid-glass .date-range-picker .input-label,
+.container.liquid-glass .date-range-picker .info-hint,
+.container.liquid-glass .date-range-picker .weekday,
+.container.liquid-glass .date-range-picker .separator {
+  color: var(--glass-placeholder) !important;
+}
+
+/* 模式切换 */
+.container.liquid-glass .date-range-picker .picker-mode-switch {
+  background: var(--glass-bg) !important;
+  box-shadow:
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 2px var(--glass-shadow-inner) inset !important;
+  -webkit-backdrop-filter: blur(8px) saturate(120%) !important;
+  backdrop-filter: blur(8px) saturate(120%) !important;
+}
+
+.container.liquid-glass .date-range-picker .mode-btn {
+  color: var(--glass-placeholder) !important;
+}
+
+.container.liquid-glass .date-range-picker .mode-btn.active {
+  background: linear-gradient(135deg, #379bff, #0048ff) !important;
+  color: #ffffff !important;
+}
+
+/* 快捷按钮 / 日期输入框 / 日期标签 */
+.container.liquid-glass .date-range-picker .quick-btn,
+.container.liquid-glass .date-range-picker .date-input,
+.container.liquid-glass .date-range-picker .date-tag {
+  background: var(--glass-bg) !important;
+  border: none !important;
+  box-shadow:
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 2px var(--glass-shadow-inner) inset !important;
+  -webkit-backdrop-filter: blur(8px) saturate(120%) !important;
+  backdrop-filter: blur(8px) saturate(120%) !important;
+}
+
+.container.liquid-glass .date-range-picker .quick-btn:active {
+  background: rgba(55, 155, 255, 0.2) !important;
+}
+
+/* 日历日期格 */
+.container.liquid-glass .date-range-picker .calendar-day.has-data {
+  background: var(--glass-bg) !important;
+  box-shadow:
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 2px var(--glass-shadow-inner) inset !important;
+  -webkit-backdrop-filter: blur(6px) saturate(120%) !important;
+  backdrop-filter: blur(6px) saturate(120%) !important;
+}
+
+.container.liquid-glass .date-range-picker .calendar-day.selected {
+  background: linear-gradient(135deg, #379bff, #0048ff) !important;
+}
+
+.container.liquid-glass .date-range-picker .calendar-day.selected .day-number {
+  color: #ffffff !important;
+}
+
+/* 操作按钮 */
+.container.liquid-glass .date-range-picker .btn-cancel {
+  background: var(--glass-bg) !important;
+  border: none !important;
+  color: var(--glass-text) !important;
+  box-shadow:
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 2px var(--glass-shadow-inner) inset !important;
+  -webkit-backdrop-filter: blur(8px) saturate(120%) !important;
+  backdrop-filter: blur(8px) saturate(120%) !important;
+}
+
+.container.liquid-glass .date-range-picker .btn-confirm {
+  background: linear-gradient(135deg, #379bff, #0048ff) !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 12px rgba(55, 155, 255, 0.3) !important;
+}
+
+/* ===== day DaySettings 设置弹窗 液态玻璃 ===== */
+
+/* 开关轨道 */
+.container.liquid-glass .modal-panel .setting-switch {
+  background: var(--glass-bg) !important;
+  border: none !important;
+  box-shadow:
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 2px var(--glass-shadow-inner) inset !important;
+  -webkit-backdrop-filter: blur(8px) saturate(120%) !important;
+  backdrop-filter: blur(8px) saturate(120%) !important;
+}
+
+.container.liquid-glass .modal-panel .setting-switch.on {
+  background: linear-gradient(135deg, #379bff, #0048ff) !important;
+  box-shadow: 0 2px 8px rgba(55, 155, 255, 0.4) !important;
+}
+
+.container.liquid-glass .modal-panel .switch-dot {
+  background: #ffffff !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* 计时器输入框 */
+.container.liquid-glass .modal-panel .timer-input-wrap {
+  background: var(--glass-bg) !important;
+  border: none !important;
+  box-shadow:
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 2px var(--glass-shadow-inner) inset !important;
+  -webkit-backdrop-filter: blur(8px) saturate(120%) !important;
+  backdrop-filter: blur(8px) saturate(120%) !important;
+}
+
+.container.liquid-glass .modal-panel .timer-input {
+  color: var(--glass-text) !important;
+}
+
+.container.liquid-glass .modal-panel .timer-input-label,
+.container.liquid-glass .modal-panel .timer-unit,
+.container.liquid-glass .modal-panel .setting-section-title {
+  color: var(--glass-placeholder) !important;
+}
+
+/* 设置项文字 */
+.container.liquid-glass .modal-panel .setting-label,
+.container.liquid-glass .modal-panel .modal-title,
+.container.liquid-glass .modal-panel .action-label {
+  color: var(--glass-text) !important;
+}
+
+.container.liquid-glass .modal-panel .close-icon {
+  color: var(--glass-placeholder) !important;
+}
+
+/* 分割线 */
+.container.liquid-glass .modal-panel .settings-divider {
+  background: var(--glass-edge) !important;
+}
+
+/* 操作按钮（管理动作 / 复制数据 / 导入数据） */
+.container.liquid-glass .modal-panel .setting-action,
+.container.liquid-glass .modal-panel .import-action {
+  background: var(--glass-bg) !important;
+  border: none !important;
+  box-shadow:
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 2px var(--glass-shadow-inner) inset,
+    0 1px 4px var(--glass-shadow-outer) !important;
+  -webkit-backdrop-filter: blur(10px) saturate(120%) !important;
+  backdrop-filter: blur(10px) saturate(120%) !important;
+}
+
+.container.liquid-glass .modal-panel .setting-action:active,
+.container.liquid-glass .modal-panel .import-action:active {
+  transform: scale(0.96) !important;
+}
+
+/* ===== notification 通知页面 液态玻璃 ===== */
+
+/* 顶部栏按钮 */
+.container.liquid-glass .mark-all-btn {
+  background: var(--glass-bg) !important;
+  border: none !important;
+  color: var(--glass-text) !important;
+  box-shadow:
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 2px var(--glass-shadow-inner) inset,
+    0 1px 4px var(--glass-shadow-outer) !important;
+  -webkit-backdrop-filter: blur(8px) saturate(120%) !important;
+  backdrop-filter: blur(8px) saturate(120%) !important;
+}
+
+/* 通知卡片 */
+.container.liquid-glass .notify-card {
+  background: var(--glass-bg) !important;
+  border: none !important;
+  box-shadow:
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 3px var(--glass-shadow-inner) inset,
+    0 1px 4px var(--glass-shadow-outer) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
+  backdrop-filter: blur(12px) saturate(140%) !important;
+}
+
+.container.liquid-glass .notify-card.unread {
+  border-left: none !important;
+  box-shadow:
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 3px var(--glass-shadow-inner) inset,
+    0 1px 4px var(--glass-shadow-outer),
+    inset 3px 0 0 var(--primary, #379bff) !important;
+}
+
+.container.liquid-glass .notify-card .notify-title {
+  color: var(--glass-text) !important;
+}
+
+.container.liquid-glass .notify-card .notify-content {
+  color: var(--glass-text) !important;
+  opacity: 0.85;
+}
+
+.container.liquid-glass .notify-card .notify-type-tag {
+  background: var(--glass-bg) !important;
+  color: var(--glass-placeholder) !important;
+  box-shadow:
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 2px var(--glass-shadow-inner) inset !important;
+  -webkit-backdrop-filter: blur(6px) saturate(120%) !important;
+  backdrop-filter: blur(6px) saturate(120%) !important;
+}
+
+.container.liquid-glass .notify-card .notify-date,
+.container.liquid-glass .unread-count {
+  color: var(--glass-placeholder) !important;
+}
+
+/* 通知详情弹窗 */
+.container.liquid-glass .detail-panel {
+  background: var(--glass-bg) !important;
+  border: none !important;
+  box-shadow:
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 3px var(--glass-shadow-inner) inset,
+    0 8px 32px var(--glass-shadow-outer) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(160%) !important;
+  backdrop-filter: blur(16px) saturate(160%) !important;
+}
+
+.container.liquid-glass .detail-panel .detail-header {
+  border-bottom-color: var(--glass-edge) !important;
+}
+
+.container.liquid-glass .detail-panel .detail-icon-wrap {
+  background: var(--glass-bg) !important;
+  box-shadow:
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 2px var(--glass-shadow-inner) inset !important;
+  -webkit-backdrop-filter: blur(8px) saturate(120%) !important;
+  backdrop-filter: blur(8px) saturate(120%) !important;
+}
+
+.container.liquid-glass .detail-panel .detail-title {
+  color: var(--glass-text) !important;
+}
+
+.container.liquid-glass .detail-panel .detail-type-tag {
+  background: var(--glass-bg) !important;
+  color: var(--glass-placeholder) !important;
+  box-shadow:
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 2px var(--glass-shadow-inner) inset !important;
+  -webkit-backdrop-filter: blur(6px) saturate(120%) !important;
+  backdrop-filter: blur(6px) saturate(120%) !important;
+}
+
+.container.liquid-glass .detail-panel .detail-date,
+.container.liquid-glass .detail-panel .detail-close {
+  color: var(--glass-placeholder) !important;
+}
+
+.container.liquid-glass .detail-panel .detail-content {
+  color: var(--glass-text) !important;
+}
+
+/* "知道了" 按钮保持蓝色渐变 */
+.container.liquid-glass .detail-panel .detail-btn {
+  background: linear-gradient(135deg, rgba(55, 155, 255, 0.9), rgba(0, 72, 255, 0.9)) !important;
+  box-shadow: 0 4px 12px rgba(55, 155, 255, 0.3) !important;
+}
+
+/* ===== profile 个人中心 液态玻璃 ===== */
+
+/* 主卡片 */
+.container.liquid-glass .profile-card {
+  border: none !important;
+  box-shadow:
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 3px var(--glass-shadow-inner) inset,
+    0 8px 32px var(--glass-shadow-outer) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(160%) !important;
+  backdrop-filter: blur(16px) saturate(160%) !important;
+}
+
+/* 头像编辑角标 */
+.container.liquid-glass .avatar-edit-badge {
+  background: var(--glass-bg) !important;
+  border: none !important;
+  box-shadow:
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 3px var(--glass-shadow-inner) inset,
+    0 2px 6px var(--glass-shadow-outer) !important;
+  -webkit-backdrop-filter: blur(8px) saturate(120%) !important;
+  backdrop-filter: blur(8px) saturate(120%) !important;
+}
+
+/* 头像区分割线 */
+.container.liquid-glass .avatar-area {
+  border-bottom-color: var(--glass-edge) !important;
+}
+
+.container.liquid-glass .avatar-hint {
+  color: var(--glass-placeholder) !important;
+}
+
+/* 分区标题 */
+.container.liquid-glass .section-title {
+  color: var(--glass-placeholder) !important;
+}
+
+/* 信息行 */
+.container.liquid-glass .info-row {
+  border-bottom-color: var(--glass-edge) !important;
+}
+
+.container.liquid-glass .info-label {
+  color: var(--glass-placeholder) !important;
+}
+
+.container.liquid-glass .info-value {
+  color: var(--glass-text) !important;
+}
+
+.container.liquid-glass .edit-arrow {
+  color: var(--glass-placeholder) !important;
+}
+
+/* 昵称编辑行 */
+.container.liquid-glass .edit-row {
+  background: var(--glass-bg) !important;
+  box-shadow:
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 2px var(--glass-shadow-inner) inset !important;
+  -webkit-backdrop-filter: blur(8px) saturate(120%) !important;
+  backdrop-filter: blur(8px) saturate(120%) !important;
+}
+
+.container.liquid-glass .edit-input {
+  color: var(--glass-text) !important;
+}
+
+.container.liquid-glass .edit-done {
+  color: var(--primary, #379bff) !important;
+}
+
+/* 退出登录按钮（玻璃描边） */
+.container.liquid-glass .btn-logout {
+  background: var(--glass-bg) !important;
+  border: none !important;
+  color: var(--danger, #ff5a5d) !important;
+  box-shadow:
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 2px var(--glass-shadow-inner) inset,
+    0 1px 4px var(--glass-shadow-outer) !important;
+  -webkit-backdrop-filter: blur(10px) saturate(120%) !important;
+  backdrop-filter: blur(10px) saturate(120%) !important;
+}
+
+.container.liquid-glass .btn-logout:active {
+  transform: scale(0.98) !important;
+}
+
+/* 保存按钮保持蓝色渐变 */
+.container.liquid-glass .btn-primary {
+  background: linear-gradient(135deg, rgba(55, 155, 255, 0.9), rgba(0, 72, 255, 0.9)) !important;
+  box-shadow: 0 6px 16px rgba(55, 155, 255, 0.3) !important;
+}
+
+/* 状态提示条 */
+.container.liquid-glass .status-banner.success {
+  background: rgba(46, 213, 115, 0.15) !important;
+  color: var(--success, #2ed573) !important;
+}
+
+.container.liquid-glass .status-banner.error {
+  background: rgba(255, 90, 93, 0.15) !important;
+  color: var(--danger, #ff5a5d) !important;
+}
+
+/* ===== 液态玻璃按钮样式（根据参考样式） ===== */
+
+/* 训练统计页面: toggle-btn和part-select-btn - 参考select-all-btn */
+.container.liquid-glass .period-toggle .toggle-btn {
+  background: var(--glass-bg) !important;
+  border: none !important;
+  box-shadow:
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 2px var(--glass-shadow-inner) inset !important;
+  -webkit-backdrop-filter: blur(8px) saturate(120%) !important;
+  backdrop-filter: blur(8px) saturate(120%) !important;
+  color: var(--glass-text) !important;
+}
+
+.container.liquid-glass .period-toggle .toggle-btn.active {
+  background: rgba(55, 155, 255, 0.6) !important;
+  color: #ffffff !important;
+}
+
+.container.liquid-glass .period-toggle .toggle-btn:active {
+  transform: scale(0.96) !important;
+}
+
+.container.liquid-glass .part-select-btn {
+  background: var(--glass-bg) !important;
+  border: none !important;
+  box-shadow:
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 2px var(--glass-shadow-inner) inset !important;
+  -webkit-backdrop-filter: blur(8px) saturate(120%) !important;
+  backdrop-filter: blur(8px) saturate(120%) !important;
+  color: var(--glass-text) !important;
+}
+
+.container.liquid-glass .part-select-btn:active {
+  transform: scale(0.96) !important;
+}
+
+/* 备份页面: sub-tab active和export-btn - 参考btn-confirm-popup/disabled */
+.container.liquid-glass .sub-tab {
+  background: var(--glass-bg) !important;
+  border: none !important;
+  box-shadow:
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 2px var(--glass-shadow-inner) inset !important;
+  -webkit-backdrop-filter: blur(8px) saturate(120%) !important;
+  backdrop-filter: blur(8px) saturate(120%) !important;
+  color: var(--glass-text) !important;
+}
+
+.container.liquid-glass .sub-tab.active {
+  background: rgba(55, 155, 255, 0.6) !important;
+  color: #ffffff !important;
+}
+
+.container.liquid-glass .sub-tab:active {
+  transform: scale(0.96) !important;
+}
+
+.container.liquid-glass .export-btn {
+  background: var(--glass-bg) !important;
+  border: none !important;
+  box-shadow:
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 2px var(--glass-shadow-inner) inset !important;
+  -webkit-backdrop-filter: blur(8px) saturate(120%) !important;
+  backdrop-filter: blur(8px) saturate(120%) !important;
+  color: var(--glass-text) !important;
+}
+
+.container.liquid-glass .export-btn:not(.disabled) {
+  position: relative;
+  /* 半透明渐变底色，使用主题蓝 */
+  background: linear-gradient(
+    135deg,
+    rgba(55, 155, 255, 0.7) 0%,
+    rgba(0, 72, 255, 0.7) 100%
+  ) !important;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  
+  /* 顶部亮白边，模拟玻璃弧面高光 */
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.4) !important;
+  
+  /* 外发光 + 内高光 */
+  box-shadow: 
+    0 4px 16px rgba(55, 155, 255, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3) !important;
+  
+  border-radius: 20rpx;
+  color: #fff !important;
+}
+
+.container.liquid-glass .export-btn.disabled {
+  opacity: 0.5 !important;
+}
+
+.container.liquid-glass .export-btn:active {
+  transform: scale(0.96) !important;
+}
+
+.container.liquid-glass .import-btn {
+  background: var(--glass-bg) !important;
+  border: none !important;
+  box-shadow:
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 2px var(--glass-shadow-inner) inset !important;
+  -webkit-backdrop-filter: blur(8px) saturate(120%) !important;
+  backdrop-filter: blur(8px) saturate(120%) !important;
+  color: var(--glass-text) !important;
+}
+
+.container.liquid-glass .import-btn:not(.disabled) {
+  background: rgba(55, 155, 255, 0.6) !important;
+  color: #ffffff !important;
+}
+
+.container.liquid-glass .import-btn.disabled {
+  opacity: 0.5 !important;
+}
+
+.container.liquid-glass .import-btn:active {
+  transform: scale(0.96) !important;
+}
+
+/* 模版分享/导入导出: btn-confirm-popup - 参考btn-confirm-popup/disabled */
+.container.liquid-glass .btn-confirm-popup {
+  background: var(--glass-bg) !important;
+  border: none !important;
+  box-shadow:
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 2px var(--glass-shadow-inner) inset !important;
+  -webkit-backdrop-filter: blur(8px) saturate(120%) !important;
+  backdrop-filter: blur(8px) saturate(120%) !important;
+  color: var(--glass-text) !important;
+}
+
+.container.liquid-glass .btn-confirm-popup:not(.disabled) {
+  position: relative;
+  /* 半透明渐变底色，使用主题蓝 */
+  background: linear-gradient(
+    135deg,
+    rgba(55, 155, 255, 0.7) 0%,
+    rgba(0, 72, 255, 0.7) 100%
+  ) !important;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  
+  /* 顶部亮白边，模拟玻璃弧面高光 */
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.4) !important;
+  
+  /* 外发光 + 内高光 */
+  box-shadow: 
+    0 4px 16px rgba(55, 155, 255, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3) !important;
+  
+  border-radius: 20rpx;
+  color: #fff !important;
+}
+
+.container.liquid-glass .btn-confirm-popup:active {
+  transform: scale(0.96) !important;
+}
+
+.container.liquid-glass .btn-confirm-popup.disabled {
+  opacity: 0.5 !important;
+}
+
+/* 模版管理: 粘贴按钮 - 参考toggle-btn active */
+.container.liquid-glass .paste-btn {
+  background: rgba(55, 155, 255, 0.6) !important;
+  border: none !important;
+  color: #ffffff !important;
+  box-shadow: 0 2rpx 8rpx rgba(55, 155, 255, 0.3) !important;
+  -webkit-backdrop-filter: blur(8px) saturate(120%) !important;
+  backdrop-filter: blur(8px) saturate(120%) !important;
+}
+
+.container.liquid-glass .paste-btn:active {
+  transform: scale(0.96) !important;
+}
+
+/* 模版管理: 确认按钮 - 参考btn-confirm-popup/disabled */
+.container.liquid-glass .btn-confirm {
+  background: var(--glass-bg) !important;
+  border: none !important;
+  box-shadow:
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 2px var(--glass-shadow-inner) inset !important;
+  -webkit-backdrop-filter: blur(8px) saturate(120%) !important;
+  backdrop-filter: blur(8px) saturate(120%) !important;
+  color: var(--glass-text) !important;
+}
+
+.container.liquid-glass .btn-confirm:active {
+  transform: scale(0.96) !important;
+}
+
+/* 模版广场: sq-detail-btn primary - 参考btn-confirm-popup/disabled */
+.container.liquid-glass .sq-detail-btn.primary {
+  background: var(--glass-bg) !important;
+  border: none !important;
+  color: var(--glass-text) !important;
+  box-shadow:
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 2px var(--glass-shadow-inner) inset !important;
+  -webkit-backdrop-filter: blur(8px) saturate(120%) !important;
+  backdrop-filter: blur(8px) saturate(120%) !important;
+}
+
+.container.liquid-glass .sq-detail-btn.primary:not(.disabled) {
+  position: relative;
+  /* 半透明渐变底色，使用主题蓝 */
+  background: linear-gradient(
+    135deg,
+    rgba(55, 155, 255, 0.7) 0%,
+    rgba(0, 72, 255, 0.7) 100%
+  ) !important;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  
+  /* 顶部亮白边，模拟玻璃弧面高光 */
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.4) !important;
+  
+  /* 外发光 + 内高光 */
+  box-shadow: 
+    0 4px 16px rgba(55, 155, 255, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3) !important;
+  
+  border-radius: 20rpx;
+  color: #fff !important;
+}
+
+.container.liquid-glass .sq-detail-btn.primary.disabled {
+  opacity: 0.5 !important;
+}
+
+.container.liquid-glass .sq-detail-btn.primary:active {
+  transform: scale(0.96) !important;
+}
+
+/* 模版广场: 排序项 */
+.container.liquid-glass .sq-sort-item {
+  background: var(--glass-bg) !important;
+  border: none !important;
+  box-shadow:
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 2px var(--glass-shadow-inner) inset !important;
+  -webkit-backdrop-filter: blur(8px) saturate(120%) !important;
+  backdrop-filter: blur(8px) saturate(120%) !important;
   color: var(--glass-placeholder) !important;
 }
 
 .container.liquid-glass .sq-sort-item.active {
-  color: var(--primary) !important;
+  background: rgba(55, 155, 255, 0.6) !important;
+  color: #ffffff !important;
+}
+
+.container.liquid-glass .sq-sort-item:active {
+  transform: scale(0.96) !important;
+}
+
+/* 通知页面: detail-btn - 玻璃按钮样式 */
+.container.liquid-glass .detail-btn,
+.container.liquid-glass .detail-btn.liquid-glass-btn {
+  position: relative;
+  /* 半透明渐变底色，使用主题蓝 */
+  background: linear-gradient(
+    135deg,
+    rgba(55, 155, 255, 0.7) 0%,
+    rgba(0, 72, 255, 0.7) 100%
+  ) !important;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  
+  /* 顶部亮白边，模拟玻璃弧面高光 */
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.4) !important;
+  
+  /* 外发光 + 内高光 */
+  box-shadow: 
+    0 4px 16px rgba(55, 155, 255, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3) !important;
+  
+  border-radius: 20rpx;
+  color: #fff !important;
+}
+
+.container.liquid-glass .detail-btn:active {
+  transform: scale(0.96) !important;
+}
+
+/* 纪念日/模板中心: btn-confirm - 玻璃按钮样式 */
+.container.liquid-glass .btn-confirm,
+.container.liquid-glass .btn-confirm.liquid-glass-btn {
+  position: relative;
+  /* 半透明渐变底色，使用主题蓝 */
+  background: linear-gradient(
+    135deg,
+    rgba(55, 155, 255, 0.7) 0%,
+    rgba(0, 72, 255, 0.7) 100%
+  ) !important;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  
+  /* 顶部亮白边，模拟玻璃弧面高光 */
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.4) !important;
+  
+  /* 外发光 + 内高光 */
+  box-shadow: 
+    0 4px 16px rgba(55, 155, 255, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3) !important;
+  
+  border-radius: 20rpx;
+  color: #fff !important;
+}
+
+.container.liquid-glass .btn-confirm:active {
+  transform: scale(0.96) !important;
+}
+
+/* day页面: day-action-pair 按钮液态玻璃样式 */
+.container.liquid-glass .day-action-pair .day-action-btn {
+  background: var(--glass-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--glass-border);
+  border-top: 1px solid var(--glass-edge);
+  box-shadow: 
+    0 4px 16px var(--glass-shadow-outer),
+    inset 0 1px 0 var(--glass-shadow-inner);
+  border-radius: 999rpx; /* 胶囊形状 */
+}
+
+/* day页面: 计时器激活态 - 纪念日玻璃按钮样式 */
+html .container.liquid-glass .day-action-pair .day-action-btn.primary,
+body .container.liquid-glass .day-action-pair .day-action-btn.primary {
+  position: relative;
+  /* 半透明渐变底色，使用主题蓝 */
+  background: linear-gradient(
+    135deg,
+    rgba(55, 155, 255, 0.7) 0%,
+    rgba(0, 72, 255, 0.7) 100%
+  ) !important;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  
+  /* 顶部亮白边，模拟玻璃弧面高光 */
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.4) !important;
+  
+  /* 外发光 + 内高光 */
+  box-shadow: 
+    0 4px 16px rgba(55, 155, 255, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3) !important;
+  
+  border-radius: 999rpx;
+  color: #fff !important;
+}
+
+.container.liquid-glass .day-action-pair .day-action-btn:active {
+  transform: scale(0.96) !important;
+}
+
+/* 反馈页面: 分类标签 */
+.container.liquid-glass .category-chip {
+  background: var(--glass-bg) !important;
+  border: none !important;
+  box-shadow:
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 2px var(--glass-shadow-inner) inset !important;
+  -webkit-backdrop-filter: blur(8px) saturate(120%) !important;
+  backdrop-filter: blur(8px) saturate(120%) !important;
+  color: var(--glass-text) !important;
+}
+
+.container.liquid-glass .category-chip.active {
+  background: rgba(55, 155, 255, 0.6) !important;
+  color: #ffffff !important;
+}
+
+.container.liquid-glass .category-chip:active {
+  transform: scale(0.96) !important;
+}
+
+/* 反馈页面: 主要提交按钮 - 参考btn-confirm-popup/disabled */
+.container.liquid-glass .btn-primary {
+  background: var(--glass-bg) !important;
+  border: none !important;
+  box-shadow:
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 2px var(--glass-shadow-inner) inset !important;
+  -webkit-backdrop-filter: blur(8px) saturate(120%) !important;
+  backdrop-filter: blur(8px) saturate(120%) !important;
+  color: var(--glass-text) !important;
+}
+
+.container.liquid-glass .btn-primary:not([disabled]) {
+  background: rgba(55, 155, 255, 0.6) !important;
+  color: #ffffff !important;
+}
+
+.container.liquid-glass .btn-primary:active {
+  transform: scale(0.96) !important;
+}
+
+.container.liquid-glass .btn-primary[disabled] {
+  opacity: 0.5 !important;
+}
+
+/* 反馈页面: 提交按钮 */
+.container.liquid-glass .submit-btn {
+  margin-top: 4px;
+  padding: 0 10px;
+}
+
+/* ===== backup 备份球体 液态玻璃 ===== */
+
+.container.liquid-glass .backup-orb {
+  background: linear-gradient(135deg, rgba(55, 155, 255, 0.55), rgba(0, 72, 255, 0.55)) !important;
+  border: none !important;
+  box-shadow:
+    0 0 0 0.5px rgba(255, 255, 255, 0.25) inset,
+    0 1px 4px rgba(0, 0, 0, 0.1) inset,
+    0 15px 40px rgba(55, 155, 255, 0.35) !important;
+  -webkit-backdrop-filter: blur(14px) saturate(160%) !important;
+  backdrop-filter: blur(14px) saturate(160%) !important;
+}
+
+.container.liquid-glass .backup-orb:active {
+  transform: scale(0.95) !important;
+}
+
+.container.liquid-glass .orb-content .orb-text {
+  color: #ffffff !important;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* 旋转备份时的脉冲光环 */
+.container.liquid-glass .rotating.backup-orb::after {
+  background: rgba(55, 155, 255, 0.4) !important;
+  box-shadow: 0 0 20px rgba(55, 155, 255, 0.5) !important;
 }

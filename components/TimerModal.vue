@@ -69,8 +69,20 @@
     watch: {
       // 仅未计时时初始化；计时中再打开弹窗（点微型）不重置
       visible(val) {
-        if (val && !this.timerInterval) this.initTimer()
-        if (!val) this._teardownCanvas()
+        if (val) {
+          // 立即设置 canvasReady，让 canvas 尽快渲染
+          this.canvasReady = true
+          if (!this.timerInterval) {
+            this.initTimer()
+          } else {
+            // 计时中再打开弹窗，直接初始化 canvas
+            this.$nextTick(() => {
+              this.initCanvas()
+            })
+          }
+        } else {
+          this._teardownCanvas()
+        }
       },
     },
     created() {
