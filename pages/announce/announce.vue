@@ -17,7 +17,7 @@
 
     <!-- 公告列表 -->
     <view v-if="!loading" class="announce-list">
-      <view v-for="item in announcements" :key="item.id" class="announce-card glass-base" @click="openDetail(item)">
+      <view v-for="item in announcements" :key="item.id" class="announce-card glass-card" @click="openDetail(item)">
         <view class="announce-card-header">
           <text class="announce-icon">{{ typeIcon(item.type) }}</text>
           <view class="announce-card-info">
@@ -56,7 +56,7 @@
     <!-- 公告详情弹窗 -->
     <view v-if="activeDetail" class="detail-overlay" @click.self="closeDetail">
       <view class="overlay-bg" @click="closeDetail"></view>
-      <view class="detail-sheet glass-base" @click.stop>
+      <view class="detail-sheet glass-card" @click.stop>
         <view class="detail-header">
           <text class="detail-icon">{{ typeIcon(activeDetail.type) }}</text>
           <view class="detail-header-info">
@@ -503,5 +503,5 @@
     color: var(--text-secondary);
   }
 
-  /* 液态玻璃：已改用 glass-base 工具类 */
+  /* 液态玻璃：已改用 glass-card 工具类 */
 </style>

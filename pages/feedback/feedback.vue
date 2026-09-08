@@ -3,7 +3,7 @@
     :class="{ dark: daySettingsStore.isDarkMode, light: !daySettingsStore.isDarkMode, 'liquid-glass': daySettingsStore.liquidGlassEnabled }"
     @touchstart="onSwipeTouchStart" @touchmove="onSwipeTouchMove" @touchend="onSwipeTouchEnd">
     <!-- 未登录引导 -->
-    <view v-if="!isLoggedIn" class="login-guide card glass-base">
+    <view v-if="!isLoggedIn" class="login-guide card glass-card">
       <text class="guide-icon">💬</text>
       <text class="guide-title">登录后即可提交反馈与查看处理进度</text>
       <button class="btn-primary" @click="goToLogin">去登录</button>
@@ -21,7 +21,7 @@
 
       <!-- 提交反馈 -->
       <view v-show="activeTab === 'submit'" class="submit-form">
-        <view class="form-card glass-base">
+        <view class="form-card glass-card">
           <!-- 分类 -->
           <view class="form-item">
             <text class="form-label">反馈分类 <text class="required">*</text></text>
@@ -58,7 +58,7 @@
       <!-- 我的反馈 -->
       <view v-show="activeTab === 'mine'" class="mine-list">
         <view v-if="!loading" class="feedback-cards">
-          <view v-for="item in myFeedback" :key="item.id" class="feedback-card glass-base" @click="toggleExpand(item.id)">
+          <view v-for="item in myFeedback" :key="item.id" class="feedback-card glass-card" @click="toggleExpand(item.id)">
             <view class="fb-header">
               <text class="fb-title">{{ item.title }}</text>
               <text class="fb-status" :class="'status-' + item.status">
@@ -73,7 +73,7 @@
             <view v-if="expandedId === item.id" class="fb-detail">
               <text class="fb-content">{{ item.content }}</text>
 
-              <view v-if="item.handleReply" class="fb-reply glass-base">
+              <view v-if="item.handleReply" class="fb-reply glass-card">
                 <text class="reply-label">官方回复</text>
                 <text class="reply-content">{{ item.handleReply }}</text>
                 <text v-if="item.handlerAdminName" class="reply-meta">
@@ -653,5 +653,5 @@
     color: var(--text-secondary);
   }
 
-  /* 液态玻璃：表单/卡片容器已改用 glass-base 工具类 */
+  /* 液态玻璃：表单/卡片容器已改用 glass-card 工具类 */
 </style>
