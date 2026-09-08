@@ -2565,6 +2565,7 @@ html .container.liquid-glass.light .custom-color-card {
 .container.liquid-glass .period-toggle .toggle-btn.active,
 .container.liquid-glass .sub-tab.active,
 .container.liquid-glass .import-btn:not(.disabled),
+.container.liquid-glass .category-chip.active,
 .container.liquid-glass .btn-primary:not([disabled]) {
   background: rgba(55, 155, 255, 0.6) !important;
   color: #ffffff !important;
