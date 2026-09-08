@@ -34,7 +34,16 @@
 /* ===== 工具类（可复用的玻璃效果） ===== */
 
 /* glass-base 等同于 glass-panel，保留向后兼容 */
-/* .glass-base 定义已合并到 .glass-panel */
+.container.liquid-glass .glass-base {
+  background: var(--glass-bg) !important;
+  border: none !important;
+  box-shadow:
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 3px var(--glass-shadow-inner) inset,
+    0 1px 4px var(--glass-shadow-outer) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
+  backdrop-filter: blur(12px) saturate(140%) !important;
+}
 
 /* 卡片玻璃效果 - 用于面板、卡片容器 */
 .container.liquid-glass .glass-card {
