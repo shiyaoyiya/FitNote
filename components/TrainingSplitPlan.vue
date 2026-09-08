@@ -69,7 +69,7 @@
         <view class="btn-cancel" @click="onClose">
           <text>取消</text>
         </view>
-        <view class="btn-save" @click="onSave">
+        <view class="btn-save glass-panel" @click="onSave">
           <text>保存</text>
         </view>
       </view>

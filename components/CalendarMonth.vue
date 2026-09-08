@@ -3,7 +3,7 @@
     <view class="calendar-header">
       <text class="month-title" @click="handleGoToYearPage">{{ year }}/{{ month + 1 }}</text>
       <view class="more-btn-wrap">
-        <view class="more-btn" @click="$emit('open-more-menu')">
+        <view class="more-btn glass-panel" @click="$emit('open-more-menu')">
           <image v-if="userAvatar" class="more-btn-avatar" :src="userAvatar" mode="aspectFill" />
           <text v-else class="more-dots">⋮</text>
         </view>

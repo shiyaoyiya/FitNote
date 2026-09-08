@@ -87,7 +87,7 @@
     </scroll-view>
 
     <view class="bottom-bar">
-      <view class="btn-add-action" @click="openAddPopup">
+      <view class="btn-add-action glass-panel" @click="openAddPopup">
         <text class="btn-add-icon">+</text>
         <text class="btn-add-label">新建动作</text>
       </view>

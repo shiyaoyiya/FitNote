@@ -1,7 +1,7 @@
 <template>
   <view v-if="visible" class="popup-overlay">
     <view class="overlay-bg" @click="close"></view>
-    <view class="guide-panel fade-in">
+    <view class="guide-panel glass-panel fade-in">
       <view class="guide-header">
         <text class="guide-title">FitNote 功能说明</text>
         <text class="close-icon" @click="close">×</text>

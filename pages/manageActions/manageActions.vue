@@ -46,14 +46,14 @@
     <!-- 添加动作弹窗 -->
     <view v-if="showAddPopup" class="popup-overlay" @click.self="closeAddPopup">
       <view class="overlay-bg" @click="closeAddPopup"></view>
-      <view class="modal-panel action-picker-panel fade-in" @click.stop>
+      <view class="modal-panel action-picker-panel glass-panel fade-in" @click.stop>
         <view class="modal-header action-picker-header">
           <text class="modal-title">选择动作</text>
           <text class="close-icon" @click="closeAddPopup">×</text>
         </view>
         <view class="modal-body action-picker-body">
           <view class="search-bar-container">
-            <view class="search-bar-inner">
+            <view class="search-bar-inner glass-panel">
               <text class="search-icon">🔍</text>
               <input ref="searchInput" v-model="searchKeyword" class="search-bar-input" placeholder="搜索动作名称..."
                 @input="filterActions" confirm-type="search" :focus="searchFocus" />

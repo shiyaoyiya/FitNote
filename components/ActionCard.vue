@@ -13,7 +13,7 @@
             @focus="onInputFocus('weight')" @blur="onInputBlur"
             v-if="!isBodyweight || currentBWMode !== 'bodyweight'" />
         </view>
-        <button class="confirm-btn" @click="confirmEntry">✓️</button>
+        <button class="confirm-btn glass-panel" @click="confirmEntry">✓️</button>
       </view>
     </view>
 
@@ -60,7 +60,7 @@
         <text class="stage-type-badge"
           :class="'stage-type-' + getSubStageType(stage)">{{ getSubStageTypeLabel(stage) }}</text>
         <text class="remove-stage-btn" @click="removeExtraStage(i)">×</text>
-        <button class="extra-confirm-btn" @click="confirmExtraStages">✓️</button>
+        <button class="extra-confirm-btn glass-panel" @click="confirmExtraStages">✓️</button>
       </view>
       <text class="add-stage-btn" @click="addExtraStage">+ 添加次组数</text>
     </view>

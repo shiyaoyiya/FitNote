@@ -167,6 +167,18 @@
   color: var(--glass-text) !important;
 }
 
+/* 通用面板玻璃效果 - 用于弹窗、面板等容器 */
+.container.liquid-glass .glass-panel {
+  background: var(--glass-bg) !important;
+  border: none !important;
+  box-shadow:
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 3px var(--glass-shadow-inner) inset,
+    0 1px 4px var(--glass-shadow-outer) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
+  backdrop-filter: blur(12px) saturate(140%) !important;
+}
+
 /* ===== 流动高光动画（已禁用） ===== */
 
 /* ===== 通用基础玻璃背景 ===== */
@@ -212,17 +224,7 @@
   color: var(--glass-text) !important;
 }
 
-/* 更多按钮 (CalendarMonth) */
-.container.liquid-glass .more-btn {
-  background: var(--glass-bg) !important;
-  border: none !important;
-  box-shadow:
-    0 0 0 0.5px var(--glass-edge) inset,
-    0 1px 3px var(--glass-shadow-inner) inset,
-    0 1px 4px var(--glass-shadow-outer) !important;
-  -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
-  backdrop-filter: blur(12px) saturate(140%) !important;
-}
+/* 更多按钮 (CalendarMonth) - 已改用 glass-panel 工具类 */
 
 .container.liquid-glass .more-btn:active {
   transform: scale(0.96) !important;
@@ -290,18 +292,7 @@
   backdrop-filter: blur(3px) !important;
 }
 
-/* 阅读说明弹窗 */
-.container.liquid-glass .guide-panel {
-  background: var(--glass-bg) !important;
-  border: none !important;
-  border-radius: 16px !important;
-  box-shadow:
-    0 0 0 0.5px var(--glass-edge) inset,
-    0 1px 3px var(--glass-shadow-inner) inset,
-    0 1px 4px var(--glass-shadow-outer) !important;
-  -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
-  backdrop-filter: blur(12px) saturate(140%) !important;
-}
+/* 阅读说明弹窗 - 已改用 glass-panel 工具类 */
 
 /* ===== day.vue ===== */
 
@@ -340,37 +331,14 @@ html .container.dark.liquid-glass .save-row {
 }
 
 
-/* 计时�?设置按钮 */
-.container.liquid-glass .minimal-timer-btn,
-.container.liquid-glass .minimal-settings-btn {
-  background: var(--glass-bg) !important;
-  border: none !important;
-  border-radius: 50px !important;
-  -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
-  backdrop-filter: blur(12px) saturate(140%) !important;
-  box-shadow:
-    0 0 0 0.5px var(--glass-edge) inset,
-    0 1px 3px var(--glass-shadow-inner) inset,
-    0 1px 4px var(--glass-shadow-outer) !important;
-}
+/* 计时器设置按钮 - 已改用 glass-panel 工具类 */
 
 .container.liquid-glass .minimal-timer-btn:active,
 .container.liquid-glass .minimal-settings-btn:active {
   transform: scale(0.96) !important;
 }
 
-/* 计时器面�?*/
-.container.liquid-glass .timer-panel {
-  background: var(--glass-bg) !important;
-  border: none !important;
-  border-radius: 32rpx !important;
-  box-shadow:
-    0 0 0 0.5px var(--glass-edge) inset,
-    0 1px 3px var(--glass-shadow-inner) inset,
-    0 1px 4px var(--glass-shadow-outer) !important;
-  -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
-  backdrop-filter: blur(12px) saturate(140%) !important;
-}
+/* 计时器面板 - 已改用 glass-panel 工具类 */
 
 .container.liquid-glass .timer-full-body {
   background: transparent !important;
@@ -387,17 +355,7 @@ html .container.dark.liquid-glass .save-row {
   border: none !important;
 }
 
-/* ActionCard 确认按钮 */
-.container.liquid-glass .confirm-btn,
-.container.liquid-glass .extra-confirm-btn {
-  background: var(--glass-bg) !important;
-  -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
-  backdrop-filter: blur(12px) saturate(140%) !important;
-  box-shadow:
-    0 0 0 0.5px var(--glass-edge) inset,
-    0 1px 3px var(--glass-shadow-inner) inset,
-    0 1px 4px var(--glass-shadow-outer) !important;
-}
+/* ActionCard 确认按钮 - 已改用 glass-panel 工具类 */
 
 /* ===== Light mode confirm-btn (non-liquid-glass, tag-like) ===== */
 html .container.light:not(.liquid-glass) .confirm-btn,
@@ -415,20 +373,7 @@ html .container.light:not(.liquid-glass) .extra-confirm-btn {
   background-color: #f8f8f8 !important;
 }
 
-/* 计时器快捷按钮和操作按钮 */
-.container.liquid-glass .quick-btn,
-.container.liquid-glass .action-btn {
-  background: var(--glass-bg) !important;
-  border: none !important;
-  border-radius: 12px !important;
-  box-shadow:
-    0 0 0 0.5px var(--glass-edge) inset,
-    0 1px 3px var(--glass-shadow-inner) inset,
-    0 1px 4px var(--glass-shadow-outer) !important;
-  -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
-  backdrop-filter: blur(12px) saturate(140%) !important;
-  color: var(--glass-text) !important;
-}
+/* 计时器快捷按钮和操作按钮 - 已改用 glass-panel 工具类 */
 
 .container.liquid-glass .done-btn {
   background: linear-gradient(135deg, rgba(55, 155, 255, 0.6), rgba(45, 130, 214, 0.6)) !important;
@@ -454,38 +399,14 @@ html .container.light:not(.liquid-glass) .extra-confirm-btn {
 
 /* ===== templateManager.vue ===== */
 
-/* 创建按钮和新建动作按钮 */
-.container.liquid-glass .btn-create,
-.container.liquid-glass .btn-add-action {
-  background: var(--glass-bg) !important;
-  border: none !important;
-  border-radius: 60rpx !important;
-  box-shadow:
-    0 0 0 0.5px var(--glass-edge) inset,
-    0 1px 3px var(--glass-shadow-inner) inset,
-    0 1px 4px var(--glass-shadow-outer) !important;
-  -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
-  backdrop-filter: blur(12px) saturate(140%) !important;
-  color: var(--glass-text) !important;
-}
+/* 创建按钮和新建动作按钮 - 已改用 glass-panel 工具类 */
 
 .container.liquid-glass .btn-create:active,
 .container.liquid-glass .btn-add-action:active {
   transform: scale(0.96) !important;
 }
 
-.container.liquid-glass .btn-save {
-  background: var(--glass-bg) !important;
-  border: none !important;
-  border-radius: 12rpx !important;
-  box-shadow:
-    0 0 0 0.5px var(--glass-edge) inset,
-    0 1px 3px var(--glass-shadow-inner) inset,
-    0 1px 4px var(--glass-shadow-outer) !important;
-  -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
-  backdrop-filter: blur(12px) saturate(140%) !important;
-  color: var(--glass-text) !important;
-}
+/* btn-save 已改用 glass-panel 工具类 */
 
 .container.liquid-glass .btn-save:active {
   transform: scale(0.96) !important;
@@ -496,16 +417,7 @@ html .container.light:not(.liquid-glass) .extra-confirm-btn {
 }
 
 /* 搜索栏 */
-.container.liquid-glass .search-bar-inner {
-  background: var(--glass-bg) !important;
-  border: none !important;
-  box-shadow:
-    0 0 0 0.5px var(--glass-edge) inset,
-    0 1px 3px var(--glass-shadow-inner) inset,
-    0 1px 4px var(--glass-shadow-outer) !important;
-  -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
-  backdrop-filter: blur(12px) saturate(140%) !important;
-}
+/* search-bar-inner 已改用 glass-panel 工具类 */
 
 .container.liquid-glass .search-bar-inner:focus-within {
   box-shadow:
@@ -514,18 +426,7 @@ html .container.light:not(.liquid-glass) .extra-confirm-btn {
     0 1px 4px var(--glass-shadow-outer) !important;
 }
 
-/* 动作选项 */
-.container.liquid-glass .action-item {
-  background: var(--glass-bg) !important;
-  border: 1rpx solid transparent !important;
-  color: var(--glass-text) !important;
-  box-shadow:
-    0 0 0 0.5px var(--glass-edge) inset,
-    0 1px 3px var(--glass-shadow-inner) inset,
-    0 1px 4px var(--glass-shadow-outer) !important;
-  -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
-  backdrop-filter: blur(12px) saturate(140%) !important;
-}
+/* 动作选项 - 已改用 glass-panel 工具类 */
 
 .container.liquid-glass .action-item.selected {
   border-color: var(--focus-glow) !important;
@@ -543,34 +444,13 @@ html .container.liquid-glass.light .color-picker-card {
   backdrop-filter: blur(16px) saturate(160%) !important;
 }
 
-.container.liquid-glass .color-picker-card {
-  background: var(--glass-bg) !important;
-  border: none !important;
-  border-radius: 40rpx !important;
-  box-shadow:
-    0 0 0 0.5px var(--glass-edge) inset,
-    0 1px 3px var(--glass-shadow-inner) inset,
-    0 1px 4px var(--glass-shadow-outer) !important;
-  -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
-  backdrop-filter: blur(12px) saturate(140%) !important;
-}
+/* color-picker-card 已改用 glass-panel 工具类 */
 
 html .container.liquid-glass.light .color-name-dark {
   color: #333 !important;
 }
 
-.container.liquid-glass .action-picker-panel,
-.container.liquid-glass .set-selector-panel {
-  background: var(--glass-bg) !important;
-  border: none !important;
-  border-radius: 24rpx !important;
-  box-shadow:
-    0 0 0 0.5px var(--glass-edge) inset,
-    0 1px 3px var(--glass-shadow-inner) inset,
-    0 1px 4px var(--glass-shadow-outer) !important;
-  -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
-  backdrop-filter: blur(12px) saturate(140%) !important;
-}
+/* action-picker-panel, set-selector-panel 已改用 glass-panel 工具类 */
 
 html .container.liquid-glass.light .cp-footer {
   background: transparent !important;

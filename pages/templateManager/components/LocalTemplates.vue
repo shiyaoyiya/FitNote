@@ -45,7 +45,7 @@
         <text class="btn-icon">📤</text>
         <text class="btn-label">导入/导出</text>
       </view>
-      <view class="btn-create" @click="openCreatePanel">
+      <view class="btn-create glass-panel" @click="openCreatePanel">
         <text class="btn-create-icon">+</text>
         <text class="btn-create-label">新建模板</text>
       </view>
@@ -66,7 +66,7 @@
           </view>
 
           <view class="search-bar">
-            <view class="search-bar-inner">
+            <view class="search-bar-inner glass-panel">
               <text class="search-icon">🔍</text>
               <input v-model="searchTerm" placeholder="搜索动作名称..." class="search-input" />
               <text v-if="searchTerm" class="clear-icon" @click="searchTerm = ''">×</text>
@@ -83,7 +83,7 @@
 
           <scroll-view class="action-list" scroll-y="true" show-scrollbar="false">
             <view class="action-grid">
-              <view v-for="act in filteredActions" :key="act.id" class="action-item"
+              <view v-for="act in filteredActions" :key="act.id" class="action-item glass-panel"
                 :class="{ selected: selectedActions.includes(act.name) }" @click="toggleAction(act.name)">
                 <text class="action-name">{{ act.name }}</text>
                 <text v-if="selectedActions.includes(act.name)" class="check-mark">✓</text>

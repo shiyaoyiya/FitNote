@@ -43,7 +43,7 @@
       </view>
       <view class="modal-footer">
         <button class="cancel-btn" @click="$emit('close')">取消</button>
-        <button class="confirm-btn" @click="handleConfirm" :disabled="parsedData.length === 0">
+        <button class="confirm-btn glass-panel" @click="handleConfirm" :disabled="parsedData.length === 0">
           确认导入
         </button>
       </view>

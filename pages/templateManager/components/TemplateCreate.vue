@@ -14,7 +14,7 @@
         </view>
 
         <view class="search-bar">
-          <view class="search-bar-inner">
+          <view class="search-bar-inner glass-panel">
             <text class="search-icon">🔍</text>
             <input v-model="searchTerm" placeholder="搜索动作名称..." class="search-input" confirm-type="search" @confirm="onSearchConfirm" />
             <text v-if="searchTerm" class="clear-icon" @click="searchTerm = ''">×</text>
@@ -37,7 +37,7 @@
             <text>未找到匹配的动作</text>
           </view>
           <view v-else class="action-grid">
-            <view v-for="act in filteredActions" :key="act.id" class="action-item"
+            <view v-for="act in filteredActions" :key="act.id" class="action-item glass-panel"
               :class="{ selected: isActionSelected(act.name) }" @click="toggleAction(act.name)">
               <text class="action-name">{{ act.name }}</text>
               <text v-if="isActionSelected(act.name)" class="check-mark">✓</text>

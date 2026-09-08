@@ -51,13 +51,13 @@
         <button class="btn-add-action" @click="openAddActionPopup">
           添加动作
         </button>
-        <button class="btn-save" @click="saveTemplate">保存</button>
+        <button class="btn-save glass-panel" @click="saveTemplate">保存</button>
       </view>
     </view>
 
     <view v-if="showSetSelectorPopup" class="popup-overlay" @click.self="closeSetSelector">
       <view class="overlay-bg" @click="closeSetSelector"></view>
-      <view class="set-selector-panel slide-up" @click.stop>
+      <view class="set-selector-panel glass-panel slide-up" @click.stop>
         <view class="panel-header">
           <text class="panel-title">设置组数</text>
           <text class="close-btn" @click="closeSetSelector">×</text>
@@ -97,14 +97,14 @@
 
     <view v-if="showAddActionPopup" class="popup-overlay action-picker-overlay" @click.self="closeAddActionPopup">
       <view class="overlay-bg" @click="closeAddActionPopup"></view>
-      <view class="modal-panel action-picker-panel fade-in" @click.stop>
+      <view class="modal-panel action-picker-panel glass-panel fade-in" @click.stop>
         <view class="modal-header action-picker-header">
           <text class="modal-title">选择动作</text>
           <text class="close-icon" @click="closeAddActionPopup">×</text>
         </view>
         <view class="modal-body action-picker-body">
           <view class="search-bar-container">
-            <view class="search-bar-inner">
+            <view class="search-bar-inner glass-panel">
               <text class="search-icon">🔍</text>
               <input ref="searchInput" v-model="searchKeyword" class="search-bar-input" placeholder="搜索动作名称..."
                 @input="filterActions" confirm-type="search" :focus="searchFocus" />
@@ -134,7 +134,7 @@
 
     <view v-if="showColorPopup" class="color-popup-overlay" @click.self="closeColorPopup" @click="closeColorPopup">
       <view class="overlay-bg"></view>
-      <view class="color-picker-card" @click.stop>
+      <view class="color-picker-card glass-panel" @click.stop>
         <view class="cp-header">
           <text class="cp-title">选择模板配色</text>
           <text class="cp-close" @click="closeColorPopup">✕</text>

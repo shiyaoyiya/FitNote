@@ -21,10 +21,10 @@
     <!-- 范围选择模式 -->
     <view v-if="mode === 'range'" class="range-mode">
       <view class="quick-select">
-        <view class="quick-btn" @click="selectLastDays(7)">近7天</view>
-        <view class="quick-btn" @click="selectLastDays(30)">近1个月</view>
-        <view class="quick-btn" @click="selectLastDays(180)">近半年</view>
-        <view class="quick-btn" @click="selectAllDates">全部</view>
+        <view class="quick-btn glass-panel" @click="selectLastDays(7)">近7天</view>
+        <view class="quick-btn glass-panel" @click="selectLastDays(30)">近1个月</view>
+        <view class="quick-btn glass-panel" @click="selectLastDays(180)">近半年</view>
+        <view class="quick-btn glass-panel" @click="selectAllDates">全部</view>
       </view>
       <view class="date-inputs">
         <view class="date-input-group">

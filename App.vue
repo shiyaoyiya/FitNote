@@ -502,7 +502,7 @@
     <slot></slot>
 
     <view v-if="showGuide" class="guide-overlay">
-      <view class="guide-panel">
+      <view class="guide-panel glass-panel">
         <view class="guide-header">
           <text class="guide-title">欢迎使用 FitNote</text>
           <text class="guide-subtitle">以下是主要功能介绍</text>

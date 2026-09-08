@@ -1,10 +1,10 @@
 <template>
   <view v-if="visible" class="popup-overlay" style="z-index: 2000;">
     <view class="overlay-bg" @click="$emit('minimize')"></view>
-    <view class="timer-panel fade-in">
+    <view class="timer-panel glass-panel fade-in">
       <view class="timer-full-body">
         <view class="quick-settings">
-          <view v-for="(qs, qi) in computedQuickSettings" :key="qi" class="quick-btn"
+          <view v-for="(qs, qi) in computedQuickSettings" :key="qi" class="quick-btn glass-panel"
             :class="{ 'quick-btn-active': selectedQuickSeconds === qs.seconds }" @click="setQuickTime(qs.seconds)">
             <text class="quick-label">{{ qs.label }}</text>
             <text class="quick-time">{{ qs.timeText }}</text>
@@ -16,9 +16,9 @@
           <view class="time-text">{{ displayTime }}</view>
         </view>
         <view class="timer-actions">
-          <button class="action-btn" @click.stop="adjustDuration(-10)">-10s</button>
-          <button class="action-btn" @click.stop="adjustDuration(+10)">+10s</button>
-          <button class="action-btn done-btn" @click.stop="completeTimer">完成</button>
+          <button class="action-btn glass-panel" @click.stop="adjustDuration(-10)">-10s</button>
+          <button class="action-btn glass-panel" @click.stop="adjustDuration(+10)">+10s</button>
+          <button class="action-btn glass-panel done-btn" @click.stop="completeTimer">完成</button>
         </view>
       </view>
     </view>

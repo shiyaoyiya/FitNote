@@ -25,15 +25,15 @@
     <!-- 底部按钮行：计时器 | 设置 对称分布各占一半 -->
     <view class="save-row" v-if="!isRestDay && !showChooseTpl">
       <view class="day-action-pair">
-        <view v-if="!timerActive" class="day-action-btn half minimal-timer-btn" @click="startQuickTimer">
+        <view v-if="!timerActive" class="day-action-btn half minimal-timer-btn glass-panel" @click="startQuickTimer">
           <text class="dab-icon">⏱</text>
           <text class="dab-label">开始计时</text>
         </view>
-        <view v-else class="day-action-btn half primary minimal-timer-btn glass-btn-primary" @click="showTimer = true">
+        <view v-else class="day-action-btn half primary minimal-timer-btn glass-panel glass-btn-primary" @click="showTimer = true">
           <text class="dab-icon">⏱</text>
           <text class="dab-label">{{ timerDisplay }}</text>
         </view>
-        <view class="day-action-btn half minimal-settings-btn" @click="showSettings = true">
+        <view class="day-action-btn half minimal-settings-btn glass-panel" @click="showSettings = true">
           <text class="dab-icon">⚙</text>
           <text class="dab-label">设置</text>
         </view>
