@@ -49,7 +49,7 @@
             <text class="counter">{{ form.content.length }}/1000</text>
           </view>
 
-          <button :class="['btn-primary', 'submit-btn', { 'liquid-glass-btn': daySettingsStore.liquidGlassEnabled }]" :disabled="submitting || !canSubmit" @click="handleSubmit">
+          <button :class="['btn-primary', 'submit-btn', 'glass-btn', { 'glass-btn-enabled': daySettingsStore.liquidGlassEnabled && canSubmit }]" :disabled="submitting || !canSubmit" @click="handleSubmit">
             {{ submitting ? '提交中...' : '提交反馈' }}
           </button>
         </view>
@@ -490,30 +490,7 @@
     padding: 0 10px;
   }
 
-  .btn-primary.liquid-glass-btn {
-    background: var(--glass-bg) !important;
-    border: none !important;
-    box-shadow:
-      0 0 0 0.5px var(--glass-edge) inset,
-      0 1px 2px var(--glass-shadow-inner) inset !important;
-    -webkit-backdrop-filter: blur(8px) saturate(120%) !important;
-    backdrop-filter: blur(8px) saturate(120%) !important;
-    color: var(--glass-text) !important;
-  }
-
-  .btn-primary.liquid-glass-btn:not([disabled]) {
-    background: rgba(55, 155, 255, 0.6) !important;
-    color: #ffffff !important;
-  }
-
-  .btn-primary.liquid-glass-btn:active {
-    transform: scale(0.96) !important;
-  }
-
-  .btn-primary.liquid-glass-btn[disabled],
-  .btn-primary.liquid-glass-btn.is-disabled {
-    opacity: 0.5 !important;
-  }
+  /* btn-primary.liquid-glass-btn 已改用 glass-btn 工具类 */
 
   /* 我的反馈列表 */
   .feedback-cards {

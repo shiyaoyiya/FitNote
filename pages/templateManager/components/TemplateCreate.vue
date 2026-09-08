@@ -62,7 +62,7 @@
       </view>
 
       <view class="panel-footer">
-        <button :class="['btn-confirm', { 'liquid-glass-btn': daySettingsStore.liquidGlassEnabled }]" :disabled="!canConfirm" @click="handleConfirm">确认创建</button>
+        <button :class="['btn-confirm', 'glass-btn', { 'glass-btn-enabled': canConfirm && daySettingsStore.liquidGlassEnabled }]" :disabled="!canConfirm" @click="handleConfirm">确认创建</button>
       </view>
     </view>
   </view>
@@ -472,29 +472,7 @@ export default {
   box-shadow: 0 8rpx 24rpx rgba(55, 155, 255, 0.3);
 }
 
-.btn-confirm.liquid-glass-btn {
-  background: var(--glass-bg) !important;
-  border: none !important;
-  box-shadow:
-    0 0 0 0.5px var(--glass-edge) inset,
-    0 1px 2px var(--glass-shadow-inner) inset !important;
-  -webkit-backdrop-filter: blur(8px) saturate(120%) !important;
-  backdrop-filter: blur(8px) saturate(120%) !important;
-  color: var(--glass-text) !important;
-}
-
-.btn-confirm.liquid-glass-btn:not([disabled]) {
-  background: rgba(55, 155, 255, 0.6) !important;
-  color: #ffffff !important;
-}
-
-.btn-confirm.liquid-glass-btn:active {
-  transform: scale(0.96) !important;
-}
-
-.btn-confirm.liquid-glass-btn[disabled] {
-  opacity: 0.5 !important;
-}
+/* btn-confirm.liquid-glass-btn 已改用 glass-btn 工具类 */
 
 .btn-confirm:active {
   opacity: 0.8;
