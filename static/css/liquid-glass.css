@@ -1060,15 +1060,17 @@ html .container.liquid-glass.light .custom-color-card {
 
 /* ===== templateManager 模板卡片液态玻璃 ===== */
 .container.liquid-glass .action-card {
-  background: var(--glass-bg) !important;
-  border: none !important;
-  border-radius: 16rpx !important;
+  position: relative;
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
   box-shadow:
-    0 0 0 0.5px var(--glass-edge) inset,
-    0 1px 3px var(--glass-shadow-inner) inset,
-    0 1px 4px var(--glass-shadow-outer) !important;
-  -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
-  backdrop-filter: blur(12px) saturate(140%) !important;
+    0 1px 5px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  border-radius: 16rpx;
+  overflow: hidden;
 }
 
 .container.liquid-glass .card-name {
@@ -1397,14 +1399,17 @@ html .container.liquid-glass.light .custom-color-card {
 
 /* 模板卡片 */
 .container.liquid-glass .template-card {
-  background: var(--glass-bg) !important;
-  border: none !important;
+  position: relative;
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
   box-shadow:
-    0 0 0 0.5px var(--glass-edge) inset,
-    0 1px 3px var(--glass-shadow-inner) inset,
-    0 1px 4px var(--glass-shadow-outer) !important;
-  -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
-  backdrop-filter: blur(12px) saturate(140%) !important;
+    0 1px 5px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  border-radius: 16rpx;
+  overflow: hidden;
 }
 
 .container.liquid-glass .card-title {
