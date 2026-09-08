@@ -10,11 +10,11 @@
         <view v-for="(item, idx) in localOrder" :key="item.id" class="sort-item-wrapper"
           :class="{ 'is-dragging': dragIdx === idx }"
           :style="{ transform: 'translateY(' + (isDragMode && dragIdx === idx ? itemDragOffset : idx * CARD_HEIGHT_PX) + 'px)' }">
-          <view class="sort-card" :class="{ 'is-hidden': localVisibility[item.id] === false }"
+          <view class="sort-card glass-base" :class="{ 'is-hidden': localVisibility[item.id] === false }"
             @touchstart="onSortTouchStart($event, idx)" @touchmove="onSortTouchMove($event, idx)"
             @touchend="onSortTouchEnd($event, idx)">
-            <view class="drag-handle">☰</view>
-            <text class="sort-card-name">{{ item.name }}</text>
+            <view class="drag-handle glass-placeholder">☰</view>
+            <text class="sort-card-name glass-text">{{ item.name }}</text>
             <view class="card-actions">
               <text v-if="localVisibility[item.id] === false" class="restore-btn"
                 @click.stop="toggleVisibility(item.id)">恢复</text>
@@ -375,55 +375,7 @@
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
   }
 
-  .container.liquid-glass .sort-card {
-    background: var(--glass-bg) !important;
-    border: none !important;
-    box-shadow:
-      0 0 0 0.5px var(--glass-edge) inset,
-      0 1px 3px var(--glass-shadow-inner) inset,
-      0 1px 4px var(--glass-shadow-outer) !important;
-    -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
-    backdrop-filter: blur(12px) saturate(140%) !important;
-  }
-
-  .sort-card.is-hidden {
-    opacity: 0.4;
-  }
-
-  .container.liquid-glass .sort-card.is-hidden {
-    opacity: 0.35 !important;
-  }
-
-  .drag-handle {
-    font-size: 18px;
-    color: #999999;
-    margin-right: 12px;
-    flex-shrink: 0;
-  }
-
-  .container.light .drag-handle {
-    color: #999999;
-  }
-
-  .container.dark .drag-handle {
-    color: #888888;
-  }
-
-  .container.liquid-glass .drag-handle {
-    color: var(--glass-placeholder) !important;
-  }
-
-  .sort-card-name {
-    flex: 1;
-    font-size: 15px;
-    color: var(--text-primary);
-    font-weight: 500;
-    pointer-events: none;
-  }
-
-  .container.liquid-glass .sort-card-name {
-    color: var(--glass-text) !important;
-  }
+  /* sort-card, drag-handle, sort-card-name 已改用 glass-base, glass-placeholder, glass-text 工具类 */
 
   .card-actions {
     flex-shrink: 0;
