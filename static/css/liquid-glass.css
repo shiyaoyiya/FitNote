@@ -253,33 +253,9 @@
   display: none;
 }
 
-/* 分化计划弹窗 */
-.container.liquid-glass .split-panel {
-  background: var(--glass-bg) !important;
-  border: none !important;
-  border-radius: 24rpx !important;
-  box-shadow:
-    0 0 0 0.5px var(--glass-edge) inset,
-    0 1px 3px var(--glass-shadow-inner) inset,
-    0 1px 4px var(--glass-shadow-outer) !important;
-  -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
-  backdrop-filter: blur(12px) saturate(140%) !important;
-}
-
-/* 更多菜单弹窗 */
-.container.liquid-glass .menu-panel {
-  background: var(--glass-bg) !important;
-  border: none !important;
-  border-radius: 24rpx !important;
-  box-shadow:
-    0 0 0 0.5px var(--glass-edge) inset,
-    0 1px 3px var(--glass-shadow-inner) inset,
-    0 1px 4px var(--glass-shadow-outer) !important;
-  -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
-  backdrop-filter: blur(12px) saturate(140%) !important;
-}
-
-/* 通用弹窗 panel */
+/* 通用弹窗面板（分化计划、更多菜单、通用弹窗） */
+.container.liquid-glass .split-panel,
+.container.liquid-glass .menu-panel,
 .container.liquid-glass .modal-panel {
   background: var(--glass-bg) !important;
   border: none !important;
@@ -424,20 +400,8 @@ html .container.light:not(.liquid-glass) .extra-confirm-btn {
   background-color: #f8f8f8 !important;
 }
 
-/* 计时器快捷按钮 */
-.container.liquid-glass .quick-btn {
-  background: var(--glass-bg) !important;
-  border: none !important;
-  border-radius: 12px !important;
-  box-shadow:
-    0 0 0 0.5px var(--glass-edge) inset,
-    0 1px 3px var(--glass-shadow-inner) inset,
-    0 1px 4px var(--glass-shadow-outer) !important;
-  -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
-  backdrop-filter: blur(12px) saturate(140%) !important;
-}
-
-/* 计时器操作按钮 */
+/* 计时器快捷按钮和操作按钮 */
+.container.liquid-glass .quick-btn,
 .container.liquid-glass .action-btn {
   background: var(--glass-bg) !important;
   border: none !important;
@@ -475,7 +439,9 @@ html .container.light:not(.liquid-glass) .extra-confirm-btn {
 
 /* ===== templateManager.vue ===== */
 
-.container.liquid-glass .btn-create {
+/* 创建按钮和新建动作按钮 */
+.container.liquid-glass .btn-create,
+.container.liquid-glass .btn-add-action {
   background: var(--glass-bg) !important;
   border: none !important;
   border-radius: 60rpx !important;
@@ -488,7 +454,8 @@ html .container.light:not(.liquid-glass) .extra-confirm-btn {
   color: var(--glass-text) !important;
 }
 
-.container.liquid-glass .btn-create:active {
+.container.liquid-glass .btn-create:active,
+.container.liquid-glass .btn-add-action:active {
   transform: scale(0.96) !important;
 }
 
@@ -726,24 +693,6 @@ html .container.liquid-glass.light .custom-color-card {
 
 /* ===== actionLibrary.vue ===== */
 
-/* 新建动作按钮 */
-.container.liquid-glass .btn-add-action {
-  background: var(--glass-bg) !important;
-  border: none !important;
-  border-radius: 60rpx !important;
-  box-shadow:
-    0 0 0 0.5px var(--glass-edge) inset,
-    0 1px 3px var(--glass-shadow-inner) inset,
-    0 1px 4px var(--glass-shadow-outer) !important;
-  -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
-  backdrop-filter: blur(12px) saturate(140%) !important;
-  color: var(--glass-text) !important;
-}
-
-.container.liquid-glass .btn-add-action:active {
-  transform: scale(0.96) !important;
-}
-
 .container.liquid-glass .btn-add-icon,
 .container.liquid-glass .btn-add-label {
   color: var(--glass-text) !important;
@@ -888,26 +837,8 @@ html .container.liquid-glass.light .custom-color-card {
   backdrop-filter: blur(12px) saturate(140%) !important;
 }
 
-.container.liquid-glass .category-option {
-  background: var(--glass-bg) !important;
-  border: none !important;
-  color: var(--glass-text) !important;
-  box-shadow:
-    0 0 0 0.5px var(--glass-edge) inset,
-    0 1px 3px var(--glass-shadow-inner) inset,
-    0 1px 4px var(--glass-shadow-outer) !important;
-  -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
-  backdrop-filter: blur(12px) saturate(140%) !important;
-}
-
-.container.liquid-glass .category-option.selected {
-  border-color: var(--focus-glow) !important;
-  box-shadow:
-    0 0 0 1px var(--focus-glow),
-    inset 0 1px 3px var(--glass-shadow-inner),
-    0 1px 4px var(--glass-shadow-outer) !important;
-}
-
+/* 分类选项和子分类选项 */
+.container.liquid-glass .category-option,
 .container.liquid-glass .subcategory-option {
   background: var(--glass-bg) !important;
   border: none !important;
@@ -920,6 +851,7 @@ html .container.liquid-glass.light .custom-color-card {
   backdrop-filter: blur(12px) saturate(140%) !important;
 }
 
+.container.liquid-glass .category-option.selected,
 .container.liquid-glass .subcategory-option.selected {
   border-color: var(--focus-glow) !important;
   box-shadow:
@@ -967,23 +899,10 @@ html .container.liquid-glass.light .custom-color-card {
   background-color: transparent !important;
 }
 
-.container.liquid-glass .quick-set-btn {
-  background: var(--glass-bg) !important;
-  border: none !important;
-  color: var(--glass-text) !important;
-  box-shadow:
-    0 0 0 0.5px var(--glass-edge) inset,
-    0 1px 3px var(--glass-shadow-inner) inset,
-    0 1px 4px var(--glass-shadow-outer) !important;
-  -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
-  backdrop-filter: blur(12px) saturate(140%) !important;
-}
-
-.container.liquid-glass .current-action-name {
-  background: var(--glass-bg) !important;
-}
-
-.container.liquid-glass .preset-set-btn {
+/* 快速设置按钮、预设设置按钮和自定义设置输入框 */
+.container.liquid-glass .quick-set-btn,
+.container.liquid-glass .preset-set-btn,
+.container.liquid-glass .custom-set-input {
   background: var(--glass-bg) !important;
   border: none !important;
   color: var(--glass-text) !important;
@@ -1000,16 +919,8 @@ html .container.liquid-glass.light .custom-color-card {
   box-shadow: 0 0 0 1px var(--focus-glow) !important;
 }
 
-.container.liquid-glass .custom-set-input {
+.container.liquid-glass .current-action-name {
   background: var(--glass-bg) !important;
-  border: none !important;
-  color: var(--glass-text) !important;
-  box-shadow:
-    0 0 0 0.5px var(--glass-edge) inset,
-    0 1px 3px var(--glass-shadow-inner) inset,
-    0 1px 4px var(--glass-shadow-outer) !important;
-  -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
-  backdrop-filter: blur(12px) saturate(140%) !important;
 }
 
 /* ===== trainingStat uni-scroll-view-content ===== */
@@ -1062,19 +973,8 @@ html .container.liquid-glass.light .custom-color-card {
   color: var(--glass-placeholder) !important;
 }
 
-.container.liquid-glass .manage-btn-add {
-  background: var(--glass-bg) !important;
-  border: none !important;
-  border-radius: 12rpx !important;
-  box-shadow:
-    0 0 0 0.5px var(--glass-edge) inset,
-    0 1px 3px var(--glass-shadow-inner) inset,
-    0 1px 4px var(--glass-shadow-outer) !important;
-  -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
-  backdrop-filter: blur(12px) saturate(140%) !important;
-  color: var(--glass-text) !important;
-}
-
+/* 管理页面按钮 */
+.container.liquid-glass .manage-btn-add,
 .container.liquid-glass .manage-btn-save {
   background: var(--glass-bg) !important;
   border: none !important;
@@ -1147,23 +1047,6 @@ html .container.liquid-glass.light .custom-color-card {
   padding-bottom: calc(75px + 20px + 20px + env(safe-area-inset-bottom, 0px)) !important;
 }
 
-/* 纪念日弹窗 input */
-.container.liquid-glass .action-input {
-  background: var(--glass-bg) !important;
-  border: none !important;
-  border-radius: 16rpx !important;
-  color: var(--glass-text) !important;
-  box-shadow:
-    0 0 0 0.5px var(--glass-edge) inset,
-    0 1px 3px var(--glass-shadow-inner) inset,
-    0 1px 4px var(--glass-shadow-outer) !important;
-  -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
-  backdrop-filter: blur(12px) saturate(140%) !important;
-}
-
-.container.liquid-glass .action-input::placeholder {
-  color: var(--glass-placeholder) !important;
-}
 
 /* ===== 导入导出弹窗样式 ===== */
 .container.liquid-glass .import-export-panel,
@@ -1199,7 +1082,9 @@ html .container.liquid-glass.light .custom-color-card {
     0 1px 4px var(--glass-shadow-outer) !important;
 }
 
-.container.liquid-glass .import-textarea {
+/* 导入文本域和纪念日弹窗输入框 */
+.container.liquid-glass .import-textarea,
+.container.liquid-glass .action-input {
   background: var(--glass-bg) !important;
   border: none !important;
   color: var(--glass-text) !important;
@@ -1209,7 +1094,8 @@ html .container.liquid-glass.light .custom-color-card {
     0 1px 4px var(--glass-shadow-outer) !important;
 }
 
-.container.liquid-glass .import-textarea::placeholder {
+.container.liquid-glass .import-textarea::placeholder,
+.container.liquid-glass .action-input::placeholder {
   color: var(--glass-placeholder) !important;
 }
 
