@@ -10,8 +10,9 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
-import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -24,7 +25,7 @@ import org.springframework.security.access.expression.method.MethodSecurityExpre
 
 @Configuration
 @EnableWebSecurity
-@EnableGlobalMethodSecurity(prePostEnabled = true)
+@EnableMethodSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
 
@@ -51,46 +52,39 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        http.csrf().disable().cors().and()
-            .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS);
-
-        http.authorizeRequests()
-            .antMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-            .antMatchers("/api/auth/**").permitAll()
-            .antMatchers(HttpMethod.GET,
-                "/api/template/square/**",
-                "/api/template/tag/list",
-                "/api/announce/list",
-                "/api/announce/*",
-                "/api/preset/list",
-                "/api/preset/*",
-                "/avatars/**").permitAll()
-            // ADMIN + AUDITOR 共用：模板审核 / 反馈管理（必须放在 /api/admin/** 之前）
-            .antMatchers("/api/admin/template/audit/**", "/api/admin/feedback/**").hasAnyRole("ADMIN", "AUDITOR")
-            // ADMIN 专属：dashboard / 管理用户 / 全局备份 / 预设 / 公告 / 模板广场管理 / 管理员体系
-            .antMatchers(
-                "/api/dashboard/**",
-                "/api/admin/user/**",
-                "/api/admin/backup/**",
-                "/api/admin/preset/**",
-                "/api/admin/announce/**",
-                "/api/admin/**").hasRole("ADMIN")
-            .anyRequest().authenticated();
-
-        http.addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
-
-        http.exceptionHandling()
-            .authenticationEntryPoint((req, res, e) -> {
-                res.setStatus(401);
-                res.setContentType("application/json;charset=UTF-8");
-                String msg = req.getAttribute("jwt_expired") != null ? "TOKEN_EXPIRED" : "UNAUTHORIZED";
-                res.getWriter().write(objectMapper.writeValueAsString(Result.fail(ResultCode.UNAUTHORIZED, msg)));
-            })
-            .accessDeniedHandler((req, res, e) -> {
-                res.setStatus(403);
-                res.setContentType("application/json;charset=UTF-8");
-                res.getWriter().write(objectMapper.writeValueAsString(Result.fail(ResultCode.FORBIDDEN)));
-            });
+        http
+            .csrf(csrf -> csrf.disable())
+            .cors(Customizer.withDefaults())
+            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .authorizeHttpRequests(auth -> auth
+                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                .requestMatchers("/api/auth/**").permitAll()
+                .requestMatchers(HttpMethod.GET,
+                    "/api/template/square/**",
+                    "/api/template/tag/list",
+                    "/api/announce/list",
+                    "/api/announce/*",
+                    "/avatars/**").permitAll()
+                // ADMIN + AUDITOR 均可访问管理端，细粒度由 hasPermission 控制
+                .requestMatchers("/api/dashboard/**", "/api/admin/**").hasAnyRole("ADMIN", "AUDITOR")
+                // Druid 监控由 StatViewServlet 自行鉴权（login-username/login-password + allow 白名单），Spring Security 放行
+                .requestMatchers("/druid/**").permitAll()
+                .anyRequest().authenticated()
+            )
+            .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
+            .exceptionHandling(ex -> ex
+                .authenticationEntryPoint((req, res, e) -> {
+                    res.setStatus(401);
+                    res.setContentType("application/json;charset=UTF-8");
+                    String msg = req.getAttribute("jwt_expired") != null ? "TOKEN_EXPIRED" : "UNAUTHORIZED";
+                    res.getWriter().write(objectMapper.writeValueAsString(Result.fail(ResultCode.UNAUTHORIZED, msg)));
+                })
+                .accessDeniedHandler((req, res, e) -> {
+                    res.setStatus(403);
+                    res.setContentType("application/json;charset=UTF-8");
+                    res.getWriter().write(objectMapper.writeValueAsString(Result.fail(ResultCode.FORBIDDEN)));
+                })
+            );
 
         return http.build();
     }
