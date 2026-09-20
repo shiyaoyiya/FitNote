@@ -8,7 +8,7 @@ import com.fitnote.security.SecurityUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
-import javax.validation.Valid;
+import jakarta.validation.Valid;
 
 /** 小程序端 USER 接口（需要登录） */
 @RestController

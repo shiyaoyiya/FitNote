@@ -30,6 +30,9 @@ const TOKEN_KEYS = {
   LOGIN_MODE: 'fitnote_login_mode', // 'cloud' | 'server'
 }
 
+const AVATAR_CACHE_KEY = 'fitnote_avatar_cache'
+const AVATAR_IMAGE_CACHE_KEY = 'fitnote_avatar_image_cache'
+
 function _ensureCloudReady() {
   if (!wx.cloud || typeof wx.cloud.database !== 'function') {
     throw new Error('CLOUD_NOT_INIT')
@@ -193,6 +196,8 @@ export function cloudLogout() {
   uni.removeStorageSync(TOKEN_KEYS.REFRESH)
   uni.removeStorageSync(TOKEN_KEYS.USER)
   uni.removeStorageSync(TOKEN_KEYS.LOGIN_MODE)
+  uni.removeStorageSync(AVATAR_CACHE_KEY)
+  uni.removeStorageSync(AVATAR_IMAGE_CACHE_KEY)
 }
 
 // ---------- 内部 ----------

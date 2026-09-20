@@ -5,6 +5,7 @@ import com.fitnote.common.PageVO;
 import com.fitnote.common.Result;
 import com.fitnote.common.ResultCode;
 import com.fitnote.modules.template.dto.AuditDTO;
+import com.fitnote.modules.template.dto.OfflineDTO;
 import com.fitnote.modules.template.dto.OfficialDTO;
 import com.fitnote.modules.template.service.AuditService;
 import com.fitnote.modules.template.service.SharedTemplateService;
@@ -14,7 +15,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
-import javax.validation.Valid;
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/admin/template")
@@ -52,6 +53,18 @@ public class AdminTemplateController {
     @DeleteMapping("/square/{id}")
     public Result<?> deleteSquare(@PathVariable Long id) {
         sharedTemplateService.deleteSquare(id);
+        return Result.ok();
+    }
+
+    /**
+     * 强制下架已上架模板（status=1 → status=2）。
+     * 与审核接口 {@link #audit(Long, AuditDTO)} 区别：
+     *   - 审核作用于 status=0 待审核模板；
+     *   - 下架作用于 status=1 已上架模板，并写入下架原因（rejectReason）。
+     */
+    @PutMapping("/square/{id}/offline")
+    public Result<?> offlineSquare(@PathVariable Long id, @Valid @RequestBody OfflineDTO dto) {
+        sharedTemplateService.offline(id, dto.getRejectReason().trim(), currentUser().getId());
         return Result.ok();
     }
 

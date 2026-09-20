@@ -10,6 +10,7 @@ import hasPerm from './directives/hasPerm'
 import { useUserStore } from './store/modules/user'
 import { usePermissionStore } from './store/modules/permission'
 import './utils/permission' // 注入全局路由守卫
+import './styles/liquid-glass.css' // 液态玻璃全局样式（写死）
 
 const app = createApp(App)
 for (const [k, v] of Object.entries(Icons)) {

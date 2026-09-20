@@ -2,7 +2,7 @@
   <div class="dashboard-wrap">
     <!-- 顶部 4 个统计卡片 -->
     <div class="stat-grid">
-      <el-card shadow="hover" class="stat-card">
+      <el-card shadow="hover" class="stat-card glass-card">
         <div class="stat-inner">
           <el-icon class="stat-icon" color="#409EFF"><User /></el-icon>
           <div class="stat-text">
@@ -11,7 +11,7 @@
           </div>
         </div>
       </el-card>
-      <el-card shadow="hover" class="stat-card">
+      <el-card shadow="hover" class="stat-card glass-card">
         <div class="stat-inner">
           <el-icon class="stat-icon" color="#67C23A"><UserFilled /></el-icon>
           <div class="stat-text">
@@ -20,7 +20,7 @@
           </div>
         </div>
       </el-card>
-      <el-card shadow="hover" class="stat-card">
+      <el-card shadow="hover" class="stat-card glass-card">
         <div class="stat-inner">
           <el-icon class="stat-icon" color="#E6A23C"><Aim /></el-icon>
           <div class="stat-text">
@@ -29,7 +29,7 @@
           </div>
         </div>
       </el-card>
-      <el-card shadow="hover" class="stat-card">
+      <el-card shadow="hover" class="stat-card glass-card">
         <div class="stat-inner">
           <el-icon class="stat-icon" color="#F56C6C"><DataAnalysis /></el-icon>
           <div class="stat-text">
@@ -41,7 +41,7 @@
     </div>
 
     <!-- 折线图：新增用户 / 活跃用户趋势 -->
-    <el-card shadow="never" class="chart-block">
+    <el-card shadow="never" class="chart-block glass-card">
       <template #header>
         <span class="chart-header-title">用户趋势（新增 / 活跃）</span>
       </template>
@@ -49,7 +49,7 @@
     </el-card>
 
     <!-- 饼图占位：用户状态分布 -->
-    <el-card shadow="never" class="chart-block">
+    <el-card shadow="never" class="chart-block glass-card">
       <template #header>
         <span class="chart-header-title">用户状态分布</span>
       </template>
@@ -86,10 +86,12 @@ function renderLineChart(newUsers, activeUsers) {
   const dates = newUsers.map(i => i.date)
   lineChart.setOption({
     tooltip: { trigger: 'axis' },
-    legend: { data: ['新增用户', '活跃用户'] },
+    legend: { data: ['新增用户', '活跃用户'], textStyle: { color: '#a8b5cc' } },
     grid: { left: 40, right: 20, top: 40, bottom: 30 },
-    xAxis: { type: 'category', data: dates, boundaryGap: false },
-    yAxis: { type: 'value', minInterval: 1 },
+    xAxis: { type: 'category', data: dates, boundaryGap: false,
+      axisLabel: { color: '#6b7a94' }, axisLine: { lineStyle: { color: 'rgba(255,255,255,0.1)' } } },
+    yAxis: { type: 'value', minInterval: 1,
+      axisLabel: { color: '#6b7a94' }, splitLine: { lineStyle: { color: 'rgba(255,255,255,0.06)' } } },
     series: [
       { name: '新增用户', type: 'line', smooth: true, data: newUsers.map(i => i.count), itemStyle: { color: '#409EFF' } },
       { name: '活跃用户', type: 'line', smooth: true, data: activeUsers.map(i => i.count), itemStyle: { color: '#67C23A' } }
@@ -102,7 +104,7 @@ function renderPieChart() {
   if (!pieChart) pieChart = echarts.init(chartPieRef.value)
   pieChart.setOption({
     tooltip: { trigger: 'item' },
-    legend: { bottom: 0 },
+    legend: { bottom: 0, textStyle: { color: '#a8b5cc' } },
     series: [
       {
         name: '用户状态分布',
@@ -170,15 +172,15 @@ onBeforeUnmount(() => {
 .stat-num {
   font-size: 28px;
   font-weight: bold;
-  color: #409EFF;
+  color: var(--glass-text);
   line-height: 1.2;
 }
 .stat-title {
   font-size: 14px;
-  color: #909399;
+  color: var(--glass-text-muted);
   margin-top: 4px;
 }
 .chart-block { margin-bottom: 16px; }
-.chart-header-title { font-weight: bold; }
+.chart-header-title { font-weight: bold; color: var(--glass-text); }
 .chart-canvas { width: 100%; height: 320px; }
 </style>

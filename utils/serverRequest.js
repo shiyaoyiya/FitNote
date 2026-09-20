@@ -13,6 +13,9 @@ const TOKEN_KEYS = {
   REFRESH: 'fitnote_refresh_token',
   USER: 'fitnote_user_info',
 }
+const AVATAR_CACHE_KEY = 'fitnote_avatar_cache'
+const AVATAR_IMAGE_CACHE_KEY = 'fitnote_avatar_image_cache'
+const PROFILE_CACHE_KEY = 'fitnote_profile_cache'
 
 export function getAccessToken() {
   return uni.getStorageSync(TOKEN_KEYS.ACCESS) || ''
@@ -23,12 +26,21 @@ export function getRefreshToken() {
 export function setTokens({ accessToken, refreshToken, user }) {
   if (accessToken) uni.setStorageSync(TOKEN_KEYS.ACCESS, accessToken)
   if (refreshToken) uni.setStorageSync(TOKEN_KEYS.REFRESH, refreshToken)
-  if (user) uni.setStorageSync(TOKEN_KEYS.USER, user)
+  if (user) {
+    uni.setStorageSync(TOKEN_KEYS.USER, user)
+    if (user.avatarUrl) uni.setStorageSync(AVATAR_CACHE_KEY, user.avatarUrl)
+  }
 }
 export function clearAuth() {
   uni.removeStorageSync(TOKEN_KEYS.ACCESS)
   uni.removeStorageSync(TOKEN_KEYS.REFRESH)
   uni.removeStorageSync(TOKEN_KEYS.USER)
+  uni.removeStorageSync(AVATAR_CACHE_KEY)
+  uni.removeStorageSync(AVATAR_IMAGE_CACHE_KEY)
+}
+export function clearTokens() {
+  uni.removeStorageSync(TOKEN_KEYS.ACCESS)
+  uni.removeStorageSync(TOKEN_KEYS.REFRESH)
 }
 export function getCurrentUser() {
   return uni.getStorageSync(TOKEN_KEYS.USER) || null
@@ -43,7 +55,157 @@ export function updateCurrentUser(patch) {
   const cur = uni.getStorageSync(TOKEN_KEYS.USER) || {}
   const next = Object.assign({}, cur, patch || {})
   uni.setStorageSync(TOKEN_KEYS.USER, next)
+  if (patch && patch.avatarUrl) {
+    uni.setStorageSync(AVATAR_CACHE_KEY, patch.avatarUrl)
+  }
   return next
+}
+export function getCachedAvatarUrl() {
+  return uni.getStorageSync(AVATAR_CACHE_KEY) || ''
+}
+
+/**
+ * 缓存头像图片为base64（用于离线显示）
+ * @param {string} url 头像URL
+ * @param {string} base64 头像图片的base64数据
+ */
+export function cacheAvatarImage(url, base64) {
+  try {
+    const cache = uni.getStorageSync(AVATAR_IMAGE_CACHE_KEY) || {}
+    cache[url] = {
+      data: base64,
+      timestamp: Date.now(),
+    }
+    // 限制缓存数量，最多保留5个头像
+    const keys = Object.keys(cache)
+    if (keys.length > 5) {
+      keys.sort((a, b) => cache[a].timestamp - cache[b].timestamp)
+      const toRemove = keys.slice(0, keys.length - 5)
+      toRemove.forEach(k => delete cache[k])
+    }
+    uni.setStorageSync(AVATAR_IMAGE_CACHE_KEY, cache)
+  } catch (e) {
+    console.warn('缓存头像图片失败:', e)
+  }
+}
+
+/**
+ * 获取缓存的头像图片base64
+ * @param {string} url 头像URL
+ * @returns {string|null} base64数据或null
+ */
+export function getCachedAvatarImage(url) {
+  try {
+    const cache = uni.getStorageSync(AVATAR_IMAGE_CACHE_KEY) || {}
+    const entry = cache[url]
+    if (!entry) return null
+    // 缓存有效期7天
+    if (Date.now() - entry.timestamp > 7 * 24 * 60 * 60 * 1000) {
+      delete cache[url]
+      uni.setStorageSync(AVATAR_IMAGE_CACHE_KEY, cache)
+      return null
+    }
+    return entry.data
+  } catch (e) {
+    return null
+  }
+}
+
+/**
+ * 下载头像图片并缓存为base64（用于离线显示）
+ * @param {string} url 头像URL
+ * @returns {Promise<string>} base64数据
+ */
+export async function downloadAndCacheAvatar(url) {
+  if (!url) return ''
+  
+  // 先检查缓存
+  const cached = getCachedAvatarImage(url)
+  if (cached) return cached
+  
+  try {
+    // 如果是base64直接返回
+    if (/^data:image\//i.test(url)) {
+      cacheAvatarImage(url, url)
+      return url
+    }
+    
+    // 下载图片
+    const tempPath = await new Promise((resolve, reject) => {
+      uni.downloadFile({
+        url: resolveAvatarUrl(url),
+        success: (res) => {
+          if (res.statusCode === 200) resolve(res.tempFilePath)
+          else reject(new Error('DOWNLOAD_' + res.statusCode))
+        },
+        fail: (err) => reject(new Error(err.errMsg || 'DOWNLOAD_FAIL')),
+      })
+    })
+    
+    // 转换为base64
+    const base64 = await new Promise((resolve, reject) => {
+      // #ifdef MP-WEIXIN
+      const fs = wx.getFileSystemManager()
+      fs.readFile({
+        filePath: tempPath,
+        encoding: 'base64',
+        success: (r) => resolve('data:image/png;base64,' + r.data),
+        fail: reject,
+      })
+      // #endif
+      // #ifndef MP-WEIXIN
+      // 其他平台使用uni.arrayBufferToBase64
+      uni.getFileSystemManager().readFile({
+        filePath: tempPath,
+        encoding: 'base64',
+        success: (r) => resolve('data:image/png;base64,' + r.data),
+        fail: reject,
+      })
+      // #endif
+    })
+    
+    // 缓存
+    cacheAvatarImage(url, base64)
+    return base64
+  } catch (e) {
+    console.warn('下载头像图片失败:', e)
+    return ''
+  }
+}
+
+/**
+ * 缓存个人资料数据（用于离线显示）
+ * @param {object} profile 个人资料对象
+ */
+export function cacheProfile(profile) {
+  try {
+    if (!profile) return
+    uni.setStorageSync(PROFILE_CACHE_KEY, {
+      data: profile,
+      timestamp: Date.now(),
+    })
+  } catch (e) {
+    console.warn('缓存个人资料失败:', e)
+  }
+}
+
+/**
+ * 获取缓存的个人资料数据
+ * @returns {object|null} 个人资料对象或null
+ */
+export function getCachedProfile() {
+  try {
+    const cache = uni.getStorageSync(PROFILE_CACHE_KEY)
+    if (!cache) return null
+    // 缓存有效期24小时
+    if (Date.now() - cache.timestamp > 24 * 60 * 60 * 1000) {
+      uni.removeStorageSync(PROFILE_CACHE_KEY)
+      return null
+    }
+    return cache.data
+  } catch (e) {
+    return null
+  }
 }
 
 function buildUrl(url) {
@@ -88,10 +250,9 @@ async function refreshTokenIfNeeded() {
   } catch (e) {
     pendingQueue.forEach(q => q.reject(e))
     pendingQueue = []
-    // 仅在确实存在旧 token 但被服务器拒绝时才清登录态；
-    // 无 token / NO_REFRESH_TOKEN 不应清空可能仍存在的用户信息
+    // 仅清除 token，保留用户信息（头像、昵称等），避免刷新令牌失败导致头像消失
     if (e.message !== 'NO_REFRESH_TOKEN') {
-      clearAuth()
+      clearTokens()
     }
     throw e
   } finally {
@@ -172,7 +333,10 @@ export function request({
   const at = getAccessToken()
   if (at) return doRequest(at)
   // 无 accessToken，先尝试刷新
-  return refreshTokenIfNeeded().then(newAt => doRequest(newAt)).catch(() => doRequest(''))
+  return refreshTokenIfNeeded().then(newAt => doRequest(newAt)).catch((e) => {
+    // 刷新失败，直接拒绝（不发送无 token 请求）
+    throw new Error('UNAUTHORIZED')
+  })
 }
 
 /**
@@ -278,8 +442,10 @@ export default {
   getRefreshToken,
   setTokens,
   clearAuth,
+  clearTokens,
   getCurrentUser,
   updateCurrentUser,
+  getCachedAvatarUrl,
   resolveAvatarUrl,
   SERVER_BASE_URL,
 }

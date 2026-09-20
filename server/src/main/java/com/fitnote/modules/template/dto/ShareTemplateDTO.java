@@ -2,10 +2,10 @@ package com.fitnote.modules.template.dto;
 
 import lombok.Data;
 
-import javax.validation.constraints.Min;
-import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.NotNull;
-import javax.validation.constraints.Size;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import java.util.List;
 
 @Data
@@ -14,7 +14,7 @@ public class ShareTemplateDTO {
     @Size(max = 50, message = "名称不超过50字")
     private String name;
     @NotBlank(message = "描述必填")
-    @Size(min = 20, max = 500, message = "描述不少于20字、不超过500字")
+    @Size(max = 2000, message = "描述不超过2000字")
     private String description;
     @NotBlank(message = "封面色必填")
     private String coverColor;

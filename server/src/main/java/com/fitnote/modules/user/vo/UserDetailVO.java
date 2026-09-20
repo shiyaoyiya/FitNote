@@ -16,6 +16,8 @@ public class UserDetailVO {
     private Integer gender;
     private LocalDate birthday;
     private Integer status;
+    private String openid;
+    private Integer loginType;
     private Integer totalTrainDays;
     private BigDecimal totalVolumeKg;
     private LocalDateTime lastLoginTime;

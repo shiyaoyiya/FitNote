@@ -23,7 +23,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 import java.io.File;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -122,7 +122,9 @@ public class UserBackupController {
         r.setFileName(originalName == null || originalName.isEmpty() ? storedName : originalName);
         r.setFilePath(target.toAbsolutePath().toString().replace("\\", "/"));
         r.setFileSize(size);
-        r.setBackupType(1); // 1 = 用户云端备份
+        // 备份类型：由 BackupStatsExtractor 从 JSON payload 的 backupType 字段解析得到（1=全量 2=增量）；
+        // 解析失败时 stats.getBackupType() 默认为 1（全量）
+        r.setBackupType(stats.getBackupType());
         r.setVersion(version);
         r.setTotalDays(stats.getTotalDays());
         r.setTotalTemplates(stats.getTotalTemplates());

@@ -9,6 +9,8 @@ CREATE TABLE IF NOT EXISTS sys_user (
   gender TINYINT DEFAULT 0,
   birthday DATE,
   status TINYINT DEFAULT 1 COMMENT '1正常 0封禁',
+  openid VARCHAR(64) COMMENT '微信openid',
+  login_type TINYINT DEFAULT 1 COMMENT '1账号密码 2微信登录',
   total_train_days INT DEFAULT 0,
   total_volume_kg DECIMAL(12,2) DEFAULT 0,
   last_login_time DATETIME,
@@ -17,7 +19,8 @@ CREATE TABLE IF NOT EXISTS sys_user (
   deleted TINYINT(1) NOT NULL DEFAULT 0,
   create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  INDEX idx_su_status(status)
+  INDEX idx_su_status(status),
+  UNIQUE KEY uk_su_openid(openid)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ------- 2 sys_admin -------
@@ -52,13 +55,23 @@ CREATE TABLE IF NOT EXISTS sys_menu (
   update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- ------- 4 sys_role_menu -------
+-- ------- 4 sys_role_menu (已弃用，保留兼容) -------
 CREATE TABLE IF NOT EXISTS sys_role_menu (
   id BIGINT AUTO_INCREMENT PRIMARY KEY,
   role_code VARCHAR(32) NOT NULL,
   menu_id BIGINT NOT NULL,
   create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   UNIQUE KEY uk_rm (role_code, menu_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ------- 4.1 sys_admin_menu (按账号绑定菜单权限) -------
+CREATE TABLE IF NOT EXISTS sys_admin_menu (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  admin_id BIGINT NOT NULL,
+  menu_id BIGINT NOT NULL,
+  create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uk_am (admin_id, menu_id),
+  INDEX idx_am_admin(admin_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ------- 5 backup_record (不限数量，无 max 限制逻辑) -------
@@ -77,6 +90,22 @@ CREATE TABLE IF NOT EXISTS backup_record (
   deleted TINYINT(1) NOT NULL DEFAULT 0,
   create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ------- 5.1 user_notification（用户站内通知，模板驳回/下架/反馈处理等系统消息） -------
+CREATE TABLE IF NOT EXISTS user_notification (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  user_id BIGINT NOT NULL, INDEX idx_un_user(user_id),
+  type TINYINT NOT NULL DEFAULT 4 COMMENT '1模板审核驳回 2模板强制下架 3反馈处理结果 4系统公告',
+  title VARCHAR(100) NOT NULL,
+  content TEXT,
+  related_id BIGINT,
+  related_label VARCHAR(100),
+  is_read TINYINT(1) NOT NULL DEFAULT 0 COMMENT '0未读 1已读',
+  deleted TINYINT(1) NOT NULL DEFAULT 0,
+  create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_un_read(user_id, is_read)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ------- 6 shared_template -------
@@ -160,22 +189,6 @@ CREATE TABLE IF NOT EXISTS feedback_issue (
   handle_reply TEXT,
   handle_time DATETIME,
   deleted TINYINT(1) NOT NULL DEFAULT 0, INDEX idx_fb_status(status),
-  create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
--- ------- 12 preset_pack -------
-CREATE TABLE IF NOT EXISTS preset_pack (
-  id BIGINT AUTO_INCREMENT PRIMARY KEY,
-  name VARCHAR(100) NOT NULL,
-  description TEXT,
-  cover_color VARCHAR(16),
-  difficulty TINYINT COMMENT '1简单 2中 3难',
-  template_data JSON NOT NULL,
-  enabled TINYINT(1) DEFAULT 1,
-  sort_order INT DEFAULT 0,
-  create_admin_id BIGINT,
-  deleted TINYINT(1) NOT NULL DEFAULT 0,
   create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

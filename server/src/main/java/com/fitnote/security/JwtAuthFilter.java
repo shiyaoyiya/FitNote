@@ -8,18 +8,20 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-import javax.servlet.FilterChain;
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class JwtAuthFilter extends OncePerRequestFilter {
@@ -40,6 +42,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 String type = c.get("type", String.class);
                 String role = c.get("role", String.class);
                 String username = c.get("username", String.class);
+                log.info("JWT认证: type={}, id={}, username={}", type, id, username);
                 UserDetails ud = userDetailsService.loadUserByUsername(type + ":" + id);
                 UsernamePasswordAuthenticationToken auth =
                         new UsernamePasswordAuthenticationToken(
@@ -50,6 +53,9 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             } catch (ExpiredJwtException e) {
                 req.setAttribute("jwt_expired", true);
             } catch (JwtException e) {
+                req.setAttribute("jwt_invalid", true);
+            } catch (Exception e) {
+                log.warn("JWT用户加载失败: {}", e.getMessage());
                 req.setAttribute("jwt_invalid", true);
             }
         }

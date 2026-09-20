@@ -5,29 +5,32 @@ import com.fitnote.common.BusinessException;
 import com.fitnote.common.JwtUtils;
 import com.fitnote.common.ResultCode;
 import com.fitnote.entity.SysAdmin;
+import com.fitnote.entity.SysAdminMenu;
 import com.fitnote.entity.SysMenu;
-import com.fitnote.entity.SysRoleMenu;
 import com.fitnote.entity.SysUser;
 import com.fitnote.mapper.SysAdminMapper;
+import com.fitnote.mapper.SysAdminMenuMapper;
 import com.fitnote.mapper.SysMenuMapper;
-import com.fitnote.mapper.SysRoleMenuMapper;
 import com.fitnote.mapper.SysUserMapper;
 import com.fitnote.modules.auth.dto.*;
 import com.fitnote.security.DualUserPrincipal;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.RestTemplate;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class AuthServiceImpl implements AuthService {
@@ -35,12 +38,20 @@ public class AuthServiceImpl implements AuthService {
     private final SysUserMapper userMapper;
     private final SysAdminMapper adminMapper;
     private final SysMenuMapper menuMapper;
-    private final SysRoleMenuMapper roleMenuMapper;
+    private final SysAdminMenuMapper adminMenuMapper;
     private final PasswordEncoder encoder;
     private final JwtUtils jwtUtils;
 
     @Value("${fitnote.jwt.expire-hours}")
     private int expireHours;
+
+    @Value("${fitnote.wechat.appid}")
+    private String wechatAppId;
+
+    @Value("${fitnote.wechat.appsecret}")
+    private String wechatAppSecret;
+
+    private final RestTemplate restTemplate = new RestTemplate();
 
     @Override
     @Transactional
@@ -100,7 +111,7 @@ public class AuthServiceImpl implements AuthService {
         admin.put("nickname", a.getNickname());
         admin.put("role", a.getRoleCode());
 
-        List<Map<String, Object>> menus = loadMenusForRole(a.getRoleCode());
+        List<Map<String, Object>> menus = loadMenusForAdmin(a.getId(), a.getRoleCode());
 
         return new AdminLoginVO(token, expireHours * 3600L, admin, menus);
     }
@@ -134,6 +145,104 @@ public class AuthServiceImpl implements AuthService {
         return new TokenRefreshVO(newTk, expireHours * 3600L);
     }
 
+    @Override
+    @Transactional
+    public UserLoginVO wechatLogin(WechatLoginDTO dto) {
+        String openid = getOpenidFromWechat(dto.getCode());
+
+        SysUser existingUser = userMapper.selectOne(
+                new LambdaQueryWrapper<SysUser>().eq(SysUser::getOpenid, openid));
+
+        if (existingUser != null) {
+            existingUser.setLastLoginTime(LocalDateTime.now());
+            existingUser.setLastActiveTime(LocalDateTime.now());
+            userMapper.updateById(existingUser);
+
+            String token = jwtUtils.issue(existingUser.getId(), "USER", null, existingUser.getUsername());
+            return new UserLoginVO(token, expireHours * 3600L, buildUserMap(existingUser));
+        }
+
+        SysUser newUser = new SysUser();
+        newUser.setOpenid(openid);
+        newUser.setLoginType(2);
+        String tempUsername = "wx_" + openid.substring(0, Math.min(8, openid.length()));
+        int suffix = 1;
+        while (userMapper.selectCount(new LambdaQueryWrapper<SysUser>().eq(SysUser::getUsername, tempUsername)) > 0) {
+            tempUsername = "wx_" + openid.substring(0, Math.min(8, openid.length())) + suffix;
+            suffix++;
+        }
+        newUser.setUsername(tempUsername);
+        newUser.setPassword(encoder.encode(UUID.randomUUID().toString()));
+        newUser.setNickname(dto.getNickname() != null && !dto.getNickname().isEmpty() ? dto.getNickname() : "微信用户");
+        newUser.setAvatarUrl(dto.getAvatarUrl());
+        newUser.setStatus(1);
+        newUser.setGender(0);
+        newUser.setTotalTrainDays(0);
+        newUser.setTotalVolumeKg(BigDecimal.ZERO);
+        newUser.setRegisterTime(LocalDateTime.now());
+        newUser.setLastLoginTime(LocalDateTime.now());
+        newUser.setLastActiveTime(LocalDateTime.now());
+        userMapper.insert(newUser);
+
+        String token = jwtUtils.issue(newUser.getId(), "USER", null, newUser.getUsername());
+        return new UserLoginVO(token, expireHours * 3600L, buildUserMap(newUser));
+    }
+
+    @Override
+    @Transactional
+    public void bindWechatAccount(WechatBindAccountDTO dto) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        DualUserPrincipal principal = (DualUserPrincipal) auth.getPrincipal();
+
+        if (!"USER".equals(principal.getType())) {
+            throw new BusinessException(ResultCode.FORBIDDEN, "仅普通用户可绑定账号");
+        }
+
+        SysUser user = userMapper.selectById(principal.getId());
+        if (user == null) {
+            throw new BusinessException(ResultCode.NOT_FOUND, "用户不存在");
+        }
+
+        if (user.getPhone() != null && !user.getPhone().isEmpty()) {
+            throw new BusinessException(ResultCode.CONFLICT, "已绑定手机号");
+        }
+
+        Long phoneCount = userMapper.selectCount(
+                new LambdaQueryWrapper<SysUser>().eq(SysUser::getPhone, dto.getPhone()));
+        if (phoneCount != null && phoneCount > 0) {
+            throw new BusinessException(ResultCode.CONFLICT, "手机号已被绑定");
+        }
+
+        user.setPhone(dto.getPhone());
+        user.setPassword(encoder.encode(dto.getPassword()));
+        userMapper.updateById(user);
+    }
+
+    private String getOpenidFromWechat(String code) {
+        String url = String.format(
+                "https://api.weixin.qq.com/sns/jscode2session?appid=%s&secret=%s&js_code=%s&grant_type=authorization_code",
+                wechatAppId, wechatAppSecret, code);
+
+        try {
+            String response = restTemplate.getForObject(url, String.class);
+            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            com.fasterxml.jackson.databind.JsonNode json = mapper.readTree(response);
+
+            if (json.has("openid")) {
+                return json.get("openid").asText();
+            } else {
+                String errMsg = json.has("errmsg") ? json.get("errmsg").asText() : "未知错误";
+                log.error("微信 code2session 失败: {}", errMsg);
+                throw new BusinessException(ResultCode.UNAUTHORIZED, "微信登录失败: " + errMsg);
+            }
+        } catch (BusinessException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("调用微信接口异常", e);
+            throw new BusinessException(ResultCode.UNAUTHORIZED, "微信登录失败");
+        }
+    }
+
     // ========= 工具方法 =========
     private Map<String, Object> buildUserMap(SysUser u) {
         Map<String, Object> m = new HashMap<>();
@@ -146,15 +255,20 @@ public class AuthServiceImpl implements AuthService {
         return m;
     }
 
-    // 按 roleCode 查 sys_role_menu → 批量 sys_menu → 扁平列表
-    private List<Map<String, Object>> loadMenusForRole(String roleCode) {
-        List<Long> menuIds = roleMenuMapper.selectList(
-                new LambdaQueryWrapper<SysRoleMenu>().eq(SysRoleMenu::getRoleCode, roleCode)
-        ).stream().map(SysRoleMenu::getMenuId).collect(Collectors.toList());
-        if (menuIds.isEmpty()) return Collections.emptyList();
-        List<SysMenu> list = menuMapper.selectBatchIds(menuIds);
-        // 按 sort_order, id 排序
-        list.sort(Comparator.comparing(SysMenu::getSortOrder).thenComparing(SysMenu::getId));
+    // ADMIN 返回全部菜单；其他角色按 adminId 查 sys_admin_menu → sys_menu
+    private List<Map<String, Object>> loadMenusForAdmin(Long adminId, String roleCode) {
+        List<SysMenu> list;
+        if ("ADMIN".equals(roleCode)) {
+            list = menuMapper.selectList(new LambdaQueryWrapper<SysMenu>()
+                    .orderByAsc(SysMenu::getSortOrder, SysMenu::getId));
+        } else {
+            List<Long> menuIds = adminMenuMapper.selectList(
+                    new LambdaQueryWrapper<SysAdminMenu>().eq(SysAdminMenu::getAdminId, adminId)
+            ).stream().map(SysAdminMenu::getMenuId).collect(Collectors.toList());
+            if (menuIds.isEmpty()) return Collections.emptyList();
+            list = menuMapper.selectBatchIds(menuIds);
+            list.sort(Comparator.comparing(SysMenu::getSortOrder).thenComparing(SysMenu::getId));
+        }
         return list.stream().map(m -> {
             Map<String, Object> row = new HashMap<>();
             row.put("id", m.getId());

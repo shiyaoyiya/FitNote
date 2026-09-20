@@ -30,6 +30,9 @@ import {
   downloadFromCloud as _downloadFromCloud,
   deleteCloudBackup as _deleteCloudBackup,
 } from '@/utils/cloudBackup.js'
+import {
+  isCloudLoginMode,
+} from '@/utils/cloudAuth.js'
 // #endif
 
 const BACKUP_VERSION = '1.0'
@@ -50,6 +53,83 @@ function generateUUID() {
   })
 }
 
+// 过滤 daydata 中的心率相关数据，减小备份文件大小
+function filterDayData(dayData) {
+  if (!dayData || typeof dayData !== 'object') return dayData
+  
+  // 需要排除的心率相关字段
+  const heartRateFields = [
+    'hrSamples',           // 心率采样数据
+    'hrSamplesWithTs',     // 带时间戳的心率采样数据
+    'heartRateAvg',        // 平均心率
+    'heartRatePeak',       // 峰值心率
+    'caloriesTotal',       // 卡路里消耗
+    'durationSec',         // 训练时长
+    'analysisResult',      // 训练分析结果
+    'sessionStartTs',      // 训练开始时间戳
+    'sessionEndTs',        // 训练结束时间戳
+    'cardiovascularLoad',  // 心血管负荷
+    'estimatedRestingHr',  // 估算的静息心率
+  ]
+  
+  const filtered = {}
+  
+  for (const [key, value] of Object.entries(dayData)) {
+    // 跳过心率相关字段
+    if (heartRateFields.includes(key)) continue
+    
+    // 处理 templates 中的数据
+    if (key === 'templates' && value && typeof value === 'object') {
+      const filteredTemplates = {}
+      for (const [tplName, tplData] of Object.entries(value)) {
+        if (!tplData || typeof tplData !== 'object') {
+          filteredTemplates[tplName] = tplData
+          continue
+        }
+        
+        const filteredTpl = {}
+        for (const [tplKey, tplValue] of Object.entries(tplData)) {
+          // 跳过模板中的心率相关字段
+          if (heartRateFields.includes(tplKey)) continue
+          filteredTpl[tplKey] = tplValue
+        }
+        filteredTemplates[tplName] = filteredTpl
+      }
+      filtered[key] = filteredTemplates
+      continue
+    }
+    
+    // 处理 entries 中的数据（移除 timestamp 字段）
+    if (key === 'entries' && value && typeof value === 'object') {
+      const filteredEntries = {}
+      for (const [actionName, actionEntries] of Object.entries(value)) {
+        if (!Array.isArray(actionEntries)) {
+          filteredEntries[actionName] = actionEntries
+          continue
+        }
+        
+        filteredEntries[actionName] = actionEntries.map(entry => {
+          if (!entry || typeof entry !== 'object') return entry
+          
+          const filteredEntry = {}
+          for (const [entryKey, entryValue] of Object.entries(entry)) {
+            // 跳过时间戳字段
+            if (entryKey === 'timestamp') continue
+            filteredEntry[entryKey] = entryValue
+          }
+          return filteredEntry
+        })
+      }
+      filtered[key] = filteredEntries
+      continue
+    }
+    
+    filtered[key] = value
+  }
+  
+  return filtered
+}
+
 export function collectFullData() {
   const templates = uni.getStorageSync(TEMPLATE_KEY) || []
   const actions = uni.getStorageSync(ACTION_KEY) || []
@@ -67,15 +147,18 @@ export function collectFullData() {
     if (key.startsWith(DAYDATA_PREFIX)) {
       const date = key.slice(DAYDATA_PREFIX.length)
       const value = uni.getStorageSync(key) || {}
-      daydata[date] = value
+      // 过滤心率相关数据，减小备份文件大小
+      daydata[date] = filterDayData(value)
     }
   })
+  // 排除有氧模板
+  const filteredTemplates = Array.isArray(templates) ? templates.filter(t => !t.isAerobic) : []
   return {
     version: BACKUP_VERSION,
     backupType: 'full',
     backupTime: new Date().toISOString(),
     data: {
-      fitness_templates: Array.isArray(templates) ? templates : [],
+      fitness_templates: filteredTemplates,
       fitness_actions: Array.isArray(actions) ? actions : [],
       fitness_annivs: annivs,
       fitness_daydata: daydata,
@@ -93,7 +176,8 @@ export function applyBackupToLocal(backupData, mode = 'overwrite') {
   if (!payload || typeof payload !== 'object') {
     throw new Error('备份数据结构不正确')
   }
-  const tplArr = Array.isArray(payload.fitness_templates) ? payload.fitness_templates : []
+  // 排除有氧模板
+  const tplArr = Array.isArray(payload.fitness_templates) ? payload.fitness_templates.filter(t => !t.isAerobic) : []
   const actArr = Array.isArray(payload.fitness_actions) ? payload.fitness_actions : []
   const annivsArr = Array.isArray(payload.fitness_annivs) ? payload.fitness_annivs : []
   const daydata = payload.fitness_daydata || {}
@@ -249,9 +333,19 @@ export async function isLocalServerAvailable(force = false) {
   if (!force && _localAvailableCache !== null && now < _localAvailableExpiry) {
     return _localAvailableCache
   }
+  // #ifdef MP-WEIXIN
+  // 云开发登录模式下，强制走云开发备份路径，不检测本地服务器
+  // 避免云开发占位 token（cloud_xxx）发送到本地服务器导致 UNAUTHORIZED
+  if (isCloudLoginMode()) {
+    _localAvailableCache = false
+    _localAvailableExpiry = now + 5000
+    _currentBackupMode = BACKUP_MODE.CLOUD
+    return false
+  }
+  // #endif
   try {
     await request({
-      url: '/api/preset/list',
+      url: '/api/announce/list',
       method: 'GET',
       auth: false,
       data: { page: 1, size: 1 },

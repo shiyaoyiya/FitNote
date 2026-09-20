@@ -132,6 +132,7 @@
   import { me } from '@/utils/serverBackup.js'
   import { PRESET_COLORS } from '@/utils/color.js'
   import { formatDate } from '@/utils/theme.js'
+  import { resolveAvatarUrl, getCachedAvatarUrl } from '@/utils/serverRequest.js'
 
   export default {
     components: {
@@ -188,6 +189,7 @@
         dayDataCache: {},
         daySettingsStore: null,
         showSplitPlan: false,
+        authVersion: 0,
       }
     },
     computed: {
@@ -205,9 +207,11 @@
         return this.daySettingsStore.splitPlan
       },
       moreBtnAvatar() {
+        this.authVersion
         try {
           const u = me()
-          return (u && u.avatarUrl) || ''
+          const url = (u && u.avatarUrl) || getCachedAvatarUrl() || ''
+          return resolveAvatarUrl(url)
         } catch (e) { return '' }
       },
       todayBtnText() {
@@ -291,6 +295,7 @@
       this.todayTrainBtnVisible = this.daySettingsStore.todayTrainBtnVisible
     },
     onShow() {
+      this.authVersion++
       const selectedYear = uni.getStorageSync('selectedYear');
       const selectedMonth = uni.getStorageSync('selectedMonth');
 
@@ -413,22 +418,22 @@
       },
       goToBackup() {
         uni.navigateTo({
-          url: '/pages/backup/backup'
+          url: '/subpkg-secondary/backup/backup'
         });
       },
       goToTemplateManager() {
         uni.navigateTo({
-          url: '/pages/templateManager/templateManager'
+          url: '/subpkg-template/templateManager/templateManager'
         });
       },
       goToAnnounce() {
         uni.navigateTo({
-          url: '/pages/announce/announce'
+          url: '/subpkg-secondary/announce/announce'
         });
       },
       goToFeedback() {
         uni.navigateTo({
-          url: '/pages/feedback/feedback',
+          url: '/subpkg-secondary/feedback/feedback',
           fail: () => {
             uni.showToast({ title: '反馈页未配置', icon: 'none' })
           }
@@ -436,7 +441,7 @@
       },
       goToYearPage() {
         uni.navigateTo({
-          url: `/pages/year/year?year=${this.curYear}&month=${this.curMonth}`,
+          url: `/subpkg-secondary/year/year?year=${this.curYear}&month=${this.curMonth}`,
           fail: (err) => {
             console.error('跳转到年页面失败:', err);
             uni.showToast({
@@ -900,17 +905,17 @@
 
       goToActionLibrary() {
         uni.navigateTo({
-          url: '/pages/actionLibrary/actionLibrary'
+          url: '/subpkg-secondary/actionLibrary/actionLibrary'
         })
       },
       goToTrainingStat() {
         uni.navigateTo({
-          url: '/pages/trainingStat/trainingStat'
+          url: '/subpkg-secondary/trainingStat/trainingStat'
         })
       },
       goToProfile() {
         uni.navigateTo({
-          url: '/pages/profile/profile'
+          url: '/subpkg-secondary/profile/profile'
         })
       },
 
@@ -1118,11 +1123,11 @@
         uni.$emit('liquidGlassChanged', this.daySettingsStore.liquidGlassEnabled)
       },
       goToAnnounce() {
-        uni.navigateTo({ url: '/pages/announce/announce' })
+        uni.navigateTo({ url: '/subpkg-secondary/announce/announce' })
       },
       goToFeedback() {
         uni.navigateTo({
-          url: '/pages/feedback/feedback',
+          url: '/subpkg-secondary/feedback/feedback',
           fail: () => uni.showToast({ title: '反馈页未配置', icon: 'none' })
         })
       },

@@ -1,4 +1,5 @@
 @echo off
+chcp 65001 >nul
 REM ============================================================
 REM  FitNote Backend + Database One-Click Start Script (Windows)
 REM ============================================================
@@ -16,7 +17,7 @@ set BACKEND_DIR=%~dp0server
 set JAR_FILE=%BACKEND_DIR%\target\fitnote-server-1.0.0.jar
 set CREATE_DB_SQL=%BACKEND_DIR%\db\create-database.sql
 REM
-REM JDK 优先顺序（Spring Boot 2.7 需要 JDK 11~17，不兼容 JDK 21+）：
+REM JDK 优先顺序（Spring Boot 3.5 需要 JDK 17+）：
 REM   1. 环境变量 FITNOTE_JAVA_HOME（用户自定义）
 REM   2. 本地已安装的 jdk-17 目录
 REM   3. 当前 PATH 里的 java（但版本必须 < 20）
@@ -170,17 +171,25 @@ goto :step5
 
 :try_download_mvn
 echo   [INFO] Maven not found in PATH, auto-downloading portable Maven...
-set "MVN_VER=3.9.9"
+set "MVN_VER=3.9.16"
 set "MVN_URL=https://dlcdn.apache.org/maven/maven-3/!MVN_VER!/binaries/apache-maven-!MVN_VER!-bin.zip"
+set "MVN_MIRROR_URL=https://archive.apache.org/dist/maven/maven-3/!MVN_VER!/binaries/apache-maven-!MVN_VER!-bin.zip"
 set "MVN_ZIP=%TEMP%\apache-maven-!MVN_VER!.zip"
 set "MVN_DIR=%~dp0.tools\apache-maven"
 
-REM Try curl first, then PowerShell as fallback
+REM Try curl first (primary URL), then PowerShell, then mirror URL
 echo   Downloading Apache Maven !MVN_VER!...
 curl -L -o "!MVN_ZIP!" "!MVN_URL!" 2>nul
 if not exist "!MVN_ZIP!" (
-    echo   [INFO] curl not available, trying PowerShell...
-    powershell -Command "try { [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; Invoke-WebRequest -Uri '!MVN_URL!' -OutFile '!MVN_ZIP!' -UseBasicParsing } catch { exit 1 }"
+    echo   [INFO] curl with primary URL failed, trying PowerShell...
+    powershell -Command "try { [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; Invoke-WebRequest -Uri '!MVN_URL!' -OutFile '!MVN_ZIP!' -UseBasicParsing } catch { exit 1 }" 2>nul
+)
+if not exist "!MVN_ZIP!" (
+    echo   [INFO] Primary URL failed, trying mirror...
+    curl -L -o "!MVN_ZIP!" "!MVN_MIRROR_URL!" 2>nul
+)
+if not exist "!MVN_ZIP!" (
+    powershell -Command "try { [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; Invoke-WebRequest -Uri '!MVN_MIRROR_URL!' -OutFile '!MVN_ZIP!' -UseBasicParsing } catch { exit 1 }" 2>nul
 )
 if not exist "!MVN_ZIP!" goto :no_mvn
 

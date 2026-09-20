@@ -7,6 +7,7 @@ import com.fitnote.common.PageVO;
 import com.fitnote.common.ResultCode;
 import com.fitnote.entity.SharedTemplate;
 import com.fitnote.mapper.SharedTemplateMapper;
+import com.fitnote.modules.notification.NotificationService;
 import com.fitnote.modules.template.dto.OfficialDTO;
 import com.fitnote.modules.template.dto.SquarePageQuery;
 import com.fitnote.modules.template.vo.SquareTemplateVO;
@@ -16,6 +17,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
+import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -28,6 +30,7 @@ public class SharedTemplateServiceImpl implements SharedTemplateService {
     private final SharedTemplateMapper sharedTemplateMapper;
     private final TemplateLoadHelper loadHelper;
     private final TemplateCountService countService;
+    private final NotificationService notificationService;
 
     @Override
     public PageVO<SquareTemplateVO> page(SquarePageQuery query) {
@@ -129,5 +132,29 @@ public class SharedTemplateServiceImpl implements SharedTemplateService {
         if (t == null) throw new BusinessException(ResultCode.NOT_FOUND, "模板不存在");
         // @TableLogic 已配置，deleteById 自动改为 update deleted=1
         sharedTemplateMapper.deleteById(id);
+    }
+
+    @Override
+    public void offline(Long id, String rejectReason, Long adminId) {
+        SharedTemplate t = sharedTemplateMapper.selectById(id);
+        if (t == null) throw new BusinessException(ResultCode.NOT_FOUND, "模板不存在");
+        // 仅已上架（status=1）模板可下架；待审核（0）/ 已驳回（2）不允许此接口操作
+        if (t.getStatus() == null || t.getStatus() != 1) {
+            throw new BusinessException(ResultCode.BAD_REQUEST, "仅已上架模板可下架");
+        }
+        SharedTemplate up = new SharedTemplate();
+        up.setId(id);
+        up.setStatus(2);
+        up.setRejectReason(rejectReason);
+        up.setAuditAdminId(adminId);
+        up.setAuditTime(LocalDateTime.now());
+        sharedTemplateMapper.updateById(up);
+
+        // 推送站内通知给模板分享人
+        try {
+            notificationService.notifyTemplateOffline(t.getUserId(), t.getId(), t.getName(), rejectReason);
+        } catch (Exception e) {
+            // 通知失败不影响下架主流程
+        }
     }
 }

@@ -1,50 +1,50 @@
 <template>
   <div class="page-wrap">
-    <el-page-header @back="$router.back()" :title="$route.meta.title || '管理员列表'" />
-    <el-divider />
+    <el-page-header @back="$router.back()" :title="$route.meta.title || '管理员列表'" class="glass-page-header" />
+    <el-divider class="glass-divider" />
 
     <!-- 搜索栏 -->
-    <el-card shadow="never" class="search-bar">
+    <el-card shadow="never" class="search-bar glass-card">
       <el-form :inline="true" :model="query" @submit.prevent>
         <el-form-item label="关键词">
-          <el-input v-model="query.keyword" placeholder="用户名/昵称模糊" clearable style="width:220px" @keyup.enter="handleSearch" />
+          <el-input v-model="query.keyword" placeholder="用户名/昵称模糊" clearable style="width:220px" class="glass-input" @keyup.enter="handleSearch" />
         </el-form-item>
         <el-form-item label="角色">
-          <el-select v-model="query.roleCode" clearable placeholder="全部" style="width:140px">
+          <el-select v-model="query.roleCode" clearable placeholder="全部" style="width:140px" class="glass-select">
             <el-option label="超级管理员" value="ADMIN" />
             <el-option label="审核员" value="AUDITOR" />
           </el-select>
         </el-form-item>
         <el-form-item label="状态">
-          <el-select v-model="query.status" clearable placeholder="全部" style="width:110px">
+          <el-select v-model="query.status" clearable placeholder="全部" style="width:110px" class="glass-select">
             <el-option label="启用" :value="1" />
             <el-option label="停用" :value="0" />
           </el-select>
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" :icon="Search" @click="handleSearch">搜索</el-button>
-          <el-button :icon="Refresh" @click="handleReset">重置</el-button>
-          <el-button type="success" :icon="Plus" v-hasPerm="'admin:edit'" @click="openSave()">新增管理员</el-button>
+          <el-button type="primary" :icon="Search" class="glass-btn-primary" @click="handleSearch">搜索</el-button>
+          <el-button :icon="Refresh" class="glass-btn" @click="handleReset">重置</el-button>
+          <el-button type="success" :icon="Plus" v-hasPerm="'admin:edit'" class="glass-btn-success" @click="openSave()">新增管理员</el-button>
         </el-form-item>
       </el-form>
     </el-card>
 
     <!-- 表格 -->
-    <el-card shadow="never" class="table-card">
-      <el-table v-loading="loading" :data="tableData" border stripe style="width:100%">
+    <el-card shadow="never" class="table-card glass-card glass-loading">
+      <el-table v-loading="loading" :data="tableData" border stripe style="width:100%" class="glass-table">
         <el-table-column prop="id" label="ID" width="70" />
         <el-table-column prop="username" label="用户名" width="160" />
         <el-table-column prop="nickname" label="昵称" width="150" />
         <el-table-column label="角色" width="140">
           <template #default="{ row }">
-            <el-tag v-if="row.roleCode === 'ADMIN'" type="danger">{{ row.roleText || '超级管理员' }}</el-tag>
-            <el-tag v-else type="warning">{{ row.roleText || '审核员' }}</el-tag>
+            <el-tag v-if="row.roleCode === 'ADMIN'" type="danger" class="glass-tag">{{ row.roleText || '超级管理员' }}</el-tag>
+            <el-tag v-else type="warning" class="glass-tag">{{ row.roleText || '审核员' }}</el-tag>
           </template>
         </el-table-column>
         <el-table-column label="状态" width="100">
           <template #default="{ row }">
-            <el-tag v-if="row.status === 1" type="success">启用</el-tag>
-            <el-tag v-else type="info">停用</el-tag>
+            <el-tag v-if="row.status === 1" type="success" class="glass-tag">启用</el-tag>
+            <el-tag v-else type="info" class="glass-tag">停用</el-tag>
           </template>
         </el-table-column>
         <el-table-column label="最近登录" width="160">
@@ -73,7 +73,7 @@
         </el-table-column>
       </el-table>
 
-      <div class="pager">
+      <div class="pager glass-pagination">
         <el-pagination
           v-model:current-page="query.page"
           v-model:page-size="query.size"
@@ -88,50 +88,50 @@
     </el-card>
 
     <!-- 新增/编辑 Dialog -->
-    <el-dialog v-model="saveVisible" :title="saveForm.id ? '编辑管理员' : '新增管理员'" width="520px" @closed="handleSaveClosed">
+    <el-dialog v-model="saveVisible" :title="saveForm.id ? '编辑管理员' : '新增管理员'" width="520px" @closed="handleSaveClosed" class="glass-dialog">
       <el-form :model="saveForm" :rules="saveRules" ref="saveFormRef" label-width="100px">
         <el-form-item label="用户名" prop="username">
-          <el-input v-model="saveForm.username" :disabled="!!saveForm.id" placeholder="登录账号（新增时不可改）" />
+          <el-input v-model="saveForm.username" :disabled="!!saveForm.id" placeholder="登录账号（新增时不可改）" class="glass-input" />
         </el-form-item>
         <el-form-item label="密码" prop="password">
-          <el-input v-model="saveForm.password" show-password :placeholder="saveForm.id ? '留空表示不修改' : '6-32 位'" />
+          <el-input v-model="saveForm.password" show-password :placeholder="saveForm.id ? '留空表示不修改' : '6-32 位'" class="glass-input" />
         </el-form-item>
         <el-form-item label="昵称" prop="nickname">
-          <el-input v-model="saveForm.nickname" placeholder="显示名称" />
+          <el-input v-model="saveForm.nickname" placeholder="显示名称" class="glass-input" />
         </el-form-item>
         <el-form-item label="角色" prop="roleCode">
-          <el-select v-model="saveForm.roleCode" style="width:200px">
-            <el-option label="超级管理员（所有权限）" value="ADMIN" />
-            <el-option label="审核员（仅审核+反馈）" value="AUDITOR" />
+          <el-select v-model="saveForm.roleCode" style="width:200px" class="glass-select">
+            <el-option label="超级管理员（拥有全部权限，无需配置菜单）" value="ADMIN" />
+            <el-option label="审核员（在账号菜单配置中单独分配权限）" value="AUDITOR" />
           </el-select>
         </el-form-item>
         <el-form-item label="状态" v-if="saveForm.id && saveForm.username !== 'admin'">
           <el-switch v-model="statusSwitch" />
-          <span style="margin-left:8px;color:#909399">{{ statusSwitch ? '启用' : '停用' }}</span>
+          <span style="margin-left:8px;color:var(--glass-text-muted)">{{ statusSwitch ? '启用' : '停用' }}</span>
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="saveVisible = false">取消</el-button>
-        <el-button type="primary" @click="submitSave">确认保存</el-button>
+        <el-button @click="saveVisible = false" class="glass-btn">取消</el-button>
+        <el-button type="primary" @click="submitSave" class="glass-btn-primary">确认保存</el-button>
       </template>
     </el-dialog>
 
     <!-- 重置密码 Dialog -->
-    <el-dialog v-model="pwdVisible" title="重置密码" width="460px">
+    <el-dialog v-model="pwdVisible" title="重置密码" width="460px" class="glass-dialog">
       <el-form :model="pwdForm" :rules="pwdRules" ref="pwdFormRef" label-width="100px">
         <el-form-item label="用户">
-          <el-tag>{{ pwdRow?.username }} - {{ pwdRow?.nickname }}</el-tag>
+          <el-tag class="glass-tag">{{ pwdRow?.username }} - {{ pwdRow?.nickname }}</el-tag>
         </el-form-item>
         <el-form-item label="新密码" prop="newPassword">
-          <el-input v-model="pwdForm.newPassword" show-password maxlength="32" placeholder="6~32 位" />
+          <el-input v-model="pwdForm.newPassword" show-password maxlength="32" placeholder="6~32 位" class="glass-input" />
         </el-form-item>
         <el-form-item label="确认密码" prop="confirmPwd">
-          <el-input v-model="pwdForm.confirmPwd" show-password maxlength="32" placeholder="请再次输入" />
+          <el-input v-model="pwdForm.confirmPwd" show-password maxlength="32" placeholder="请再次输入" class="glass-input" />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="pwdVisible = false">取消</el-button>
-        <el-button type="primary" @click="submitResetPwd">确认重置</el-button>
+        <el-button @click="pwdVisible = false" class="glass-btn">取消</el-button>
+        <el-button type="primary" @click="submitResetPwd" class="glass-btn-primary">确认重置</el-button>
       </template>
     </el-dialog>
   </div>

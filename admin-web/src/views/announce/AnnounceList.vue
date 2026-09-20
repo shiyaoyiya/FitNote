@@ -1,39 +1,39 @@
 <template>
   <div class="page-wrap">
-    <el-page-header @back="$router.back()" :title="$route.meta.title || '公告列表'" />
-    <el-divider />
+    <el-page-header @back="$router.back()" :title="$route.meta.title || '公告列表'" class="glass-page-header" />
+    <el-divider class="glass-divider" />
 
     <!-- 搜索栏 -->
-    <el-card shadow="never" class="search-bar">
+    <el-card shadow="never" class="search-bar glass-card">
       <el-form :inline="true" :model="query" @submit.prevent>
         <el-form-item label="关键词">
-          <el-input v-model="query.keyword" placeholder="标题模糊" clearable style="width:200px" @keyup.enter="handleSearch" />
+          <el-input v-model="query.keyword" placeholder="标题模糊" clearable style="width:200px" class="glass-input" @keyup.enter="handleSearch" />
         </el-form-item>
         <el-form-item label="状态">
-          <el-select v-model="query.status" clearable placeholder="全部" style="width:120px">
+          <el-select v-model="query.status" clearable placeholder="全部" style="width:120px" class="glass-select">
             <el-option label="草稿" :value="0" />
             <el-option label="已发布" :value="1" />
             <el-option label="已撤回" :value="2" />
           </el-select>
         </el-form-item>
         <el-form-item label="类型">
-          <el-select v-model="query.type" clearable placeholder="全部" style="width:120px">
+          <el-select v-model="query.type" clearable placeholder="全部" style="width:120px" class="glass-select">
             <el-option label="系统公告" :value="1" />
             <el-option label="活动通知" :value="2" />
             <el-option label="版本更新" :value="3" />
           </el-select>
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" :icon="Search" @click="handleSearch">搜索</el-button>
-          <el-button :icon="Refresh" @click="handleReset">重置</el-button>
-          <el-button type="success" :icon="Plus" v-hasPerm="'announce:publish'" @click="openEdit()">新增公告</el-button>
+          <el-button type="primary" :icon="Search" class="glass-btn-primary" @click="handleSearch">搜索</el-button>
+          <el-button :icon="Refresh" class="glass-btn" @click="handleReset">重置</el-button>
+          <el-button type="success" :icon="Plus" v-hasPerm="'announce:publish'" class="glass-btn-success" @click="openEdit()">新增公告</el-button>
         </el-form-item>
       </el-form>
     </el-card>
 
     <!-- 表格 -->
-    <el-card shadow="never" class="table-card">
-      <el-table v-loading="loading" :data="tableData" border stripe style="width:100%">
+    <el-card shadow="never" class="table-card glass-card glass-loading">
+      <el-table v-loading="loading" :data="tableData" border stripe style="width:100%" class="glass-table">
         <el-table-column prop="id" label="ID" width="70" />
         <el-table-column prop="title" label="标题" min-width="240" show-overflow-tooltip />
         <el-table-column label="类型" width="110">
@@ -41,15 +41,15 @@
         </el-table-column>
         <el-table-column label="置顶" width="80">
           <template #default="{ row }">
-            <el-tag v-if="row.priority === 1" type="danger">置顶</el-tag>
-            <span v-else style="color:#909399">普通</span>
+            <el-tag v-if="row.priority === 1" type="danger" class="glass-tag">置顶</el-tag>
+            <span v-else style="color:var(--glass-text-muted)">普通</span>
           </template>
         </el-table-column>
         <el-table-column label="状态" width="100">
           <template #default="{ row }">
-            <el-tag v-if="row.status === 0" type="info">草稿</el-tag>
-            <el-tag v-else-if="row.status === 1" type="success">已发布</el-tag>
-            <el-tag v-else type="warning">已撤回</el-tag>
+            <el-tag v-if="row.status === 0" type="info" class="glass-tag">草稿</el-tag>
+            <el-tag v-else-if="row.status === 1" type="success" class="glass-tag">已发布</el-tag>
+            <el-tag v-else type="warning" class="glass-tag">已撤回</el-tag>
           </template>
         </el-table-column>
         <el-table-column prop="publishAdminName" label="发布人" width="110" show-overflow-tooltip />
@@ -81,7 +81,7 @@
         </el-table-column>
       </el-table>
 
-      <div class="pager">
+      <div class="pager glass-pagination">
         <el-pagination
           v-model:current-page="query.page"
           v-model:page-size="query.size"
@@ -96,10 +96,10 @@
     </el-card>
 
     <!-- 新增/编辑抽屉 -->
-    <el-drawer v-model="drawerVisible" :title="form.id ? '编辑公告' : '新增公告'" size="45%">
+    <el-drawer v-model="drawerVisible" :title="form.id ? '编辑公告' : '新增公告'" size="45%" class="glass-dialog">
       <el-form :model="form" :rules="rules" ref="formRef" label-width="90px" class="form-box">
         <el-form-item label="标题" prop="title">
-          <el-input v-model="form.title" maxlength="200" show-word-limit placeholder="公告标题" />
+          <el-input v-model="form.title" maxlength="200" show-word-limit placeholder="公告标题" class="glass-input" />
         </el-form-item>
         <el-form-item label="类型" prop="type">
           <el-radio-group v-model="form.type">
@@ -117,13 +117,14 @@
             type="textarea"
             :rows="10"
             placeholder="公告内容（支持换行）"
+            class="glass-input"
           />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="drawerVisible = false">取消</el-button>
-        <el-button type="info" v-hasPerm="'announce:publish'" @click="submitForm(0)">保存草稿</el-button>
-        <el-button type="primary" v-hasPerm="'announce:publish'" @click="submitForm(1)">立即发布</el-button>
+        <el-button @click="drawerVisible = false" class="glass-btn">取消</el-button>
+        <el-button type="info" v-hasPerm="'announce:publish'" class="glass-btn" @click="submitForm(0)">保存草稿</el-button>
+        <el-button type="primary" v-hasPerm="'announce:publish'" class="glass-btn-primary" @click="submitForm(1)">立即发布</el-button>
       </template>
     </el-drawer>
   </div>

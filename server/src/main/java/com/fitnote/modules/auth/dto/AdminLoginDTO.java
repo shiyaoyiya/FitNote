@@ -1,6 +1,6 @@
 package com.fitnote.modules.auth.dto;
 import lombok.Data;
-import javax.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotBlank;
 @Data
 public class AdminLoginDTO {
     @NotBlank private String username;

@@ -8,41 +8,25 @@
         </view>
         <text class="app-title">FitNote</text>
         <text class="app-subtitle">
+          <!-- #ifdef MP-WEIXIN -->
+          微信一键登录，数据云端同步
+          <!-- #endif -->
+          <!-- #ifndef MP-WEIXIN -->
           {{ localMode === 'checking' ? '检测服务器连通性…' :
              localMode === 'local' ? (authMode === 'login' ? '欢迎回来，登录以同步云端' : '注册账号开启云端备份') :
-             'Spring Boot 未连接，使用微信登录' }}
+             'Spring Boot 未连接，请启动服务器' }}
+          <!-- #endif -->
         </text>
       </view>
 
-      <!-- ====== 本地模式：用户名/密码登录（原有 UI） ====== -->
-      <template v-if="localMode === 'local'">
-        <!-- 登录 / 注册 切换 -->
-        <view class="auth-tabs">
-          <view :class="['auth-tab', { active: authMode === 'login' }]" @click="switchMode('login')">登录</view>
-          <view :class="['auth-tab', { active: authMode === 'register' }]" @click="switchMode('register')">注册</view>
-        </view>
+      <!-- 检测中占位 -->
+      <view v-if="localMode === 'checking'" class="checking-placeholder">
+        <text class="checking-text">正在检测服务器连通性…</text>
+      </view>
 
-        <!-- 表单 -->
-        <view class="form-item">
-          <text class="form-label">账号</text>
-          <input class="form-input" v-model="authForm.username" placeholder="请输入账号（3-30 字符）" maxlength="30" />
-        </view>
-        <view class="form-item">
-          <text class="form-label">密码</text>
-          <input class="form-input" v-model="authForm.password" password placeholder="6-30 位字符" maxlength="30" />
-        </view>
-        <view v-if="authMode === 'register'" class="form-item">
-          <text class="form-label">确认密码</text>
-          <input class="form-input" v-model="authForm.confirmPassword" password placeholder="请再次输入密码" maxlength="30" />
-        </view>
-
-        <button class="btn-primary" @click="handleAuth" :disabled="authLoading">
-          {{ authLoading ? '处理中…' : (authMode === 'login' ? '登录' : '注册并登录') }}
-        </button>
-      </template>
-
-      <!-- ====== 云开发模式：微信一键登录 ====== -->
-      <template v-else-if="localMode === 'cloud'">
+      <!-- ====== 微信环境：纯云函数微信登录（不走 HTTP 请求） ====== -->
+      <!-- #ifdef MP-WEIXIN -->
+      <template v-if="localMode !== 'checking'">
         <!-- 完善信息表单（首次登录时显示） -->
         <view v-if="showProfileForm" class="profile-form">
           <view class="form-item avatar-picker">
@@ -68,11 +52,34 @@
           {{ authLoading ? '登录中…' : '微信一键登录' }}
         </button>
       </template>
+      <!-- #endif -->
 
-      <!-- 检测中占位 -->
-      <view v-else class="checking-placeholder">
-        <text class="checking-text">正在检测服务器连通性…</text>
-      </view>
+      <!-- ====== 非微信环境：仅账号密码登录 ====== -->
+      <!-- #ifndef MP-WEIXIN -->
+      <template v-if="localMode === 'local'">
+        <view class="auth-tabs">
+          <view :class="['auth-tab', { active: authMode === 'login' }]" @click="switchMode('login')">登录</view>
+          <view :class="['auth-tab', { active: authMode === 'register' }]" @click="switchMode('register')">注册</view>
+        </view>
+
+        <view class="form-item">
+          <text class="form-label">账号</text>
+          <input class="form-input" v-model="authForm.username" placeholder="请输入账号（3-30 字符）" maxlength="30" />
+        </view>
+        <view class="form-item">
+          <text class="form-label">密码</text>
+          <input class="form-input" v-model="authForm.password" password placeholder="6-30 位字符" maxlength="30" />
+        </view>
+        <view v-if="authMode === 'register'" class="form-item">
+          <text class="form-label">确认密码</text>
+          <input class="form-input" v-model="authForm.confirmPassword" password placeholder="请再次输入密码" maxlength="30" />
+        </view>
+
+        <button class="btn-primary" @click="handleAuth" :disabled="authLoading">
+          {{ authLoading ? '处理中…' : (authMode === 'login' ? '登录' : '注册并登录') }}
+        </button>
+      </template>
+      <!-- #endif -->
 
       <view v-if="statusMessage" class="status-banner" :class="statusType">
         <text class="status-icon">{{ statusType === 'success' ? '✅' : '❌' }}</text>
@@ -191,18 +198,21 @@
         return
       }
 
-      // 自动检测本地服务器连通性
+      // #ifdef MP-WEIXIN
+      // 微信小程序环境：纯云开发登录，不走 HTTP 请求，跳过服务器检测
+      this.localMode = 'cloud'
+      if (isCloudLoginMode() && isLoggedIn()) {
+        setTimeout(() => uni.navigateBack({ fail: () => uni.switchTab({ url: '/pages/index/index' }) }), 0)
+      }
+      // #endif
+
+      // #ifndef MP-WEIXIN
+      // 非微信环境：自动检测本地服务器连通性
       try {
         const ok = await isLocalServerAvailable(true)
         this.localMode = ok ? 'local' : 'cloud'
       } catch (e) {
         this.localMode = 'cloud'
-      }
-
-      // #ifdef MP-WEIXIN
-      // 云开发模式下，如果是已登录的云开发用户（从其他页面跳来），直接返回
-      if (this.localMode === 'cloud' && isCloudLoginMode() && isLoggedIn()) {
-        setTimeout(() => uni.navigateBack({ fail: () => uni.switchTab({ url: '/pages/index/index' }) }), 0)
       }
       // #endif
     },
@@ -231,11 +241,11 @@
         })
       },
 
-      // ============ 微信云开发登录 ============
+      // ============ 微信登录（纯云函数，无 HTTP 请求） ============
       // #ifdef MP-WEIXIN
       /**
        * 微信一键登录入口
-       * 流程：wx.login → 云函数 login → 拿 openid + 用户信息
+       * 流程：cloudLogin() → wx.login + 云数据库查/建用户
        *   - 老用户：直接登录成功
        *   - 新用户：显示完善信息表单（选头像 + 输昵称）
        */
@@ -245,13 +255,11 @@
         try {
           const { user, isNew } = await cloudLogin()
           if (isNew) {
-            // 新用户：显示完善信息表单
             this.showProfileForm = true
-            this.wxProfile.nickname = user.nickname && user.nickname !== '微信用户' ? user.nickname : ''
+            this.wxProfile.nickname = ''
             this.setStatus('success', '登录成功，请完善个人信息')
           } else {
-            // 老用户：直接登录成功
-            this._onCloudLoginSuccess(user)
+            this._onWxLoginSuccess(user)
           }
         } catch (e) {
           this.setStatus('error', '微信登录失败：' + (e.message || ''))
@@ -281,7 +289,7 @@
 
       /**
        * 完善信息表单的确认按钮
-       * 流程：上传头像到云存储 → 调用 updateProfile 云函数 → 登录完成
+       * 流程：上传头像到云存储 → 云数据库更新资料 → 登录完成
        */
       async handleWxLoginConfirm() {
         const nickname = (this.wxProfile.nickname || '').trim()
@@ -291,7 +299,6 @@
         this.authLoading = true
         this.setStatus('', '')
         try {
-          // 1. 上传头像到云存储（如果用户选了）
           let avatarUrl = ''
           if (this.wxProfile.avatarTempPath) {
             try {
@@ -300,10 +307,8 @@
               console.warn('头像上传失败，继续登录流程', e)
             }
           }
-
-          // 2. 更新用户资料
-          const user = await cloudUpdateProfile({ nickname, avatarUrl })
-          this._onCloudLoginSuccess(user)
+          const updated = await cloudUpdateProfile({ nickname, avatarUrl })
+          this._onWxLoginSuccess(updated)
         } catch (e) {
           this.setStatus('error', '资料更新失败：' + (e.message || ''))
         } finally {
@@ -312,9 +317,9 @@
       },
 
       /**
-       * 云开发登录成功后的统一处理
+       * 微信登录成功后的统一处理
        */
-      _onCloudLoginSuccess(user) {
+      _onWxLoginSuccess(user) {
         this.setStatus('success', '登录成功')
         uni.showToast({ title: '成功', icon: 'success' })
         uni.$emit && uni.$emit('cloud-user-changed', user)
@@ -567,6 +572,32 @@
 
   .back-link:active {
     opacity: 0.6;
+  }
+
+  /* ============ 微信环境内部切换样式 ============ */
+  .auth-tabs-inner {
+    display: flex;
+    background: var(--bg-tertiary);
+    border-radius: 10px;
+    padding: 3px;
+    margin-bottom: 18px;
+  }
+
+  .auth-tab-inner {
+    flex: 1;
+    text-align: center;
+    padding: 9px 0;
+    border-radius: 8px;
+    font-size: 14px;
+    color: var(--text-muted);
+    transition: all 0.2s;
+  }
+
+  .auth-tab-inner.active {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    font-weight: 600;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
   }
 
   /* ============ 云开发模式样式 ============ */

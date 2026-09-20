@@ -5,11 +5,11 @@ import com.fitnote.common.BusinessException;
 import com.fitnote.common.Result;
 import com.fitnote.common.ResultCode;
 import com.fitnote.entity.SysAdmin;
+import com.fitnote.entity.SysAdminMenu;
 import com.fitnote.entity.SysMenu;
-import com.fitnote.entity.SysRoleMenu;
 import com.fitnote.mapper.SysAdminMapper;
+import com.fitnote.mapper.SysAdminMenuMapper;
 import com.fitnote.mapper.SysMenuMapper;
-import com.fitnote.mapper.SysRoleMenuMapper;
 import com.fitnote.security.DualUserPrincipal;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
@@ -22,8 +22,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- * 管理端通用接口：拉取当前登录管理员信息 / 按角色加载菜单树。
- * admin-web 登录后、页面刷新（从 localStorage 恢复 Token）时都需要调用这两个接口。
+ * 管理端通用接口：拉取当前登录管理员信息 / 按账号加载菜单树。
  */
 @RestController
 @RequestMapping("/api/admin")
@@ -31,7 +30,7 @@ import java.util.stream.Collectors;
 public class AdminIndexController {
 
     private final SysAdminMapper adminMapper;
-    private final SysRoleMenuMapper roleMenuMapper;
+    private final SysAdminMenuMapper adminMenuMapper;
     private final SysMenuMapper menuMapper;
 
     @GetMapping("/me")
@@ -52,12 +51,19 @@ public class AdminIndexController {
         DualUserPrincipal p = currentPrincipal();
         SysAdmin a = adminMapper.selectById(p.getId());
         if (a == null) throw new BusinessException(ResultCode.UNAUTHORIZED, "账号不存在");
-        List<Long> menuIds = roleMenuMapper.selectList(
-                new LambdaQueryWrapper<SysRoleMenu>().eq(SysRoleMenu::getRoleCode, a.getRoleCode())
-        ).stream().map(SysRoleMenu::getMenuId).collect(Collectors.toList());
-        if (menuIds.isEmpty()) return Result.ok(Collections.emptyList());
-        List<SysMenu> list = menuMapper.selectBatchIds(menuIds);
-        list.sort(Comparator.comparing(SysMenu::getSortOrder).thenComparing(SysMenu::getId));
+
+        List<SysMenu> list;
+        if ("ADMIN".equals(a.getRoleCode())) {
+            list = menuMapper.selectList(new LambdaQueryWrapper<SysMenu>()
+                    .orderByAsc(SysMenu::getSortOrder, SysMenu::getId));
+        } else {
+            List<Long> menuIds = adminMenuMapper.selectList(
+                    new LambdaQueryWrapper<SysAdminMenu>().eq(SysAdminMenu::getAdminId, a.getId())
+            ).stream().map(SysAdminMenu::getMenuId).collect(Collectors.toList());
+            if (menuIds.isEmpty()) return Result.ok(Collections.emptyList());
+            list = menuMapper.selectBatchIds(menuIds);
+            list.sort(Comparator.comparing(SysMenu::getSortOrder).thenComparing(SysMenu::getId));
+        }
         List<Map<String, Object>> rows = list.stream().map(m -> {
             Map<String, Object> row = new HashMap<>();
             row.put("id", m.getId());

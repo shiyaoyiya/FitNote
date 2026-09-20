@@ -11,7 +11,7 @@
       @select-template="onSelectTemplate" @save-aerobic="onSaveAerobic" @save-rest="onSaveRestDay" />
 
     <!-- 动作卡片列表 -->
-    <scroll-view class="action-list" scroll-y="true" v-if="!isRestDay && !showChooseTpl">
+    <scroll-view class="action-list" scroll-y="true" v-if="!isRestDay && !showChooseTpl && contentReady">
       <ActionCard v-for="(actName, idx) in chosenActions" :key="actName" :action-name="actName"
         :entries="actionEntries[idx]" :diff="diffs[idx]" :latest-record="actionLatestRecordCache[actName] || null"
         :bubble-fill="settingsStore.bubbleFill" :is-bodyweight="isBodyweightAction(actName)"
@@ -23,7 +23,7 @@
     </scroll-view>
 
     <!-- 底部按钮行：计时器 | 设置 对称分布各占一半 -->
-    <view class="save-row" v-if="!isRestDay && !showChooseTpl">
+    <view class="save-row" v-if="!isRestDay && !showChooseTpl && contentReady">
       <view class="day-action-pair">
         <view v-if="!timerActive" class="day-action-btn half minimal-timer-btn glass-panel" @click="startQuickTimer">
           <text class="dab-icon">⏱</text>
@@ -137,6 +137,7 @@
         templates: [],
         // 页面状态
         showChooseTpl: true,
+        contentReady: false,
         isRestDay: false,
         restReasonStored: '',
         chosenTplName: '',
@@ -508,11 +509,13 @@
             return
           }
           this.showChooseTpl = true
+          this.contentReady = false
           uni.hideLoading()
           return
         }
 
         this.showChooseTpl = false
+        this.contentReady = false
         if (this.isRestDay) {
           uni.hideLoading()
           return
@@ -561,6 +564,10 @@
           this.pendingTplName = ''
           this.calcAllDiffs()
           uni.hideLoading()
+          // 延迟显示内容，让 Android 渲染引擎完成布局计算
+          setTimeout(() => {
+            this.contentReady = true
+          }, 50)
         })
       },
 
@@ -805,7 +812,7 @@
       goHistory(idx) {
         const actName = this.chosenActions[idx]
         uni.navigateTo({
-          url: `../actionHistory/actionHistory?action=${encodeURIComponent(actName)}`
+          url: `/subpkg-secondary/actionHistory/actionHistory?action=${encodeURIComponent(actName)}`
         })
       },
 
@@ -925,12 +932,16 @@
         this.dayDataCacheStore.saveDayData(this.date, dayData)
 
         this.showChooseTpl = false
+        this.contentReady = false
         uni.showLoading({
           title: '正在计算对比...'
         })
         this.$nextTick(() => {
           this.calcAllDiffs()
           uni.hideLoading()
+          setTimeout(() => {
+            this.contentReady = true
+          }, 50)
         })
       },
       onSaveAerobic({ name, time }) {
@@ -970,6 +981,7 @@
 
       onCloseTemplateSelector() {
         this.showChooseTpl = false
+        this.contentReady = false
         // 只有在没有选择任何模板且没有数据时才返回首页
         const raw = this.dayDataCacheStore.getDayData(this.date)
         const hasData = raw.templates && Object.keys(raw.templates).length > 0
@@ -1512,14 +1524,15 @@
   }
 
   /* 链接2: 液态玻璃模式下让 save-row 透明，避免 hr-toggle 出现半透明背景 */
-  html .container.light.liquid-glass .save-row,
-  html .container.dark.liquid-glass .save-row {
+  /* 注意：去掉 html 前缀以兼容微信小程序（小程序无 html 标签） */
+  .container.light.liquid-glass .save-row,
+  .container.dark.liquid-glass .save-row {
     background: transparent !important;
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
   }
-  html .container.light.liquid-glass .save-row-inner,
-  html .container.dark.liquid-glass .save-row-inner {
+  .container.light.liquid-glass .save-row-inner,
+  .container.dark.liquid-glass .save-row-inner {
     background: transparent !important;
   }
 

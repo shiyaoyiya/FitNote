@@ -113,8 +113,8 @@
 /* 蓝色渐变按钮（主操作） */
 .container.liquid-glass .glass-btn-primary {
   background: linear-gradient(135deg,
-    rgba(55, 155, 255, 0.7) 0%,
-    rgba(0, 72, 255, 0.7) 100%) !important;
+      rgba(55, 155, 255, 0.7) 0%,
+      rgba(0, 72, 255, 0.7) 100%) !important;
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   border: 1px solid rgba(255, 255, 255, 0.2) !important;
@@ -200,8 +200,8 @@
 .container.liquid-glass .glass-action {
   position: relative;
   background: linear-gradient(135deg,
-    rgba(55, 155, 255, 0.7) 0%,
-    rgba(0, 72, 255, 0.7) 100%) !important;
+      rgba(55, 155, 255, 0.7) 0%,
+      rgba(0, 72, 255, 0.7) 100%) !important;
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   border: 1px solid rgba(255, 255, 255, 0.2) !important;
@@ -330,14 +330,15 @@
 /* ===== day.vue ===== */
 
 /* 底部保存行 — 浅色从下到上渐变透明，深色全透明 */
-html .container.light.liquid-glass .save-row {
+/* 注意：去掉 html 前缀以兼容微信小程序（小程序无 html 标签） */
+.container.light.liquid-glass .save-row {
   background: linear-gradient(to top, var(--glass-bg), transparent) !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
   border-top: none !important;
 }
 
-html .container.dark.liquid-glass .save-row {
+.container.dark.liquid-glass .save-row {
   background: linear-gradient(to top, var(--glass-bg), transparent) !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
@@ -2030,7 +2031,7 @@ html .container.liquid-glass.light .custom-color-card {
 
   /* 光影分层 */
   box-shadow:
-    0 1px 5px rgba(0, 0, 0, 0.3),
+    0 1 px 5px rgba(0, 0, 0, 0.3),
     /* 外阴影：悬浮下沉感 */
     inset 0 1px 0 rgba(255, 255, 255, 0.08);
   /* 内阴影：顶部高光 */

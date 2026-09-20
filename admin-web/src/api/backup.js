@@ -11,3 +11,22 @@ export function getBackupDetail(id) {
 export function deleteBackup(id) {
   return request({ url: `/admin/backup/${id}`, method: 'delete' })
 }
+
+/** 获取备份完整预览数据（概览、模板、训练数据、动作、纪念日） */
+export function getBackupPreview(id) {
+  return request({ url: `/admin/backup/${id}/preview`, method: 'get' })
+}
+
+/** 获取备份中的模板列表（用于在线预览） */
+export function getBackupTemplates(id) {
+  return request({ url: `/admin/backup/${id}/templates`, method: 'get' })
+}
+
+/** 导出备份中的模板为 JSON 格式 */
+export function exportBackupTemplates(id) {
+  return request({
+    url: `/admin/backup/${id}/export-templates`,
+    method: 'get',
+    responseType: 'blob'
+  })
+}

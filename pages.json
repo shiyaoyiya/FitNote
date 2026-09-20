@@ -13,75 +13,9 @@
       }
     },
     {
-      "path": "pages/actionHistory/actionHistory",
-      "style": {
-        "navigationBarTitleText": "动作历史"
-      }
-    },
-    {
-      "path": "pages/templateDetail/templateDetail",
-      "style": {
-        "navigationBarTitleText": "编辑模板"
-      }
-    },
-    {
-      "path": "pages/year/year",
-      "style": {
-        "navigationBarTitleText": "年度总览"
-      }
-    },
-    {
-      "path": "pages/actionLibrary/actionLibrary",
-      "style": {
-        "navigationBarTitleText": "动作库"
-      }
-    },
-    {
-      "path": "pages/templateManager/templateManager",
-      "style": {
-        "navigationBarTitleText": "模板中心"
-      }
-    },
-    {
-      "path": "pages/trainingStat/trainingStat",
-      "style": {
-        "navigationBarTitleText": "训练统计"
-      }
-    },
-    {
-      "path": "pages/backup/backup",
-      "style": {
-        "navigationBarTitleText": "💾 数据备份"
-      }
-    },
-    {
       "path": "pages/login/login",
       "style": {
         "navigationBarTitleText": "登录"
-      }
-    },
-    {
-      "path": "pages/profile/profile",
-      "style": {
-        "navigationBarTitleText": "👤 个人资料"
-      }
-    },
-    {
-      "path": "pages/manageActions/manageActions",
-      "style": {
-        "navigationBarTitleText": "管理动作"
-      }
-    },
-    {
-      "path": "pages/templateSquare/templateSquare",
-      "style": {
-        "navigationBarTitleText": "模板广场"
-      }
-    },
-    {
-      "path": "pages/announce/announce",
-      "style": {
-        "navigationBarTitleText": "系统公告"
       }
     }
   ],
@@ -106,6 +40,83 @@
           "path": "templateDetail/templateDetail",
           "style": {
             "navigationBarTitleText": "模板详情"
+          }
+        },
+        {
+          "path": "templateManager/templateManager",
+          "style": {
+            "navigationBarTitleText": "模板中心"
+          }
+        },
+        {
+          "path": "templateSquare/templateSquare",
+          "style": {
+            "navigationBarTitleText": "模板广场"
+          }
+        }
+      ]
+    },
+    {
+      "root": "subpkg-secondary",
+      "pages": [
+        {
+          "path": "feedback/feedback",
+          "style": {
+            "navigationBarTitleText": "反馈与建议"
+          }
+        },
+        {
+          "path": "announce/announce",
+          "style": {
+            "navigationBarTitleText": "系统公告"
+          }
+        },
+        {
+          "path": "notification/notification",
+          "style": {
+            "navigationBarTitleText": "我的通知"
+          }
+        },
+        {
+          "path": "profile/profile",
+          "style": {
+            "navigationBarTitleText": "个人资料"
+          }
+        },
+        {
+          "path": "backup/backup",
+          "style": {
+            "navigationBarTitleText": "数据备份"
+          }
+        },
+        {
+          "path": "trainingStat/trainingStat",
+          "style": {
+            "navigationBarTitleText": "训练统计"
+          }
+        },
+        {
+          "path": "year/year",
+          "style": {
+            "navigationBarTitleText": "年度总览"
+          }
+        },
+        {
+          "path": "actionLibrary/actionLibrary",
+          "style": {
+            "navigationBarTitleText": "动作库"
+          }
+        },
+        {
+          "path": "actionHistory/actionHistory",
+          "style": {
+            "navigationBarTitleText": "动作历史"
+          }
+        },
+        {
+          "path": "manageActions/manageActions",
+          "style": {
+            "navigationBarTitleText": "管理动作"
           }
         }
       ]

@@ -30,14 +30,11 @@ public class WebMvcConfig implements WebMvcConfigurer {
     /**
      * 把本地头像目录映射成 /avatars/** 静态可访问，
      * 用户上传的头像可直接通过 HTTP GET 公开访问。
-     * 使用绝对路径避免 JAR 启动时相对路径解析失败。
+     * 使用 toUri() 自动完成 percent-encoding，避免中文路径导致 file:/// URL 解析失败。
      */
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        // 统一转成绝对路径，解决 Windows 下 file:./ 相对路径不可靠的问题
-        String absDir = Paths.get(avatarBaseDir).toAbsolutePath().toString().replace('\\', '/');
-        if (!absDir.endsWith("/")) absDir += "/";
-        String location = "file:///" + absDir;
+        String location = Paths.get(avatarBaseDir).toAbsolutePath().toUri().toString();
         String prefix = avatarUrlPrefix.startsWith("/") ? avatarUrlPrefix : "/" + avatarUrlPrefix;
         String pattern = prefix.endsWith("/") ? prefix + "**" : prefix + "/**";
         registry.addResourceHandler(pattern)

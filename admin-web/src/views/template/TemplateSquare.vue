@@ -1,7 +1,7 @@
 <template>
   <div class="page-wrap">
     <!-- 搜索栏 -->
-    <el-card shadow="never" class="search-bar">
+    <el-card shadow="never" class="search-bar glass-card">
       <el-form :inline="true" :model="query" @submit.prevent>
         <el-form-item label="关键词">
           <el-input
@@ -9,32 +9,33 @@
             placeholder="名称模糊"
             clearable
             style="width: 200px"
+            class="glass-input"
             @keyup.enter="handleSearch"
           />
         </el-form-item>
         <el-form-item label="排序">
-          <el-select v-model="query.sort" style="width: 120px">
+          <el-select v-model="query.sort" style="width: 120px" class="glass-select">
             <el-option label="最新" value="latest" />
             <el-option label="热度" value="hot" />
           </el-select>
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" :icon="Search" @click="handleSearch">搜索</el-button>
-          <el-button :icon="Refresh" @click="handleReset">重置</el-button>
+          <el-button type="primary" :icon="Search" class="glass-btn-primary" @click="handleSearch">搜索</el-button>
+          <el-button :icon="Refresh" class="glass-btn" @click="handleReset">重置</el-button>
         </el-form-item>
       </el-form>
     </el-card>
 
     <!-- 表格 -->
-    <el-card shadow="never" class="table-card">
-      <el-table v-loading="loading" :data="tableData" border stripe style="width: 100%">
+    <el-card shadow="never" class="table-card glass-card glass-loading">
+      <el-table v-loading="loading" :data="tableData" border stripe style="width: 100%" class="glass-table">
         <el-table-column prop="id" label="ID" width="70" />
         <el-table-column prop="name" label="名称" min-width="160" show-overflow-tooltip />
         <el-table-column prop="userName" label="分享人" width="120" show-overflow-tooltip />
         <el-table-column label="官方" width="80">
           <template #default="{ row }">
-            <el-tag v-if="row.isOfficial === 1" type="primary">官方</el-tag>
-            <span v-else style="color:#c0c4cc">-</span>
+            <el-tag v-if="row.isOfficial === 1" type="primary" class="glass-tag">官方</el-tag>
+            <span v-else style="color:var(--glass-text-muted)">-</span>
           </template>
         </el-table-column>
         <el-table-column label="排序权重" width="130">
@@ -45,6 +46,7 @@
               type="number"
               size="small"
               style="width: 90px"
+              class="glass-input"
               @blur="submitInlineEdit(row)"
               @keyup.enter="submitInlineEdit(row)"
             />
@@ -94,7 +96,7 @@
         </el-table-column>
       </el-table>
 
-      <div class="pager">
+      <div class="pager glass-pagination">
         <el-pagination
           v-model:current-page="query.page"
           v-model:page-size="query.size"
@@ -109,20 +111,20 @@
     </el-card>
 
     <!-- 设为官方弹窗 -->
-    <el-dialog v-model="officialVisible" title="设为官方推荐" width="420px">
+    <el-dialog v-model="officialVisible" title="设为官方推荐" width="420px" class="glass-dialog">
       <el-form :model="officialForm" label-position="top">
         <el-form-item label="排序权重（数字越大越靠前）">
           <el-input-number v-model="officialForm.sortWeight" :min="0" :max="9999" style="width: 100%" />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="officialVisible = false">取消</el-button>
-        <el-button type="primary" :loading="submitting" @click="confirmOfficial">确认</el-button>
+        <el-button @click="officialVisible = false" class="glass-btn">取消</el-button>
+        <el-button type="primary" :loading="submitting" @click="confirmOfficial" class="glass-btn-primary">确认</el-button>
       </template>
     </el-dialog>
 
     <!-- 下架弹窗 -->
-    <el-dialog v-model="offlineVisible" title="强制下架" width="500px">
+    <el-dialog v-model="offlineVisible" title="强制下架" width="500px" class="glass-dialog">
       <el-form ref="offlineFormRef" :model="offlineForm" :rules="offlineRules" label-position="top">
         <el-form-item label="下架原因（驳回原因，不少于10字）" prop="rejectReason">
           <el-input
@@ -132,12 +134,13 @@
             maxlength="200"
             show-word-limit
             placeholder="请填写下架原因，不少于10字"
+            class="glass-input"
           />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="offlineVisible = false">取消</el-button>
-        <el-button type="danger" :loading="submitting" @click="confirmOffline">确认下架</el-button>
+        <el-button @click="offlineVisible = false" class="glass-btn">取消</el-button>
+        <el-button type="danger" :loading="submitting" @click="confirmOffline" class="glass-btn">确认下架</el-button>
       </template>
     </el-dialog>
   </div>
@@ -147,7 +150,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Search, Refresh } from '@element-plus/icons-vue'
-import { getSquareList, setOfficial, deleteSquareTemplate, auditTemplate } from '@/api/template'
+import { getSquareList, setOfficial, deleteSquareTemplate, offlineSquareTemplate } from '@/api/template'
 
 const loading = ref(false)
 const tableData = ref([])
@@ -219,7 +222,7 @@ async function handleCancelOfficial(row) {
   }
 }
 
-// 下架（调审核接口 status=2）
+// 下架（独立于审核接口：审核作用于 status=0 待审核模板，下架作用于 status=1 已上架模板）
 const offlineVisible = ref(false)
 const offlineFormRef = ref(null)
 const offlineForm = reactive({ id: null, rejectReason: '' })
@@ -240,7 +243,7 @@ async function confirmOffline() {
   await offlineFormRef.value.validate()
   submitting.value = true
   try {
-    await auditTemplate(offlineForm.id, { status: 2, rejectReason: offlineForm.rejectReason.trim() })
+    await offlineSquareTemplate(offlineForm.id, { rejectReason: offlineForm.rejectReason.trim() })
     ElMessage.success('已下架')
     offlineVisible.value = false
     fetchList()

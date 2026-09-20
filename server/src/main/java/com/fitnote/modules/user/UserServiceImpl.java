@@ -123,6 +123,8 @@ public class UserServiceImpl implements UserService {
         vo.setGender(u.getGender());
         vo.setBirthday(u.getBirthday());
         vo.setStatus(u.getStatus());
+        vo.setOpenid(u.getOpenid());
+        vo.setLoginType(u.getLoginType());
         vo.setTotalTrainDays(u.getTotalTrainDays());
         vo.setTotalVolumeKg(u.getTotalVolumeKg());
         vo.setLastLoginTime(u.getLastLoginTime());
@@ -311,8 +313,8 @@ public class UserServiceImpl implements UserService {
 
     /**
      * 从最新备份 JSON 解析训练动作的部位分布。
-     * 前端 daydata 里 entries 的 key 是动作名，需要按中文名关键字映射到部位。
-     * 无备份或解析失败 → 返回一条「暂无数据 0kg」占位。
+     * 优先从 fitness_actions 的 categories 字段获取动作分类，
+     * 匹配不到时回退到关键字匹配。无备份或解析失败 → 返回占位。
      */
     private List<BodyPartDistVO> buildBodyPartDistribution(Long userId) {
         BackupRecord latest = backupRecordMapper.selectOne(
@@ -330,9 +332,25 @@ public class UserServiceImpl implements UserService {
             }
             String content = new String(Files.readAllBytes(p), StandardCharsets.UTF_8);
             JsonNode root = objectMapper.readTree(content);
-            JsonNode daydata = root.path("data").path("fitness_daydata");
+            JsonNode data = root.path("data");
+            JsonNode daydata = data.path("fitness_daydata");
             if (!daydata.isObject()) {
                 return Collections.singletonList(new BodyPartDistVO("暂无数据", BigDecimal.ZERO));
+            }
+
+            // 从 fitness_actions 构建 动作名 → 部位 映射表
+            Map<String, String> actionPartMap = new HashMap<>();
+            JsonNode actions = data.path("fitness_actions");
+            if (actions != null && actions.isArray()) {
+                for (JsonNode act : actions) {
+                    String name = act.has("name") ? act.get("name").asText() : "";
+                    if (name.isEmpty()) continue;
+                    JsonNode cats = act.get("categories");
+                    if (cats != null && cats.isArray() && cats.size() > 0) {
+                        String part = categoryToPart(cats.get(0).asText());
+                        if (part != null) actionPartMap.put(name, part);
+                    }
+                }
             }
 
             // 部位 → 累计容量
@@ -355,9 +373,16 @@ public class UserServiceImpl implements UserService {
                 while (es.hasNext()) {
                     Map.Entry<String, JsonNode> e = es.next();
                     String actionName = e.getKey();
-                    BigDecimal vol = sumEntryVolume(e.getValue());
+                    JsonNode entryNode = e.getValue();
+                    BigDecimal vol;
+                    if (entryNode != null && entryNode.isArray()) {
+                        vol = BigDecimal.ZERO;
+                        for (JsonNode item : entryNode) vol = vol.add(sumEntryVolume(item));
+                    } else {
+                        vol = sumEntryVolume(entryNode);
+                    }
                     if (vol.compareTo(BigDecimal.ZERO) == 0) continue;
-                    String part = classifyBodyPart(actionName);
+                    String part = actionPartMap.getOrDefault(actionName, classifyBodyPart(actionName));
                     acc.merge(part, vol, BigDecimal::add);
                 }
             }
@@ -378,6 +403,20 @@ public class UserServiceImpl implements UserService {
         }
     }
 
+    /** fitness_actions 的英文分类 ID → 中文部位名 */
+    private String categoryToPart(String category) {
+        if (category == null) return null;
+        switch (category) {
+            case "chest": return "胸";
+            case "back": return "背";
+            case "legs": return "腿";
+            case "shoulders": return "肩";
+            case "arms": return "臂";
+            case "abs": return "核心";
+            default: return null;
+        }
+    }
+
     /**
      * 动作名 → 部位。关键字匹配，未命中归「其他」。
      * 用英文小写比较，兼顾中英文动作名。
@@ -385,12 +424,12 @@ public class UserServiceImpl implements UserService {
     private String classifyBodyPart(String actionName) {
         if (!StringUtils.hasText(actionName)) return "其他";
         String n = actionName.toLowerCase(Locale.ROOT);
-        if (containsAny(n, "胸", "chest", "bench", "push-up", "pushup", "飞鸟")) return "胸";
-        if (containsAny(n, "背", "back", "row", "pull", "dead", "硬拉", "引体", "高位")) return "背";
-        if (containsAny(n, "腿", "leg", "squat", "lunge", "深蹲", "箭步", "硬拉")) return "腿";
-        if (containsAny(n, "肩", "shoulder", "press", "侧平举", "推举")) return "肩";
-        if (containsAny(n, "臂", "bicep", "tricep", "curl", "弯举", "臂屈伸", "臂")) return "臂";
-        if (containsAny(n, "腹", "核心", "core", "crunch", "plank", "平板", "卷腹")) return "核心";
+        if (containsAny(n, "胸", "chest", "bench", "卧推", "推胸", "夹胸", "飞鸟", "平推", "push-up", "pushup")) return "胸";
+        if (containsAny(n, "背", "back", "row", "pull", "dead", "硬拉", "引体", "高位", "划船", "下拉", "面拉", "直臂下压", "山羊挺身")) return "背";
+        if (containsAny(n, "腿", "leg", "squat", "lunge", "深蹲", "箭步", "倒蹬", "臀推", "蹲", "髋内收")) return "腿";
+        if (containsAny(n, "肩", "shoulder", "press", "侧平举", "前平举", "推举", "推肩", "平举", "提拉", "耸肩")) return "肩";
+        if (containsAny(n, "臂", "bicep", "tricep", "curl", "弯举", "臂屈伸", "下压", "窄推")) return "臂";
+        if (containsAny(n, "腹", "核心", "core", "crunch", "plank", "平板", "卷腹", "举腿")) return "核心";
         return "其他";
     }
 

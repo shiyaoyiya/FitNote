@@ -61,13 +61,6 @@ export const usePermissionStore = defineStore('permission', {
       routes.forEach(r => {
         router.addRoute('LayoutRoot', r)
       })
-      // 固定补充：预设编辑页（PresetList 同目录，不在菜单中显示）
-      router.addRoute('LayoutRoot', {
-        path: '/preset/edit',
-        name: 'PresetEdit',
-        component: () => import('@/views/preset/PresetEdit.vue'),
-        meta: { title: '预设编辑', icon: 'Goods', hidden: true, perms: 'preset:edit' }
-      })
       // 固定补充：用户画像详情页（UserList 同目录，不在菜单中显示）
       router.addRoute('LayoutRoot', {
         path: '/user/detail',

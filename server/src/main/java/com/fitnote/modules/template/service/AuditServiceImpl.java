@@ -7,6 +7,7 @@ import com.fitnote.common.PageVO;
 import com.fitnote.common.ResultCode;
 import com.fitnote.entity.SharedTemplate;
 import com.fitnote.mapper.SharedTemplateMapper;
+import com.fitnote.modules.notification.NotificationService;
 import com.fitnote.modules.template.dto.AuditDTO;
 import com.fitnote.modules.template.vo.AuditTemplateVO;
 import com.fitnote.modules.template.vo.TagVO;
@@ -26,6 +27,7 @@ public class AuditServiceImpl implements AuditService {
 
     private final SharedTemplateMapper sharedTemplateMapper;
     private final TemplateLoadHelper loadHelper;
+    private final NotificationService notificationService;
 
     @Override
     public PageVO<AuditTemplateVO> auditPage(Integer page, Integer size, Integer status) {
@@ -88,6 +90,16 @@ public class AuditServiceImpl implements AuditService {
             up.setRejectReason(dto.getRejectReason());
         }
         sharedTemplateMapper.updateById(up);
+
+        // 审核驳回时给分享人推送站内通知
+        if (dto.getStatus() != null && dto.getStatus() == 2) {
+            try {
+                notificationService.notifyTemplateRejected(
+                        t.getUserId(), t.getId(), t.getName(), dto.getRejectReason());
+            } catch (Exception ignore) {
+                // 通知失败不影响审核主流程
+            }
+        }
     }
 
     private AuditTemplateVO toVO(SharedTemplate t, List<TagVO> tags, String userName) {

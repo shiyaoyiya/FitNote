@@ -1,7 +1,7 @@
 <template>
   <div class="page-wrap">
     <!-- 搜索栏 -->
-    <el-card shadow="never" class="search-bar">
+    <el-card shadow="never" class="search-bar glass-card">
       <el-form :inline="true" :model="query" @submit.prevent>
         <el-form-item label="关键词">
           <el-input
@@ -9,44 +9,53 @@
             placeholder="用户名/昵称"
             clearable
             style="width: 200px"
+            class="glass-input"
             @keyup.enter="handleSearch"
           />
         </el-form-item>
         <el-form-item label="状态">
-          <el-select v-model="query.status" placeholder="全部" style="width: 140px" clearable>
+          <el-select v-model="query.status" placeholder="全部" style="width: 140px" clearable class="glass-select">
             <el-option label="全部" :value="undefined" />
             <el-option label="正常" :value="1" />
             <el-option label="封禁" :value="0" />
           </el-select>
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" :icon="Search" @click="handleSearch">搜索</el-button>
-          <el-button :icon="Refresh" @click="handleReset">重置</el-button>
+          <el-button type="primary" :icon="Search" class="glass-btn-primary" @click="handleSearch">搜索</el-button>
+          <el-button :icon="Refresh" class="glass-btn" @click="handleReset">重置</el-button>
         </el-form-item>
       </el-form>
     </el-card>
 
     <!-- 表格 -->
-    <el-card shadow="never" class="table-card">
+    <el-card shadow="never" class="table-card glass-card glass-loading">
       <el-table
         v-loading="loading"
         :data="tableData"
         border
         stripe
         style="width: 100%"
+        class="glass-table"
       >
         <el-table-column prop="id" label="ID" width="70" />
         <el-table-column prop="username" label="用户名" min-width="120" />
         <el-table-column prop="nickname" label="昵称" min-width="120" />
         <el-table-column prop="phone" label="手机号" min-width="130" />
+        <el-table-column label="登录方式" width="100">
+          <template #default="{ row }">
+            <el-tag v-if="row.loginType === 1" type="primary" class="glass-tag">账号密码</el-tag>
+            <el-tag v-else-if="row.loginType === 2" type="success" class="glass-tag">微信登录</el-tag>
+            <span v-else class="text-muted">-</span>
+          </template>
+        </el-table-column>
         <el-table-column label="性别" width="90">
           <template #default="{ row }">
-            <el-tag :type="genderTagType(row.gender)">{{ genderText(row.gender) }}</el-tag>
+            <el-tag :type="genderTagType(row.gender)" class="glass-tag">{{ genderText(row.gender) }}</el-tag>
           </template>
         </el-table-column>
         <el-table-column label="状态" width="90">
           <template #default="{ row }">
-            <el-tag :type="row.status === 1 ? 'success' : 'danger'">
+            <el-tag :type="row.status === 1 ? 'success' : 'danger'" class="glass-tag">
               {{ row.status === 1 ? '正常' : '封禁' }}
             </el-tag>
           </template>
@@ -74,6 +83,7 @@
               v-hasPerm="'user:status'"
               type="danger"
               size="small"
+              class="glass-btn-danger"
               @click="handleBan(row)"
             >封禁</el-button>
             <el-button
@@ -81,13 +91,14 @@
               v-hasPerm="'user:status'"
               type="success"
               size="small"
+              class="glass-btn-success"
               @click="handleUnban(row)"
             >解封</el-button>
           </template>
         </el-table-column>
       </el-table>
 
-      <div class="pager">
+      <div class="pager glass-pagination">
         <el-pagination
           v-model:current-page="query.page"
           v-model:page-size="query.size"

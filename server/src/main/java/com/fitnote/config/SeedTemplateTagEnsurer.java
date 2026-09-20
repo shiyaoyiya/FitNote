@@ -1,10 +1,5 @@
 package com.fitnote.config;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.fitnote.entity.TemplateTag;
-import com.fitnote.entity.TemplateTagRel;
-import com.fitnote.mapper.TemplateTagMapper;
-import com.fitnote.mapper.TemplateTagRelMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.ApplicationArguments;
@@ -18,24 +13,20 @@ import java.util.Arrays;
 import java.util.List;
 
 /**
- * 启动时强制重置「模板广场标签」为正确的 11 个。
+ * 启动时确保「模板广场标签」字典表存在正确的 11 个业务标签。
  *
- * <h3>为什么需要这个？</h3>
- * 生产上存在一种常见情况：data.sql 文件（源码/编译/打包 任一阶段）是旧的，
- * 或 spring.sql.init 跑的是旧 jar 内 data.sql；导致每次重启后 template_tag 又被
- * 刷回「推日/拉日/新手入门…」等旧 10 个标签，前端展示与数据库真实业务需求不匹配。
+ * <h3>修复说明（UPSERT 思路）</h3>
+ * 原实现采用 DELETE + INSERT，每次重启都会清空 template_tag_rel 关联表，
+ * 导致用户分享模板时绑定的标签全部丢失（重启后模板广场带标签的模板标签被清空）。
+ * 现改为 ON DUPLICATE KEY UPDATE，只确保 11 个标签存在且属性正确，
+ * <b>不再删除 template_tag_rel 关联表</b>，保留用户业务数据。
+ *
+ * <h3>写入内容（业务标签）</h3>
+ * 胸 / 背 / 臀 / 腿 / 肩 / 手臂 / 推 / 拉 / 蹲 / 上肢 / 下肢（共 11 个）。
  *
  * <h3>执行时机</h3>
  * 使用 ApplicationRunner + Ordered.HIGHEST_PRECEDENCE + 2，
- * 保证在 spring.sql.init 跑完后再覆盖写入（比管理员密码 SeedAdminPasswordEnsurer 先或后都不影响，
- * 因为它只重置 admin 密码，与 template_tag 无关）。
- *
- * <h3>写入内容（业务新标签）</h3>
- * 胸 / 背 / 臀 / 腿 / 肩 / 手臂 / 推 / 拉 / 蹲 / 上肢 / 下肢（共 11 个）。
- *
- * <h3>注意</h3>
- * 因为 DELETE + INSERT 会改 id，会同时清空 template_tag_rel（避免外键/历史关联指向不存在的 tag）。
- * 如果后续业务要求保留已有关联，需要改为 UPSERT 思路。
+ * 保证在 spring.sql.init 跑完后执行（与管理员密码 SeedAdminPasswordEnsurer 互不干扰）。
  */
 @Component
 @RequiredArgsConstructor
@@ -43,12 +34,10 @@ import java.util.List;
 @Order(Ordered.HIGHEST_PRECEDENCE + 2)
 public class SeedTemplateTagEnsurer implements ApplicationRunner {
 
-    private final TemplateTagMapper tagMapper;
-    private final TemplateTagRelMapper relMapper;
     private final JdbcTemplate jdbc;
 
-    // 新的 11 个业务标签（id,name,color,sort_order）
-    // id 固定显式插入，保证 MySQL AUTO_INCREMENT 按 1..11 起步，不会乱跳
+    // 11 个业务标签（id,name,color,sort_order）
+    // id 固定显式插入，保证 template_tag_rel 中的 tag_id 引用稳定
     private static final List<Object[]> TAGS = Arrays.asList(new Object[][]{
             {1, "胸",   "#d44848", 1},
             {2, "背",   "#002fa7", 2},
@@ -66,24 +55,23 @@ public class SeedTemplateTagEnsurer implements ApplicationRunner {
     @Override
     public void run(ApplicationArguments args) {
         try {
-            // 1. 先清关联，再清标签
-            relMapper.delete(new LambdaQueryWrapper<TemplateTagRel>());
-            tagMapper.delete(new LambdaQueryWrapper<TemplateTag>());
-            // 重置自增：下次 INSERT 从 1 开始
-            jdbc.execute("ALTER TABLE template_tag AUTO_INCREMENT = 1");
-
-            // 2. 显式写 11 条（指定 id）
+            // UPSERT：确保 11 个标签存在且属性正确，不删除 template_tag_rel 关联
+            // 依据 template_tag.name 的 UNIQUE 约束：冲突时更新 name/color/sort_order，不冲突时正常 INSERT
+            // 这样重启不会清空用户业务关联，且 id 保持稳定，rel 表的 tag_id 引用不会失效
             for (Object[] row : TAGS) {
-                TemplateTag t = new TemplateTag();
-                t.setId(((Number) row[0]).longValue());
-                t.setName((String) row[1]);
-                t.setColor((String) row[2]);
-                t.setSortOrder(((Number) row[3]).intValue());
-                tagMapper.insert(t);
+                long id = ((Number) row[0]).longValue();
+                String name = (String) row[1];
+                String color = (String) row[2];
+                int sortOrder = ((Number) row[3]).intValue();
+                jdbc.update(
+                        "INSERT INTO template_tag (id, name, color, sort_order) VALUES (?, ?, ?, ?) " +
+                        "ON DUPLICATE KEY UPDATE name = VALUES(name), color = VALUES(color), sort_order = VALUES(sort_order)",
+                        id, name, color, sortOrder
+                );
             }
-            log.info("[SeedTag] ✅ 已重置 template_tag 为 11 个业务标签（胸/背/臀/腿/肩/手臂/推/拉/蹲/上肢/下肢）");
+            log.info("[SeedTag] ✅ 已确保 template_tag 存在 11 个业务标签（胸/背/臀/腿/肩/手臂/推/拉/蹲/上肢/下肢），保留 template_tag_rel 关联");
         } catch (Exception e) {
-            log.error("[SeedTag] 重置 template_tag 失败，请检查表结构或数据库连接：{}", e.getMessage(), e);
+            log.error("[SeedTag] 初始化 template_tag 失败，请检查表结构或数据库连接：{}", e.getMessage(), e);
         }
     }
 }

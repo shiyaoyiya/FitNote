@@ -1,20 +1,20 @@
 <template>
   <div class="page-wrap">
-    <el-tabs v-model="activeTab" @tab-change="handleTabChange">
+    <el-tabs v-model="activeTab" @tab-change="handleTabChange" class="glass-tabs">
       <el-tab-pane label="全部" name="all" />
       <el-tab-pane label="待审核" name="0" />
       <el-tab-pane label="已通过" name="1" />
       <el-tab-pane label="已驳回" name="2" />
     </el-tabs>
 
-    <el-card shadow="never" class="table-card">
-      <el-table v-loading="loading" :data="tableData" border stripe style="width: 100%">
+    <el-card shadow="never" class="table-card glass-card glass-loading">
+      <el-table v-loading="loading" :data="tableData" border stripe style="width: 100%" class="glass-table">
         <el-table-column prop="id" label="ID" width="70" />
         <el-table-column prop="name" label="名称" min-width="160" show-overflow-tooltip />
         <el-table-column prop="userName" label="分享人" width="120" show-overflow-tooltip />
         <el-table-column label="状态" width="100">
           <template #default="{ row }">
-            <el-tag :type="statusTagType(row.status)">{{ statusText(row.status) }}</el-tag>
+            <el-tag :type="statusTagType(row.status)" class="glass-tag">{{ statusText(row.status) }}</el-tag>
           </template>
         </el-table-column>
         <el-table-column prop="actionCount" label="动作数" width="90" />
@@ -44,7 +44,7 @@
         </el-table-column>
       </el-table>
 
-      <div class="pager">
+      <div class="pager glass-pagination">
         <el-pagination
           v-model:current-page="query.page"
           v-model:page-size="query.size"
@@ -65,7 +65,7 @@
           <el-descriptions-item label="名称">{{ detail?.name }}</el-descriptions-item>
           <el-descriptions-item label="分享人">{{ detail?.userName || '-' }}</el-descriptions-item>
           <el-descriptions-item label="状态">
-            <el-tag :type="statusTagType(detail?.status)">{{ statusText(detail?.status) }}</el-tag>
+            <el-tag :type="statusTagType(detail?.status)" class="glass-tag">{{ statusText(detail?.status) }}</el-tag>
           </el-descriptions-item>
           <el-descriptions-item label="动作数 / 总组数">{{ detail?.actionCount }} / {{ detail?.totalSets }}</el-descriptions-item>
           <el-descriptions-item label="封面色">
@@ -79,6 +79,7 @@
               :color="t.color"
               style="margin-right:6px;color:#fff;border:none;"
               size="small"
+              class="glass-tag"
             >{{ t.name }}</el-tag>
             <span v-if="!detail?.tags?.length">-</span>
           </el-descriptions-item>
@@ -92,7 +93,7 @@
     </el-drawer>
 
     <!-- 驳回弹窗 -->
-    <el-dialog v-model="rejectVisible" title="驳回模板" width="500px">
+    <el-dialog v-model="rejectVisible" title="驳回模板" width="500px" class="glass-dialog">
       <el-form ref="rejectFormRef" :model="rejectForm" :rules="rejectRules" label-position="top">
         <el-form-item label="驳回原因" prop="rejectReason">
           <el-input
@@ -102,12 +103,13 @@
             maxlength="200"
             show-word-limit
             placeholder="请填写驳回原因，不少于10字"
+            class="glass-input"
           />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="rejectVisible = false">取消</el-button>
-        <el-button type="danger" :loading="submitting" @click="confirmReject">确认驳回</el-button>
+        <el-button @click="rejectVisible = false" class="glass-btn">取消</el-button>
+        <el-button type="danger" :loading="submitting" @click="confirmReject" class="glass-btn">确认驳回</el-button>
       </template>
     </el-dialog>
   </div>
@@ -262,8 +264,9 @@ onMounted(fetchList)
   font-weight: 600;
 }
 .data-pre {
-  background: #f5f7fa;
-  border: 1px solid #ebeef5;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--glass-border-soft);
+  color: var(--glass-text-secondary);
   border-radius: 4px;
   padding: 12px;
   max-height: 360px;

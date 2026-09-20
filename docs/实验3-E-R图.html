@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>FitNote 数据库 E-R 图</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<style>
+  body { background: #f5f7fa; margin: 24px; font-family: "Microsoft YaHei", sans-serif; }
+  h1 { text-align: center; color: #1f3a5f; font-size: 22px; margin-bottom: 4px; }
+  .sub { text-align: center; color: #666; font-size: 13px; margin-bottom: 16px; }
+  #er { background: #fff; border-radius: 10px; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,.08); }
+  .note { margin-top: 14px; font-size: 12px; color: #555; line-height: 1.8; background:#fff8e6; border:1px solid #f0d98c; border-radius:8px; padding:10px 14px;}
+</style>
+</head>
+<body>
+  <h1>FitNote 健身训练记录小程序 — 数据库概念结构 E-R 图</h1>
+  <div class="sub">13 张核心表 · 主键 PK / 外键 FK / 唯一键 UK · 基数标注 1:1 / 1:N / M:N（M:N 已拆中间表）</div>
+  <div id="er" class="mermaid">
+erDiagram
+    sys_user {
+        BIGINT id PK
+        VARCHAR username UK
+        VARCHAR password
+        VARCHAR nickname
+        VARCHAR avatar_url
+        VARCHAR phone UK
+        TINYINT gender
+        DATE birthday
+        TINYINT status
+        VARCHAR openid UK
+        TINYINT login_type
+        INT total_train_days
+        DECIMAL total_volume_kg
+        DATETIME last_login_time
+        DATETIME last_active_time
+        DATETIME register_time
+        TINYINT deleted
+        DATETIME create_time
+        DATETIME update_time
+    }
+    sys_admin {
+        BIGINT id PK
+        VARCHAR username UK
+        VARCHAR password
+        VARCHAR nickname
+        VARCHAR role_code
+        TINYINT status
+        DATETIME last_login_time
+        TINYINT deleted
+        DATETIME create_time
+        DATETIME update_time
+    }
+    sys_menu {
+        BIGINT id PK
+        BIGINT parent_id
+        VARCHAR name
+        VARCHAR path
+        VARCHAR component
+        VARCHAR title
+        VARCHAR icon
+        INT sort_order
+        TINYINT visible
+        VARCHAR perms
+        TINYINT type
+        TINYINT deleted
+        DATETIME create_time
+        DATETIME update_time
+    }
+    sys_admin_menu {
+        BIGINT id PK
+        BIGINT admin_id FK
+        BIGINT menu_id FK
+        DATETIME create_time
+    }
+    backup_record {
+        BIGINT id PK
+        BIGINT user_id FK
+        VARCHAR file_name
+        VARCHAR file_path
+        BIGINT file_size
+        TINYINT backup_type
+        VARCHAR version
+        INT total_days
+        INT total_templates
+        INT total_actions
+        DECIMAL total_volume_kg
+        VARCHAR remark
+        TINYINT deleted
+        DATETIME create_time
+        DATETIME update_time
+    }
+    user_notification {
+        BIGINT id PK
+        BIGINT user_id FK
+        TINYINT type
+        VARCHAR title
+        TEXT content
+        BIGINT related_id
+        VARCHAR related_label
+        TINYINT is_read
+        TINYINT deleted
+        DATETIME create_time
+        DATETIME update_time
+    }
+    shared_template {
+        BIGINT id PK
+        BIGINT user_id FK
+        BIGINT original_template_id
+        VARCHAR name
+        TEXT description
+        VARCHAR cover_color
+        INT action_count
+        INT total_sets
+        JSON template_data
+        TINYINT status
+        VARCHAR reject_reason
+        BIGINT audit_admin_id FK
+        DATETIME audit_time
+        TINYINT is_official
+        INT sort_weight
+        INT view_count
+        INT collect_count
+        INT download_count
+        TINYINT deleted
+        DATETIME create_time
+        DATETIME update_time
+    }
+    template_tag {
+        BIGINT id PK
+        VARCHAR name UK
+        VARCHAR color
+        INT sort_order
+        DATETIME create_time
+    }
+    template_tag_rel {
+        BIGINT id PK
+        BIGINT template_id FK
+        BIGINT tag_id FK
+    }
+    user_template_collect {
+        BIGINT id PK
+        BIGINT user_id FK
+        BIGINT template_id FK
+        DATETIME create_time
+    }
+    announcement {
+        BIGINT id PK
+        VARCHAR title
+        TEXT content
+        TINYINT type
+        TINYINT priority
+        TINYINT status
+        BIGINT publish_admin_id FK
+        DATETIME publish_time
+        TINYINT target_group
+        INT view_count
+        TINYINT deleted
+        DATETIME create_time
+        DATETIME update_time
+    }
+    feedback_issue {
+        BIGINT id PK
+        BIGINT user_id FK
+        TINYINT category
+        VARCHAR title
+        TEXT content
+        TEXT screenshot_urls
+        TINYINT status
+        BIGINT handler_admin_id FK
+        TEXT handle_reply
+        DATETIME handle_time
+        TINYINT deleted
+        DATETIME create_time
+        DATETIME update_time
+    }
+
+    sys_user ||--o{ backup_record : "1:N 备份"
+    sys_user ||--o{ user_notification : "1:N 通知"
+    sys_user ||--o{ feedback_issue : "1:N 反馈"
+    sys_user }o--o{ shared_template : "M:N 收藏"
+    sys_user ||--o{ user_template_collect : "1:N 收藏记录"
+    shared_template ||--o{ user_template_collect : "1:N 被收藏"
+    shared_template }o--o{ template_tag : "M:N 标签"
+    shared_template ||--o{ template_tag_rel : "1:N 标签关联"
+    template_tag ||--o{ template_tag_rel : "1:N 关联"
+    sys_admin ||--o{ shared_template : "1:N 审核"
+    sys_admin ||--o{ announcement : "1:N 发布公告"
+    sys_admin ||--o{ feedback_issue : "1:N 处理反馈"
+    sys_admin }o--o{ sys_menu : "M:N 菜单权限"
+    sys_admin ||--o{ sys_admin_menu : "1:N 菜单绑定"
+    sys_menu ||--o{ sys_admin_menu : "1:N 被绑定"
+    sys_menu ||--o{ sys_menu : "1:N 父子菜单"
+  </div>
+  <div class="note">
+    <b>说明：</b>① M:N 关系均已拆分中间表：用户-模板收藏 → <code>user_template_collect</code>；模板-标签 → <code>template_tag_rel</code>；管理员-菜单 → <code>sys_admin_menu</code>。<br>
+    ② 所有外键均采用「索引 + 逻辑外键」设计（应用层维护引用完整性，未建物理 FOREIGN KEY，便于逻辑删除与性能优化）。<br>
+    ③ 另有历史遗留表 <code>sys_role_menu</code>（角色-菜单，已弃用）与 <code>preset_pack</code>（预设模板包，已清理数据），保留兼容。
+  </div>
+  <script>
+    mermaid.initialize({ startOnLoad: true, theme: 'default', securityLevel: 'loose',
+      er: { useMaxWidth: true, fontSize: 12, boxMargin: 8 },
+      flowchart: { useMaxWidth: true }
+    });
+  </script>
+</body>
+</html>

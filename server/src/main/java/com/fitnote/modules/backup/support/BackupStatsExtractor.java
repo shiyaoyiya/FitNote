@@ -37,14 +37,27 @@ public final class BackupStatsExtractor {
         BigDecimal totalVolumeKg = BigDecimal.ZERO;
         int totalTemplates = 0;
         int totalActions = 0;
+        // 备份类型：JSON 中 backupType 为 "full"/"incremental" 字符串；映射为 1=全量 2=增量；解析失败默认 1=全量
+        int backupType = 1;
 
         if (root == null || root.isNull() || root.isMissingNode()) {
-            return result(totalDays, totalVolumeKg, totalTemplates, totalActions);
+            return result(totalDays, totalVolumeKg, totalTemplates, totalActions, backupType);
+        }
+
+        // 优先解析 backupType 字段（用户侧 utils/backup.js 写入）
+        JsonNode btNode = root.get("backupType");
+        if (btNode != null && !btNode.isNull() && btNode.isTextual()) {
+            String bt = btNode.asText().trim().toLowerCase();
+            if ("incremental".equals(bt) || "2".equals(bt)) {
+                backupType = 2;
+            } else if ("full".equals(bt) || "1".equals(bt)) {
+                backupType = 1;
+            }
         }
 
         JsonNode data = root.get("data");
         if (data == null || !data.isObject()) {
-            return result(totalDays, totalVolumeKg, totalTemplates, totalActions);
+            return result(totalDays, totalVolumeKg, totalTemplates, totalActions, backupType);
         }
 
         JsonNode templates = data.get("fitness_templates");
@@ -54,7 +67,7 @@ public final class BackupStatsExtractor {
 
         JsonNode daydata = data.get("fitness_daydata");
         if (daydata == null || !daydata.isObject()) {
-            return result(totalDays, BigDecimal.ZERO, totalTemplates, totalActions);
+            return result(totalDays, BigDecimal.ZERO, totalTemplates, totalActions, backupType);
         }
 
         Iterator<Map.Entry<String, JsonNode>> it = daydata.fields();
@@ -70,7 +83,7 @@ public final class BackupStatsExtractor {
             totalVolumeKg = totalVolumeKg.add(dayVol);
         }
 
-        return result(totalDays, totalVolumeKg, totalTemplates, totalActions);
+        return result(totalDays, totalVolumeKg, totalTemplates, totalActions, backupType);
     }
 
     // --- 内部辅助 ---
@@ -170,7 +183,11 @@ public final class BackupStatsExtractor {
     }
 
     private static BackupStatsExtractResult result(int days, BigDecimal vol, int tpl, int acts) {
+        return result(days, vol, tpl, acts, 1);
+    }
+
+    private static BackupStatsExtractResult result(int days, BigDecimal vol, int tpl, int acts, int backupType) {
         BigDecimal v = vol == null ? BigDecimal.ZERO : vol.setScale(2, RoundingMode.HALF_UP);
-        return new BackupStatsExtractResult(days, v, tpl, acts);
+        return new BackupStatsExtractResult(days, v, tpl, acts, backupType);
     }
 }

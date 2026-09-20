@@ -4,6 +4,7 @@ import { getInitialActions, getInitialActionNames } from './initActions.js'
 
 const STORAGE_KEY = 'fitness_actions'
 const DAYDATA_PREFIX = 'fitness_daydata_'
+const CATEGORY_STORAGE_KEY = 'fitness_categories'
 
 // 旧分类到新分类的映射（数据迁移用）
 const LEGACY_CATEGORY_MAP = {
@@ -21,43 +22,35 @@ const CATEGORY_KEYWORDS = {
   abs: ['卷腹', '平板支撑', '平板', '举腿', '悬垂举腿', '俄罗斯转体', '俄罗斯', '核心', '腹', '仰卧', '两头起', '龙门架卷腹'],
 }
 
-const CATEGORY_NAMES = {
-  chest: '胸部',
-  back: '背部',
-  shoulders: '肩部',
-  arms: '手臂',
-  legs: '腿部',
-  abs: '腹部',
-}
-
-const SUBCATEGORIES = {
-  chest: [
+const DEFAULT_CATEGORIES = [
+  { id: 'chest', name: '胸部', isDefault: true, order: 0, subcategories: [
     { id: 'upper_chest', name: '上胸' },
     { id: 'mid_lower_chest', name: '中下胸' },
-  ],
-  back: [
+  ]},
+  { id: 'back', name: '背部', isDefault: true, order: 1, subcategories: [
     { id: 'teres_major', name: '大圆' },
     { id: 'upper_traps', name: '上斜方' },
     { id: 'mid_lower_traps', name: '中下斜方' },
     { id: 'lats', name: '背阔' },
     { id: 'erector_spinae', name: '竖脊肌' },
-  ],
-  shoulders: [
+  ]},
+  { id: 'shoulders', name: '肩部', isDefault: true, order: 2, subcategories: [
     { id: 'front_delt', name: '前束' },
     { id: 'side_delt', name: '中束' },
     { id: 'rear_delt', name: '后束' },
-  ],
-  arms: [
+  ]},
+  { id: 'arms', name: '手臂', isDefault: true, order: 3, subcategories: [
     { id: 'biceps', name: '二头' },
     { id: 'triceps', name: '三头' },
-  ],
-  legs: [
+  ]},
+  { id: 'legs', name: '腿部', isDefault: true, order: 4, subcategories: [
     { id: 'quads', name: '股四头' },
     { id: 'hamstrings', name: '腘绳' },
     { id: 'calves', name: '小腿' },
     { id: 'glutes', name: '臀部' },
-  ],
-}
+  ]},
+  { id: 'abs', name: '腹部', isDefault: true, order: 5, subcategories: [] },
+]
 
 function generateId() {
   return Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8)
@@ -77,7 +70,8 @@ function detectCategoryByName(name) {
 }
 
 function getCategoryName(categoryId) {
-  return CATEGORY_NAMES[categoryId] || '腹部'
+  const cat = DEFAULT_CATEGORIES.find(c => c.id === categoryId)
+  return cat ? cat.name : '未分类'
 }
 
 function normalizeAction(raw) {
@@ -111,14 +105,7 @@ function normalizeAction(raw) {
 export const useActionStore = defineStore('action', {
   state: () => ({
     actions: [],
-    categories: [
-      { id: 'chest', name: '胸部' },
-      { id: 'back', name: '背部' },
-      { id: 'shoulders', name: '肩部' },
-      { id: 'arms', name: '手臂' },
-      { id: 'legs', name: '腿部' },
-      { id: 'abs', name: '腹部' },
-    ],
+    categories: [],
   }),
 
   getters: {
@@ -142,6 +129,7 @@ export const useActionStore = defineStore('action', {
 
   actions: {
     load() {
+      this.loadCategories()
       try {
         const raw = uni.getStorageSync(STORAGE_KEY) || []
         if (!Array.isArray(raw)) {
@@ -168,6 +156,131 @@ export const useActionStore = defineStore('action', {
       } catch (e) {
         console.error('保存动作数据失败:', e)
       }
+    },
+
+    loadCategories() {
+      try {
+        const stored = uni.getStorageSync(CATEGORY_STORAGE_KEY)
+        if (stored && Array.isArray(stored) && stored.length > 0) {
+          this.categories = stored
+        } else {
+          this.categories = JSON.parse(JSON.stringify(DEFAULT_CATEGORIES))
+          this.saveCategories()
+        }
+      } catch (e) {
+        console.error('加载分类数据失败:', e)
+        this.categories = JSON.parse(JSON.stringify(DEFAULT_CATEGORIES))
+      }
+    },
+
+    saveCategories() {
+      try {
+        uni.setStorageSync(CATEGORY_STORAGE_KEY, this.categories)
+      } catch (e) {
+        console.error('保存分类数据失败:', e)
+      }
+    },
+
+    addCategory(name) {
+      const trimmed = (name || '').trim()
+      if (!trimmed) return null
+      if (this.categories.some(c => c.name === trimmed)) return null
+      const id = 'custom_' + generateId()
+      this.categories.push({
+        id,
+        name: trimmed,
+        isDefault: false,
+        order: this.categories.length,
+        subcategories: [],
+      })
+      this.saveCategories()
+      return id
+    },
+
+    updateCategory(id, { name }) {
+      const cat = this.categories.find(c => c.id === id)
+      if (!cat) return
+      if (name && name.trim() && cat.name !== name.trim()) {
+        cat.name = name.trim()
+        this.saveCategories()
+        this.actions.forEach(a => {
+          if (a.categories.includes(id)) {
+            a.categoryName = cat.name
+          }
+        })
+        this.save()
+      }
+    },
+
+    removeCategory(id, migrateToId) {
+      const idx = this.categories.findIndex(c => c.id === id)
+      if (idx === -1) return
+      if (this.categories.length <= 1) return
+      this.actions.forEach(a => {
+        const catIdx = a.categories.indexOf(id)
+        if (catIdx !== -1) {
+          a.categories.splice(catIdx, 1)
+          if (migrateToId && !a.categories.includes(migrateToId)) {
+            a.categories.push(migrateToId)
+          }
+          const firstCat = a.categories[0]
+          if (firstCat) {
+            const catObj = this.categories.find(c => c.id === firstCat)
+            a.categoryName = catObj ? catObj.name : '未分类'
+          } else {
+            a.categoryName = '未分类'
+          }
+          if (a.subcategories) {
+            delete a.subcategories[id]
+          }
+        }
+      })
+      this.categories.splice(idx, 1)
+      this.saveCategories()
+      this.save()
+    },
+
+    addSubcategory(catId, name) {
+      const cat = this.categories.find(c => c.id === catId)
+      if (!cat) return null
+      const trimmed = (name || '').trim()
+      if (!trimmed) return null
+      if (cat.subcategories.some(s => s.name === trimmed)) return null
+      const id = 'sub_' + generateId()
+      cat.subcategories.push({ id, name: trimmed })
+      this.saveCategories()
+      return id
+    },
+
+    removeSubcategory(catId, subId) {
+      const cat = this.categories.find(c => c.id === catId)
+      if (!cat) return
+      const sIdx = cat.subcategories.findIndex(s => s.id === subId)
+      if (sIdx === -1) return
+      cat.subcategories.splice(sIdx, 1)
+      this.actions.forEach(a => {
+        if (a.subcategories && a.subcategories[catId]) {
+          const subIdx = a.subcategories[catId].indexOf(subId)
+          if (subIdx !== -1) {
+            a.subcategories[catId].splice(subIdx, 1)
+          }
+        }
+      })
+      this.saveCategories()
+      this.save()
+    },
+
+    updateSubcategory(catId, subId, name) {
+      const cat = this.categories.find(c => c.id === catId)
+      if (!cat) return false
+      const sub = cat.subcategories.find(s => s.id === subId)
+      if (!sub) return false
+      const trimmed = (name || '').trim()
+      if (!trimmed || sub.name === trimmed) return false
+      if (cat.subcategories.some(s => s.name === trimmed && s.id !== subId)) return false
+      sub.name = trimmed
+      this.saveCategories()
+      return true
     },
 
     addAction(name, categoryIds, bodyweightMode = false) {
@@ -321,11 +434,16 @@ export const useActionStore = defineStore('action', {
     },
 
     getSubcategories(categoryId) {
-      return SUBCATEGORIES[categoryId] || []
+      const cat = this.categories.find(c => c.id === categoryId)
+      return cat ? cat.subcategories : []
     },
 
     getAllSubcategories() {
-      return SUBCATEGORIES
+      const result = {}
+      this.categories.forEach(c => {
+        result[c.id] = c.subcategories
+      })
+      return result
     },
 
     searchActions(keyword) {

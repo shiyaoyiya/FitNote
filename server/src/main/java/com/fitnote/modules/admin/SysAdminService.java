@@ -5,11 +5,11 @@ import com.fitnote.common.BusinessException;
 import com.fitnote.common.PageVO;
 import com.fitnote.common.ResultCode;
 import com.fitnote.entity.SysAdmin;
+import com.fitnote.entity.SysAdminMenu;
 import com.fitnote.entity.SysMenu;
-import com.fitnote.entity.SysRoleMenu;
 import com.fitnote.mapper.SysAdminMapper;
+import com.fitnote.mapper.SysAdminMenuMapper;
 import com.fitnote.mapper.SysMenuMapper;
-import com.fitnote.mapper.SysRoleMenuMapper;
 import com.fitnote.modules.admin.dto.AdminSaveDTO;
 import com.fitnote.modules.admin.dto.ResetPwdDTO;
 import com.fitnote.modules.admin.dto.SaveRoleMenuDTO;
@@ -31,7 +31,7 @@ public class SysAdminService {
 
     private final SysAdminMapper adminMapper;
     private final SysMenuMapper menuMapper;
-    private final SysRoleMenuMapper roleMenuMapper;
+    private final SysAdminMenuMapper adminMenuMapper;
     private final PasswordEncoder passwordEncoder;
 
     /* --------------------- Admin 列表/CRUD --------------------- */
@@ -115,10 +115,11 @@ public class SysAdminService {
         if ("admin".equals(a.getUsername())) {
             throw new BusinessException(ResultCode.BAD_REQUEST, "默认超级管理员不可删除");
         }
+        adminMenuMapper.delete(new LambdaQueryWrapper<SysAdminMenu>().eq(SysAdminMenu::getAdminId, id));
         adminMapper.deleteById(id);
     }
 
-    /* --------------------- 角色菜单 --------------------- */
+    /* --------------------- 账号菜单配置 --------------------- */
 
     public List<MenuTreeVO> menuTree() {
         List<SysMenu> all = menuMapper.selectList(new LambdaQueryWrapper<SysMenu>()
@@ -126,24 +127,23 @@ public class SysAdminService {
         return buildTree(all);
     }
 
-    public List<Long> getRoleMenuIds(String roleCode) {
-        List<SysRoleMenu> list = roleMenuMapper.selectList(new LambdaQueryWrapper<SysRoleMenu>()
-                .eq(SysRoleMenu::getRoleCode, roleCode));
-        return list.stream().map(SysRoleMenu::getMenuId).collect(Collectors.toList());
+    public List<Long> getAdminMenuIds(Long adminId) {
+        List<SysAdminMenu> list = adminMenuMapper.selectList(new LambdaQueryWrapper<SysAdminMenu>()
+                .eq(SysAdminMenu::getAdminId, adminId));
+        return list.stream().map(SysAdminMenu::getMenuId).collect(Collectors.toList());
     }
 
     @Transactional(rollbackFor = Exception.class)
-    public void saveRoleMenu(SaveRoleMenuDTO dto) {
-        String rc = dto.getRoleCode();
-        roleMenuMapper.delete(new LambdaQueryWrapper<SysRoleMenu>().eq(SysRoleMenu::getRoleCode, rc));
+    public void saveAdminMenu(SaveRoleMenuDTO dto) {
+        Long adminId = dto.getAdminId();
+        adminMenuMapper.delete(new LambdaQueryWrapper<SysAdminMenu>().eq(SysAdminMenu::getAdminId, adminId));
         if (dto.getMenuIds() != null && !dto.getMenuIds().isEmpty()) {
-            // 去重保持顺序
             List<Long> ids = new ArrayList<>(new LinkedHashSet<>(dto.getMenuIds()));
             for (Long mid : ids) {
-                SysRoleMenu rm = new SysRoleMenu();
-                rm.setRoleCode(rc);
-                rm.setMenuId(mid);
-                roleMenuMapper.insert(rm);
+                SysAdminMenu am = new SysAdminMenu();
+                am.setAdminId(adminId);
+                am.setMenuId(mid);
+                adminMenuMapper.insert(am);
             }
         }
     }

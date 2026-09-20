@@ -106,7 +106,7 @@
     emit('close')
     const chosen = JSON.stringify(props.chosenActions || [])
     uni.navigateTo({
-      url: '/pages/manageActions/manageActions?chosenActions=' + encodeURIComponent(chosen)
+      url: '/subpkg-secondary/manageActions/manageActions?chosenActions=' + encodeURIComponent(chosen)
     })
   }
 </script>

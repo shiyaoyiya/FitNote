@@ -1,16 +1,16 @@
 <template>
   <div class="page-wrap">
-    <el-page-header @back="$router.back()" :title="$route.meta.title || '反馈列表'" />
-    <el-divider />
+    <el-page-header @back="$router.back()" :title="$route.meta.title || '反馈列表'" class="glass-page-header" />
+    <el-divider class="glass-divider" />
 
     <!-- 搜索栏 -->
-    <el-card shadow="never" class="search-bar">
+    <el-card shadow="never" class="search-bar glass-card">
       <el-form :inline="true" :model="query" @submit.prevent>
         <el-form-item label="关键词">
-          <el-input v-model="query.keyword" placeholder="标题模糊" clearable style="width:200px" @keyup.enter="handleSearch" />
+          <el-input v-model="query.keyword" placeholder="标题模糊" clearable style="width:200px" class="glass-input" @keyup.enter="handleSearch" />
         </el-form-item>
         <el-form-item label="状态">
-          <el-select v-model="query.status" clearable placeholder="全部" style="width:120px">
+          <el-select v-model="query.status" clearable placeholder="全部" style="width:120px" class="glass-select">
             <el-option label="待处理" :value="0" />
             <el-option label="处理中" :value="1" />
             <el-option label="已解决" :value="2" />
@@ -18,7 +18,7 @@
           </el-select>
         </el-form-item>
         <el-form-item label="分类">
-          <el-select v-model="query.category" clearable placeholder="全部" style="width:120px">
+          <el-select v-model="query.category" clearable placeholder="全部" style="width:120px" class="glass-select">
             <el-option label="产品建议" :value="1" />
             <el-option label="Bug 反馈" :value="2" />
             <el-option label="数据问题" :value="3" />
@@ -26,15 +26,15 @@
           </el-select>
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" :icon="Search" @click="handleSearch">搜索</el-button>
-          <el-button :icon="Refresh" @click="handleReset">重置</el-button>
+          <el-button type="primary" :icon="Search" class="glass-btn-primary" @click="handleSearch">搜索</el-button>
+          <el-button :icon="Refresh" class="glass-btn" @click="handleReset">重置</el-button>
         </el-form-item>
       </el-form>
     </el-card>
 
     <!-- 表格 -->
-    <el-card shadow="never" class="table-card">
-      <el-table v-loading="loading" :data="tableData" border stripe style="width:100%">
+    <el-card shadow="never" class="table-card glass-card glass-loading">
+      <el-table v-loading="loading" :data="tableData" border stripe style="width:100%" class="glass-table">
         <el-table-column prop="id" label="ID" width="70" />
         <el-table-column label="用户" width="140">
           <template #default="{ row }">
@@ -50,10 +50,10 @@
         <el-table-column prop="title" label="标题" min-width="220" show-overflow-tooltip />
         <el-table-column label="状态" width="100">
           <template #default="{ row }">
-            <el-tag v-if="row.status === 0" type="warning">待处理</el-tag>
-            <el-tag v-else-if="row.status === 1" type="primary">处理中</el-tag>
-            <el-tag v-else-if="row.status === 2" type="success">已解决</el-tag>
-            <el-tag v-else type="danger">已拒绝</el-tag>
+            <el-tag v-if="row.status === 0" type="warning" class="glass-tag">待处理</el-tag>
+            <el-tag v-else-if="row.status === 1" type="primary" class="glass-tag">处理中</el-tag>
+            <el-tag v-else-if="row.status === 2" type="success" class="glass-tag">已解决</el-tag>
+            <el-tag v-else type="danger" class="glass-tag">已拒绝</el-tag>
           </template>
         </el-table-column>
         <el-table-column prop="handlerAdminName" label="处理人" width="110" show-overflow-tooltip />
@@ -67,7 +67,7 @@
         </el-table-column>
       </el-table>
 
-      <div class="pager">
+      <div class="pager glass-pagination">
         <el-pagination
           v-model:current-page="query.page"
           v-model:page-size="query.size"
@@ -82,7 +82,7 @@
     </el-card>
 
     <!-- 详情抽屉 + 右侧处理面板 -->
-    <el-drawer v-model="drawerVisible" title="反馈详情" size="55%">
+    <el-drawer v-model="drawerVisible" title="反馈详情" size="55%" class="glass-dialog">
       <div v-loading="detailLoading" class="detail-box">
         <template v-if="detail">
           <el-descriptions :column="2" border size="small">
@@ -95,10 +95,10 @@
               </div>
             </el-descriptions-item>
             <el-descriptions-item label="状态">
-              <el-tag v-if="detail.status === 0" type="warning">待处理</el-tag>
-              <el-tag v-else-if="detail.status === 1" type="primary">处理中</el-tag>
-              <el-tag v-else-if="detail.status === 2" type="success">已解决</el-tag>
-              <el-tag v-else type="danger">已拒绝</el-tag>
+              <el-tag v-if="detail.status === 0" type="warning" class="glass-tag">待处理</el-tag>
+              <el-tag v-else-if="detail.status === 1" type="primary" class="glass-tag">处理中</el-tag>
+              <el-tag v-else-if="detail.status === 2" type="success" class="glass-tag">已解决</el-tag>
+              <el-tag v-else type="danger" class="glass-tag">已拒绝</el-tag>
             </el-descriptions-item>
             <el-descriptions-item label="创建时间" :span="2">{{ formatTime(detail.createTime) }}</el-descriptions-item>
             <el-descriptions-item label="标题" :span="2">{{ detail.title }}</el-descriptions-item>
@@ -145,10 +145,11 @@
                   type="textarea"
                   :rows="4"
                   placeholder="请输入回复（用户可在小程序端查看）"
+                  class="glass-input"
                 />
               </el-form-item>
               <el-form-item>
-                <el-button type="primary" v-hasPerm="'feedback:handle'" @click="submitHandle">提交处理</el-button>
+                <el-button type="primary" v-hasPerm="'feedback:handle'" class="glass-btn-primary" @click="submitHandle">提交处理</el-button>
               </el-form-item>
             </el-form>
           </div>

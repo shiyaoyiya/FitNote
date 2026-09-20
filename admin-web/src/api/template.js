@@ -29,3 +29,9 @@ export function setOfficial(id, data) {
 export function deleteSquareTemplate(id) {
   return request({ url: `/admin/template/square/${id}`, method: 'delete' })
 }
+
+// 强制下架已上架模板（与审核接口区分；仅作用于 status=1 已上架模板）
+// data: { rejectReason: string } —— 不少于 10 字
+export function offlineSquareTemplate(id, data) {
+  return request({ url: `/admin/template/square/${id}/offline`, method: 'put', data })
+}

@@ -41,6 +41,27 @@ export const useUserStore = defineStore('user', {
       permStore.reset()
       router.push('/login')
     },
+    // 快捷切换账号：重置状态和路由但不跳转 /login，直接登录新账号
+    async switchAccount({ username, password }) {
+      this.token = ''
+      this.admin = null
+      this.menus = []
+      this.permsSetArr = []
+      resetRouter()
+      const permStore = usePermissionStore()
+      permStore.reset()
+      const { token, expiresIn, admin, menus } = await adminLogin({ username, password })
+      this.token = token
+      this.admin = admin
+      this.menus = menus
+      this.permsSetArr = menus.filter(m => m.perms).map(m => m.perms)
+      permStore.generateRoutes(menus)
+      const firstMenu = menus.find(m => m.type === 2 && m.path === '/dashboard')
+        || menus.find(m => m.type === 2 && m.path)
+      const target = firstMenu?.path || '/403'
+      router.push(target)
+      return { token, expiresIn, admin, menus }
+    },
     // 刷新页面恢复动态路由（token 持久化回来后，重新 addRoute）
     // 返回 true 表示本次调用执行了 addRoute（调用方需要 next({...to, replace:true}) 重新触发路由匹配）
     restoreRoutesIfNeeded() {

@@ -22,4 +22,6 @@ public class BackupStatsExtractResult {
     private int totalTemplates = 0;
     /** fitness_actions 数量 */
     private int totalActions = 0;
+    /** 备份类型：1=全量 2=增量（与 backup_record.backup_type 一致；解析失败默认 1） */
+    private int backupType = 1;
 }

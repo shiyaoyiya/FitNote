@@ -11,7 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import javax.validation.Valid;
+import jakarta.validation.Valid;
 import java.util.List;
 
 /** 管理员体系（ADMIN 专属）*/
@@ -62,7 +62,7 @@ public class AdminUserMgmtController {
         return Result.ok();
     }
 
-    /* ---------- 角色菜单 ---------- */
+    /* ---------- 账号菜单配置 ---------- */
 
     @GetMapping("/menu/tree")
     @PreAuthorize("hasPermission('', 'admin:rolemenu')")
@@ -70,16 +70,16 @@ public class AdminUserMgmtController {
         return Result.ok(sysAdminService.menuTree());
     }
 
-    @GetMapping("/role/menu-ids")
+    @GetMapping("/account/menu-ids")
     @PreAuthorize("hasPermission('', 'admin:rolemenu')")
-    public Result<List<Long>> roleMenuIds(@RequestParam String roleCode) {
-        return Result.ok(sysAdminService.getRoleMenuIds(roleCode));
+    public Result<List<Long>> accountMenuIds(@RequestParam Long adminId) {
+        return Result.ok(sysAdminService.getAdminMenuIds(adminId));
     }
 
-    @PostMapping("/role/menu")
+    @PostMapping("/account/menu")
     @PreAuthorize("hasPermission('', 'admin:rolemenu')")
-    public Result<?> saveRoleMenu(@Valid @RequestBody SaveRoleMenuDTO dto) {
-        sysAdminService.saveRoleMenu(dto);
+    public Result<?> saveAccountMenu(@Valid @RequestBody SaveRoleMenuDTO dto) {
+        sysAdminService.saveAdminMenu(dto);
         return Result.ok();
     }
 }

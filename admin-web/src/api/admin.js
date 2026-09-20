@@ -25,19 +25,19 @@ export function deleteAdmin(id) {
   return request({ url: `/admin/${id}`, method: 'delete' })
 }
 
-// ---------- 角色菜单 ----------
+// ---------- 账号菜单配置 ----------
 
 // 菜单树（完整3级含按钮）
 export function getMenuTree() {
   return request({ url: '/admin/menu/tree', method: 'get' })
 }
 
-// 某角色已选菜单ID列表
-export function getRoleMenuIds(roleCode) {
-  return request({ url: '/admin/role/menu-ids', method: 'get', params: { roleCode } })
+// 某账号已选菜单ID列表
+export function getAdminMenuIds(adminId) {
+  return request({ url: '/admin/account/menu-ids', method: 'get', params: { adminId } })
 }
 
-// 保存角色菜单绑定
-export function saveRoleMenu(data) {
-  return request({ url: '/admin/role/menu', method: 'post', data })
+// 保存账号菜单绑定
+export function saveAdminMenu(data) {
+  return request({ url: '/admin/account/menu', method: 'post', data })
 }

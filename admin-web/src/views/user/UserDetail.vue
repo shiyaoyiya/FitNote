@@ -1,14 +1,15 @@
 <template>
   <div class="page-wrap">
-    <el-page-header @back="$router.push('/user')" :content="'用户画像详情 · ' + (user?.nickname || user?.username || '#' + userId)">
+    <el-page-header @back="$router.push('/user')" :content="'用户画像详情 · ' + (user?.nickname || user?.username || '#' + userId)" class="glass-page-header">
       <template #extra>
-        <el-tag v-if="user?.status === 1" type="success">状态：正常</el-tag>
-        <el-tag v-else type="danger">状态：封禁</el-tag>
+        <el-tag v-if="user?.status === 1" type="success" class="glass-tag">状态：正常</el-tag>
+        <el-tag v-else type="danger" class="glass-tag">状态：封禁</el-tag>
         <el-button
           v-if="user?.status === 1"
           type="danger" size="small" style="margin-left:12px"
           v-hasPerm="'user:status'"
           :loading="loading.ban"
+          class="glass-btn-danger"
           @click="handleBan"
         >封禁用户</el-button>
         <el-button
@@ -16,34 +17,35 @@
           type="success" size="small" style="margin-left:12px"
           v-hasPerm="'user:status'"
           :loading="loading.ban"
+          class="glass-btn-success"
           @click="handleUnban"
         >解封用户</el-button>
       </template>
     </el-page-header>
-    <el-divider />
+    <el-divider class="glass-divider" />
 
     <!-- 基础资料 -->
-    <el-card shadow="never" v-loading="loading.profile" class="mb-16">
+    <el-card shadow="never" v-loading="loading.profile" class="mb-16 glass-card glass-loading">
       <div class="profile-header">
         <el-avatar :size="76" :src="resolveAvatar(user?.avatarUrl)">{{ (user?.nickname || user?.username || '?').slice(0,1) }}</el-avatar>
         <div class="profile-info">
           <h2 class="nickname-row">
             {{ user?.nickname || user?.username || '用户 #' + userId }}
-            <el-tag v-if="user?.id" type="info" style="margin-left:10px">ID {{user.id}}</el-tag>
+            <el-tag v-if="user?.id" type="info" style="margin-left:10px" class="glass-tag">ID {{user.id}}</el-tag>
           </h2>
           <div class="meta-row">
             <span class="meta-label">用户名</span>
             <span>{{user?.username || '-'}}</span>
-            <span class="meta-divider">·</span>
-            <span class="meta-label">性别</span>
-            <span>{{genderText}}</span>
-            <span class="meta-divider">·</span>
-            <span class="meta-label">生日</span>
-            <span>{{user?.birthday || '-'}}</span>
           </div>
           <div class="meta-row">
-            <span class="meta-label">手机</span>
-            <span>{{user?.phone || '-'}}</span>
+            <span class="meta-label">登录方式</span>
+            <el-tag v-if="user?.loginType === 1" type="primary" size="small" class="glass-tag">账号密码</el-tag>
+            <el-tag v-else-if="user?.loginType === 2" type="success" size="small" class="glass-tag">微信登录</el-tag>
+            <span v-else>-</span>
+          </div>
+          <div v-if="user?.openid" class="meta-row">
+            <span class="meta-label">OpenID</span>
+            <span style="font-family: monospace; font-size: 12px;">{{user.openid}}</span>
           </div>
           <div class="meta-row">
             <span class="meta-label">注册</span>
@@ -62,7 +64,7 @@
     <!-- 4 大核心指标 + 备份徽章 -->
     <el-row :gutter="16" class="stat-row">
       <el-col :span="6" v-for="c in coreStatCards" :key="c.key">
-        <el-card shadow="hover" class="stat-card-wrap">
+        <el-card shadow="hover" class="stat-card-wrap glass-card">
           <div class="stat-card">
             <div class="stat-icon" :style="{ background: c.bg }">{{ c.icon }}</div>
             <div class="stat-main">
@@ -77,20 +79,20 @@
     <!-- 2 张图 -->
     <el-row :gutter="16">
       <el-col :span="12">
-        <el-card shadow="never" v-loading="loading.stats">
+        <el-card shadow="never" v-loading="loading.stats" class="glass-card glass-loading">
           <template #header>
             <div class="card-title">📈 近 30 天累计容量趋势（kg）
-              <el-tag size="small" effect="plain" style="margin-left:8px">快照：用户上传备份当日累计值</el-tag>
+              <el-tag size="small" effect="plain" style="margin-left:8px" class="glass-tag">快照：用户上传备份当日累计值</el-tag>
             </div>
           </template>
           <div ref="lineRef" class="chart-box"></div>
         </el-card>
       </el-col>
       <el-col :span="12">
-        <el-card shadow="never" v-loading="loading.stats">
+        <el-card shadow="never" v-loading="loading.stats" class="glass-card glass-loading">
           <template #header>
             <div class="card-title">🥧 部位容量分布（最新备份解析）
-              <el-tag size="small" effect="plain" style="margin-left:8px">关键字匹配：胸/背/腿/肩/臂/核心</el-tag>
+              <el-tag size="small" effect="plain" style="margin-left:8px" class="glass-tag">关键字匹配：胸/背/腿/肩/臂/核心</el-tag>
             </div>
           </template>
           <div ref="pieRef" class="chart-box"></div>
@@ -99,11 +101,11 @@
     </el-row>
 
     <!-- 3 Tab 分页列表 -->
-    <el-card shadow="never" style="margin-top:16px">
-      <el-tabs v-model="activeTab" type="card" @tab-change="handleTabChange">
+    <el-card shadow="never" style="margin-top:16px" class="glass-card">
+      <el-tabs v-model="activeTab" type="card" @tab-change="handleTabChange" class="glass-tabs">
         <!-- 备份历史 -->
         <el-tab-pane label="备份历史" name="backup">
-          <el-table :data="backupList" v-loading="loading.backup" border stripe>
+          <el-table :data="backupList" v-loading="loading.backup" border stripe class="glass-table">
             <el-table-column prop="id" label="ID" width="70" />
             <el-table-column prop="fileName" label="文件名" min-width="220" show-overflow-tooltip />
             <el-table-column label="备份时间" width="160">
@@ -132,6 +134,7 @@
               :page-sizes="[5, 10, 20, 50]"
               layout="total, sizes, prev, pager, next"
               background
+              class="glass-pagination"
               @size-change="fetchBackups"
               @current-change="fetchBackups"
             />
@@ -140,7 +143,7 @@
 
         <!-- 分享模板 -->
         <el-tab-pane label="分享模板" name="share">
-          <el-table :data="shareList" v-loading="loading.share" border stripe>
+          <el-table :data="shareList" v-loading="loading.share" border stripe class="glass-table">
             <el-table-column prop="id" label="ID" width="70" />
             <el-table-column label="封面" width="80" align="center">
               <template #default="{row}">
@@ -149,7 +152,7 @@
             </el-table-column>
             <el-table-column prop="name" label="模板名" min-width="200" show-overflow-tooltip />
             <el-table-column label="状态" width="90" align="center">
-              <template #default="{row}"><el-tag size="small" :type="shareStatusTag(row.status)">{{shareStatusText(row.status)}}</el-tag></template>
+              <template #default="{row}"><el-tag size="small" :type="shareStatusTag(row.status)" class="glass-tag">{{shareStatusText(row.status)}}</el-tag></template>
             </el-table-column>
             <el-table-column prop="actionCount" label="动作" width="70" align="right" />
             <el-table-column prop="totalSets" label="组数" width="70" align="right" />
@@ -169,6 +172,7 @@
               :page-sizes="[5, 10, 20]"
               layout="total, sizes, prev, pager, next"
               background
+              class="glass-pagination"
               @size-change="fetchShare"
               @current-change="fetchShare"
             />
@@ -177,14 +181,14 @@
 
         <!-- 反馈历史 -->
         <el-tab-pane label="反馈历史" name="feedback">
-          <el-table :data="feedbackList" v-loading="loading.feedback" border stripe>
+          <el-table :data="feedbackList" v-loading="loading.feedback" border stripe class="glass-table">
             <el-table-column prop="id" label="ID" width="70" />
             <el-table-column prop="title" label="标题" min-width="220" show-overflow-tooltip />
             <el-table-column label="分类" width="90" align="center">
               <template #default="{row}">{{ fbCategoryText(row.category) }}</template>
             </el-table-column>
             <el-table-column label="状态" width="90" align="center">
-              <template #default="{row}"><el-tag size="small" :type="fbStatusTag(row.status)">{{ fbStatusText(row.status) }}</el-tag></template>
+              <template #default="{row}"><el-tag size="small" :type="fbStatusTag(row.status)" class="glass-tag">{{ fbStatusText(row.status) }}</el-tag></template>
             </el-table-column>
             <el-table-column label="提交时间" width="160">
               <template #default="{row}">{{ formatTime(row.createTime) }}</template>
@@ -198,6 +202,7 @@
               :page-sizes="[5, 10, 20]"
               layout="total, sizes, prev, pager, next"
               background
+              class="glass-pagination"
               @size-change="fetchFeedback"
               @current-change="fetchFeedback"
             />
@@ -233,17 +238,11 @@ const loading = reactive({
   ban: false,
 })
 
-const genderText = computed(() => {
-  const g = user.value?.gender
-  if (g === 1) return '男'
-  if (g === 2) return '女'
-  return '未知'
-})
-
 function resolveAvatar(url) {
   if (!url) return ''
   if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) return url
   if (url.startsWith('/static') || url.startsWith('@/static')) return url
+  if (url.startsWith('/avatars')) return url
   const base = import.meta.env.VITE_API_BASE || '/api'
   if (url.startsWith('/')) return base + url
   return base + '/' + url
@@ -384,11 +383,11 @@ function renderLineChart() {
     },
     grid: { left: 60, right: 20, top: 24, bottom: 50 },
     xAxis: { type: 'category', boundaryGap: false, data: xData,
-      axisLabel: { rotate: 40, fontSize: 11, color: '#909399' },
-      axisLine: { lineStyle: { color: '#E4E7ED' } } },
-    yAxis: { type: 'value', name: 'kg', nameTextStyle: { color: '#909399', fontSize: 11 },
-      axisLabel: { color: '#909399', formatter: v => Number(v).toLocaleString() },
-      splitLine: { lineStyle: { color: '#F2F6FC' } } },
+      axisLabel: { rotate: 40, fontSize: 11, color: '#6b7a94' },
+      axisLine: { lineStyle: { color: 'rgba(255,255,255,0.1)' } } },
+    yAxis: { type: 'value', name: 'kg', nameTextStyle: { color: '#6b7a94', fontSize: 11 },
+      axisLabel: { color: '#6b7a94', formatter: v => Number(v).toLocaleString() },
+      splitLine: { lineStyle: { color: 'rgba(255,255,255,0.06)' } } },
     series,
   })
 }
@@ -411,8 +410,8 @@ function renderPieChart() {
     radius: ['40%', '68%'],
     center: ['50%', '46%'],
     avoidLabelOverlap: true,
-    itemStyle: { borderRadius: 6, borderColor: '#fff', borderWidth: 2 },
-    label: { show: true, formatter: '{b}\n{d}%', fontSize: 12 },
+    itemStyle: { borderRadius: 6, borderColor: 'rgba(20,28,48,0.8)', borderWidth: 2 },
+    label: { show: true, formatter: '{b}\n{d}%', fontSize: 12, color: '#a8b5cc' },
     data: data.length ? data : [{ name: '暂无数据', value: 0 }],
   }].filter(Boolean)
 
@@ -593,17 +592,17 @@ watch(() => route.query.id, async () => {
 <style scoped>
 .page-wrap { padding: 16px; }
 .mb-16 { margin-bottom: 16px; }
-.card-title { font-size: 15px; font-weight: 600; }
+.card-title { font-size: 15px; font-weight: 600; color: var(--glass-text); }
 
 .profile-header { display: flex; gap: 24px; align-items: flex-start; padding: 8px; }
 .profile-info { flex: 1; min-width: 0; }
 .nickname-row {
-  font-size: 22px; font-weight: 700; color: #303133;
+  font-size: 22px; font-weight: 700; color: var(--glass-text);
   margin: 0 0 12px 0; display: flex; align-items: center;
 }
-.meta-row { color: #606266; margin: 6px 0; font-size: 14px; }
-.meta-label { color: #909399; margin-right: 6px; }
-.meta-divider { margin: 0 10px; color: #DCDFE6; }
+.meta-row { color: var(--glass-text-secondary); margin: 6px 0; font-size: 14px; }
+.meta-label { color: var(--glass-text-muted); margin-right: 6px; }
+.meta-divider { margin: 0 10px; color: var(--glass-border-light); }
 
 /* 核心指标卡 */
 .stat-row { margin: 16px 0; }
@@ -617,11 +616,11 @@ watch(() => route.query.id, async () => {
   color: #fff; font-size: 22px;
   display: flex; align-items: center; justify-content: center;
   flex-shrink: 0;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
 }
 .stat-main { flex: 1; min-width: 0; }
-.stat-value { font-size: 24px; font-weight: 700; color: #303133; line-height: 1.2; }
-.stat-label { font-size: 12px; color: #909399; margin-top: 4px; }
+.stat-value { font-size: 24px; font-weight: 700; color: var(--glass-text); line-height: 1.2; }
+.stat-label { font-size: 12px; color: var(--glass-text-muted); margin-top: 4px; }
 
 .chart-box { height: 360px; width: 100%; }
 
@@ -637,6 +636,6 @@ watch(() => route.query.id, async () => {
   color: #fff; font-size: 18px;
 }
 
-.link-btn { color: #379bff; text-decoration: none; font-size: 13px; }
+.link-btn { color: var(--accent-primary-light); text-decoration: none; font-size: 13px; }
 .link-btn:hover { text-decoration: underline; }
 </style>

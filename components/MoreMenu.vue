@@ -13,16 +13,15 @@
         <text class="profile-arrow">›</text>
       </view>
 
-      <!-- 分组：个人与数据 -->
+      <!-- 分组：通知与反馈（微信小程序环境隐藏，走纯云函数无后端审核/通知能力） -->
+      <!-- #ifndef MP-WEIXIN -->
       <view class="menu-section">
         <text class="section-title">通知与反馈</text>
-        <!-- #ifndef MP-WEIXIN -->
         <view class="menu-item" @click="$emit('go-announce'); close()">
           <text class="menu-icon">📢</text>
           <text class="menu-text">系统公告</text>
           <text class="menu-sub">最新动态</text>
         </view>
-        <!-- #endif -->
         <view class="menu-item" @click="$emit('go-notification'); close()">
           <text class="menu-icon">🔔</text>
           <text class="menu-text">我的通知</text>
@@ -31,14 +30,13 @@
           </text>
           <text class="menu-sub" v-else>驳回 / 下架</text>
         </view>
-        <!-- #ifndef MP-WEIXIN -->
         <view class="menu-item" @click="$emit('feedback'); close()">
           <text class="menu-icon">💬</text>
           <text class="menu-text">反馈与建议</text>
           <text class="menu-sub">提交 Issue</text>
         </view>
-        <!-- #endif -->
       </view>
+      <!-- #endif -->
 
       <!-- 分组：显示与偏好 -->
       <view class="menu-section">
@@ -73,7 +71,9 @@
     me
   } from '@/utils/serverBackup.js'
   import {
-    resolveAvatarUrl
+    resolveAvatarUrl,
+    getCachedAvatarUrl,
+    getCachedAvatarImage
   } from '@/utils/serverRequest.js'
   export default {
     name: 'MoreMenu',
@@ -105,13 +105,24 @@
     ],
     computed: {
       userAvatar() {
+        this.visible
         try {
-          return resolveAvatarUrl((me() && me().avatarUrl) || '')
+          // 未登录时不显示头像
+          const user = me()
+          if (!user) return ''
+          const url = user.avatarUrl || ''
+          if (!url) return ''
+          // 先尝试获取缓存的图片base64
+          const cachedImage = getCachedAvatarImage(url)
+          if (cachedImage) return cachedImage
+          // 否则返回URL
+          return resolveAvatarUrl(url)
         } catch (e) {
           return ''
         }
       },
       nickname() {
+        this.visible
         try {
           const u = me()
           return u && (u.nickname || u.username || '') || ''
@@ -120,6 +131,7 @@
         }
       },
       userId() {
+        this.visible
         try {
           const u = me()
           return u && (u.id || u.openid || '') || ''

@@ -41,6 +41,83 @@ function getStorageInfo() {
   }
 }
 
+// 过滤 daydata 中的心率相关数据，减小备份文件大小
+function filterDayData(dayData) {
+  if (!dayData || typeof dayData !== 'object') return dayData
+  
+  // 需要排除的心率相关字段
+  const heartRateFields = [
+    'hrSamples',           // 心率采样数据
+    'hrSamplesWithTs',     // 带时间戳的心率采样数据
+    'heartRateAvg',        // 平均心率
+    'heartRatePeak',       // 峰值心率
+    'caloriesTotal',       // 卡路里消耗
+    'durationSec',         // 训练时长
+    'analysisResult',      // 训练分析结果
+    'sessionStartTs',      // 训练开始时间戳
+    'sessionEndTs',        // 训练结束时间戳
+    'cardiovascularLoad',  // 心血管负荷
+    'estimatedRestingHr',  // 估算的静息心率
+  ]
+  
+  const filtered = {}
+  
+  for (const [key, value] of Object.entries(dayData)) {
+    // 跳过心率相关字段
+    if (heartRateFields.includes(key)) continue
+    
+    // 处理 templates 中的数据
+    if (key === 'templates' && value && typeof value === 'object') {
+      const filteredTemplates = {}
+      for (const [tplName, tplData] of Object.entries(value)) {
+        if (!tplData || typeof tplData !== 'object') {
+          filteredTemplates[tplName] = tplData
+          continue
+        }
+        
+        const filteredTpl = {}
+        for (const [tplKey, tplValue] of Object.entries(tplData)) {
+          // 跳过模板中的心率相关字段
+          if (heartRateFields.includes(tplKey)) continue
+          filteredTpl[tplKey] = tplValue
+        }
+        filteredTemplates[tplName] = filteredTpl
+      }
+      filtered[key] = filteredTemplates
+      continue
+    }
+    
+    // 处理 entries 中的数据（移除 timestamp 字段）
+    if (key === 'entries' && value && typeof value === 'object') {
+      const filteredEntries = {}
+      for (const [actionName, actionEntries] of Object.entries(value)) {
+        if (!Array.isArray(actionEntries)) {
+          filteredEntries[actionName] = actionEntries
+          continue
+        }
+        
+        filteredEntries[actionName] = actionEntries.map(entry => {
+          if (!entry || typeof entry !== 'object') return entry
+          
+          const filteredEntry = {}
+          for (const [entryKey, entryValue] of Object.entries(entry)) {
+            // 跳过时间戳字段
+            if (entryKey === 'timestamp') continue
+            filteredEntry[entryKey] = entryValue
+          }
+          return filteredEntry
+        })
+      }
+      filtered[key] = filteredEntries
+      continue
+    }
+    
+    filtered[key] = value
+  }
+  
+  return filtered
+}
+
 
 
 function collectFullData() {
@@ -61,11 +138,14 @@ function collectFullData() {
     if (key.startsWith(DAYDATA_PREFIX)) {
       const date = key.slice(DAYDATA_PREFIX.length)
       const value = uni.getStorageSync(key) || {}
-      daydata[date] = value
+      // 过滤心率相关数据，减小备份文件大小
+      daydata[date] = filterDayData(value)
     }
   })
+  // 排除有氧模板
+  const filteredTemplates = Array.isArray(templates) ? templates.filter(t => !t.isAerobic) : []
   return {
-    fitness_templates: Array.isArray(templates) ? templates : [],
+    fitness_templates: filteredTemplates,
     fitness_actions: Array.isArray(actions) ? actions : [],
     fitness_annivs: Array.isArray(annivs) ? annivs : [],
     fitness_daydata: daydata
@@ -97,7 +177,9 @@ async function collectFullDataWithProgress(dayDataCacheStore, onProgress) {
   for (let i = 0; i < totalDates; i += batchSize) {
     const batch = dates.slice(i, i + batchSize)
     batch.forEach(date => {
-      daydata[date] = uni.getStorageSync(DAYDATA_PREFIX + date) || {}
+      const value = uni.getStorageSync(DAYDATA_PREFIX + date) || {}
+      // 过滤心率相关数据，减小备份文件大小
+      daydata[date] = filterDayData(value)
     })
     
     // 进度回调（数据收集占总进度的70%）
@@ -108,15 +190,15 @@ async function collectFullDataWithProgress(dayDataCacheStore, onProgress) {
     await new Promise(r => setTimeout(r, 0))
   }
   
+  // 排除有氧模板
+  const filteredTemplates = Array.isArray(templates) ? templates.filter(t => !t.isAerobic) : []
   return {
-    fitness_templates: Array.isArray(templates) ? templates : [],
+    fitness_templates: filteredTemplates,
     fitness_actions: Array.isArray(actions) ? actions : [],
     fitness_annivs: Array.isArray(annivs) ? annivs : [],
     fitness_daydata: daydata
   }
 }
-
-
 
 function parseDateString(dateStr) {
   if (!dateStr) return null
@@ -155,11 +237,14 @@ function collectIncrementalData(lastBackupTime) {
     if (!d) return
     if (d.getTime() > last.getTime()) {
       const value = uni.getStorageSync(key) || {}
-      daydata[dateStr] = value
+      // 过滤心率相关数据，减小备份文件大小
+      daydata[dateStr] = filterDayData(value)
     }
   })
+  // 排除有氧模板
+  const filteredTemplates = Array.isArray(templates) ? templates.filter(t => !t.isAerobic) : []
   return {
-    fitness_templates: Array.isArray(templates) ? templates : [],
+    fitness_templates: filteredTemplates,
     fitness_actions: Array.isArray(actions) ? actions : [],
     fitness_annivs: Array.isArray(annivs) ? annivs : [],
     fitness_daydata: daydata
@@ -1167,7 +1252,8 @@ export async function restoreData(filePath, overwrite) {
 
     // 3. 执行恢复
     const data = payload.data || {}
-    const tplArr = Array.isArray(data.fitness_templates) ? data.fitness_templates : []
+    // 排除有氧模板
+    const tplArr = Array.isArray(data.fitness_templates) ? data.fitness_templates.filter(t => !t.isAerobic) : []
     const actArr = migrateActionsIfNeeded(data.fitness_actions)
     const annivArr = Array.isArray(data.fitness_annivs) ? data.fitness_annivs : []
     const daydata = data.fitness_daydata || {}

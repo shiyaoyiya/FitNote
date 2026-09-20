@@ -2,12 +2,12 @@ package com.fitnote.modules.admin.dto;
 
 import lombok.Data;
 
-import javax.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import java.util.List;
 
 @Data
 public class SaveRoleMenuDTO {
-    @NotBlank(message = "角色编码必填")
-    private String roleCode;
+    @NotNull(message = "管理员ID必填")
+    private Long adminId;
     private List<Long> menuIds;
 }
