@@ -16,6 +16,14 @@ node_modules/
 
 # 构建产物
 unpackage/
+server/target/
+
+# 运行时数据
+data/backups/
+
+# 临时文件
+~$*.docx
+~$*.xlsx
 
 # python
 *.pyc
