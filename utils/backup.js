@@ -170,24 +170,28 @@ async function collectFullDataWithProgress(dayDataCacheStore, onProgress) {
     annivs = []
   }
   
-  // 使用 dayDataCacheStore 的索引，避免遍历所有键
-  dayDataCacheStore.loadIndex()
-  const dates = dayDataCacheStore.getDates()
+  // 全量备份必须遍历 storage 全部 daydata 键，不能依赖 store 内存索引：
+  // 索引可能因历史数据写入路径差异 / preloadDateRange 未持久化 / 旧版本未建索引等原因缺失，
+  // 导致备份文件只包含部分日期。这里直接扫描 storage，与 collectFullData() 语义保持一致，保证全量。
+  const info = getStorageInfo()
+  const allKeys = Array.isArray(info.keys) ? info.keys : []
+  const dayKeys = allKeys.filter(key => key.startsWith(DAYDATA_PREFIX))
   
   const daydata = {}
   const batchSize = 50 // 每批处理50个日期
-  const totalDates = dates.length
+  const totalDates = dayKeys.length
   
   for (let i = 0; i < totalDates; i += batchSize) {
-    const batch = dates.slice(i, i + batchSize)
-    batch.forEach(date => {
-      const value = uni.getStorageSync(DAYDATA_PREFIX + date) || {}
+    const batch = dayKeys.slice(i, i + batchSize)
+    batch.forEach(key => {
+      const date = key.slice(DAYDATA_PREFIX.length)
+      const value = uni.getStorageSync(key) || {}
       // 过滤心率相关数据，减小备份文件大小
       daydata[date] = filterDayData(value)
     })
     
-    // 进度回调（数据收集占总进度的70%）
-    const progress = Math.round((i + batchSize) / totalDates * 70)
+    // 进度回调（数据收集占总进度的70%，封顶70%避免单批过大时越界）
+    const progress = Math.min(Math.round((i + batchSize) / Math.max(totalDates, 1) * 70), 70)
     if (onProgress) onProgress(progress)
     
     // 让出主线程，避免阻塞UI

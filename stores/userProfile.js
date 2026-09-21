@@ -1,6 +1,7 @@
 // stores/userProfile.js
-// 身体数据档案：性别/出生年月/身高/体重，热量估算与心率档位基础
+// 身体数据档案：性别/出生年月/身高/体重/活动系数，热量估算与心率档位基础
 // age 由出生年月实时倒推（getter），避免固定年龄不随时间更新
+// TDEE 通过 Mifflin-St Jeor 公式计算基础代谢 × 活动系数
 
 const STORAGE_KEY = 'fitness_user_profile'
 
@@ -14,6 +15,35 @@ function computeAge(birthDate) {
   let age = now.getFullYear() - by
   if (now.getMonth() + 1 < bm) age--
   return age > 0 ? age : 0
+}
+
+// 当前日期 YYYY-MM-DD
+function todayStr() {
+  const d = new Date()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${d.getFullYear()}-${m}-${day}`
+}
+
+// Mifflin-St Jeor 基础代谢（kcal/天）
+// 男：10×体重(kg) + 6.25×身高(cm) − 5×年龄 + 5
+// 女：10×体重(kg) + 6.25×身高(cm) − 5×年龄 − 161
+export function calcBMR(gender, weight, height, age) {
+  const w = Number(weight)
+  const h = Number(height)
+  const a = Number(age)
+  if (!w || !h || !a || !['male', 'female'].includes(gender)) return null
+  const base = 10 * w + 6.25 * h - 5 * a
+  return Math.round((gender === 'male' ? base + 5 : base - 161) * 10) / 10
+}
+
+// TDEE = BMR × 活动系数
+export function calcTDEE(gender, weight, height, age, activityFactor) {
+  const bmr = calcBMR(gender, weight, height, age)
+  if (bmr === null) return null
+  const f = Number(activityFactor)
+  if (!f || f < 1 || f > 2.5) return null
+  return Math.round(bmr * f)
 }
 
 function clampValidate(patch) {
@@ -35,7 +65,23 @@ function clampValidate(patch) {
   if (p.weight !== undefined && (p.weight < 20 || p.weight > 300)) {
     throw new Error('weight 必须在 20-300 之间')
   }
+  if (p.activityFactor !== undefined && (p.activityFactor < 1 || p.activityFactor > 2.5)) {
+    throw new Error('活动系数必须在 1.0-2.5 之间')
+  }
   return p
+}
+
+// 记录体重历史：同一天只保留最新一条（x 轴以天为单位，避免同天多点）
+function pushWeightHistory(history, weight) {
+  const date = todayStr()
+  const next = Array.isArray(history) ? history.slice() : []
+  const last = next[next.length - 1]
+  if (last && last.date === date) {
+    next[next.length - 1] = { date, weight }
+  } else {
+    next.push({ date, weight })
+  }
+  return next
 }
 
 // 纯逻辑工厂（无 uni 依赖，便于单测）
@@ -45,6 +91,7 @@ export function useUserInMemoryProfileStore(initial = {}) {
     birthDate: null,
     height: null,
     weight: null,
+    activityFactor: null,
     weightHistory: [],
     updatedAt: null,
     ...initial,
@@ -52,10 +99,16 @@ export function useUserInMemoryProfileStore(initial = {}) {
   return {
     get state() { return state },
     get age() { return computeAge(state.birthDate) },
+    getBMR() {
+      return calcBMR(state.gender, state.weight, state.height, this.age)
+    },
+    getTDEE() {
+      return calcTDEE(state.gender, state.weight, state.height, this.age, state.activityFactor || 1.2)
+    },
     updateProfile(patch) {
       const valid = clampValidate(patch)
       if (valid.weight !== undefined && valid.weight !== state.weight) {
-        state.weightHistory = [...state.weightHistory, { date: new Date().toISOString().slice(0, 10), weight: valid.weight }]
+        state.weightHistory = pushWeightHistory(state.weightHistory, valid.weight)
       }
       state = { ...state, ...valid, updatedAt: new Date().toISOString() }
     },
@@ -81,12 +134,17 @@ export const useUserProfileStore = defineStore('userProfile', {
     birthDate: null,
     height: null,
     weight: null,
+    activityFactor: null,
     weightHistory: [],
     updatedAt: null,
   }),
   getters: {
     // age 由出生年月实时倒推
     age: (state) => computeAge(state.birthDate),
+    // Mifflin-St Jeor 基础代谢（kcal/天）
+    bmr: (state) => calcBMR(state.gender, state.weight, state.height, computeAge(state.birthDate)),
+    // TDEE = BMR × 活动系数（未设置活动系数时按 1.2 保守估算）
+    tdee: (state) => calcTDEE(state.gender, state.weight, state.height, computeAge(state.birthDate), state.activityFactor || 1.2),
   },
   actions: {
     load() {
@@ -99,6 +157,7 @@ export const useUserProfileStore = defineStore('userProfile', {
           if (data.birthDate !== undefined) this.birthDate = data.birthDate
           if (data.height !== undefined) this.height = data.height
           if (data.weight !== undefined) this.weight = data.weight
+          if (data.activityFactor !== undefined) this.activityFactor = data.activityFactor
           if (data.weightHistory !== undefined) this.weightHistory = data.weightHistory
           if (data.updatedAt !== undefined) this.updatedAt = data.updatedAt
         }
@@ -107,7 +166,7 @@ export const useUserProfileStore = defineStore('userProfile', {
     updateProfile(patch) {
       const valid = clampValidate(patch)
       if (valid.weight !== undefined && valid.weight !== this.weight) {
-        this.weightHistory = [...this.weightHistory, { date: new Date().toISOString().slice(0, 10), weight: valid.weight }]
+        this.weightHistory = pushWeightHistory(this.weightHistory, valid.weight)
       }
       Object.assign(this, valid, { updatedAt: new Date().toISOString() })
       this.save()
@@ -115,7 +174,8 @@ export const useUserProfileStore = defineStore('userProfile', {
     save() {
       uni.setStorageSync(STORAGE_KEY, JSON.stringify({
         gender: this.gender, birthDate: this.birthDate, height: this.height,
-        weight: this.weight, weightHistory: this.weightHistory, updatedAt: this.updatedAt,
+        weight: this.weight, activityFactor: this.activityFactor,
+        weightHistory: this.weightHistory, updatedAt: this.updatedAt,
       }))
     },
     getMaxHeartRate() {

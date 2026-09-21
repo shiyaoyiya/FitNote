@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <view class="container" :class="{ dark: daySettingsStore.isDarkMode, light: !daySettingsStore.isDarkMode, 'liquid-glass': daySettingsStore.liquidGlassEnabled }">
     <!-- 顶部：年月 -->
     <view class="calendar-container" @touchstart="onTouchStart" @touchend="onTouchEnd">
@@ -30,10 +30,18 @@
     </view>
 
 
-    <!-- 今日训练快捷按钮 -->
-    <view v-if="todayTrainBtnVisible" class="today-train-btn" @click="onTodayBtnClick" @longpress="onTodayBtnLongPress">
-      <text class="today-train-text">{{ todayBtnText }}</text>
+    <!-- 今日训练快捷按钮 + 身体数据圆形入口 -->
+    <view v-if="todayTrainBtnVisible" class="today-row">
+      <view class="today-train-btn" @click="onTodayBtnClick" @longpress="onTodayBtnLongPress">
+        <text class="today-train-text">{{ todayBtnText }}</text>
+      </view>
+      <view class="body-data-btn" @click="onBodyDataBtnClick">
+        <image class="body-data-icon" src="/static/body.svg" mode="aspectFit" />
+      </view>
     </view>
+
+    <!-- 快捷体重记录弹窗 -->
+    <QuickWeightPopup :visible="showQuickWeight" @close="showQuickWeight = false" @open-full="onQuickWeightOpenFull" />
 
     <!-- 分化计划设置弹窗 -->
     <TrainingSplitPlan v-if="showSplitPlan" :templates="templates" :mode="splitPlan.mode"
@@ -80,6 +88,7 @@
       :train-btn-visible="todayTrainBtnVisible"
       @close="showMoreMenu = false"
       @go-profile="onGoProfileFromMenu"
+      @go-body-data="onGoBodyDataFromMenu"
       @read-guide="showGuidePanel = true"
       @add-anniv="$refs.annivSection.openAdd()"
       @toggle-train-btn="onToggleTrainBtn"
@@ -117,6 +126,9 @@
     useDaySettingsStore
   } from '@/stores/daySettings.js'
   import {
+    useUserProfileStore
+  } from '@/stores/userProfile.js'
+  import {
     analyzeTrainingPattern
   } from '@/utils/trainingAnalyzer.js'
   import {
@@ -129,6 +141,7 @@
   import AnniversarySection from '@/components/AnniversarySection.vue'
   import MoreMenu from '@/components/MoreMenu.vue'
   import GuidePopup from '@/components/GuidePopup.vue'
+  import QuickWeightPopup from '@/components/QuickWeightPopup.vue'
   import { me } from '@/utils/serverBackup.js'
   import { PRESET_COLORS } from '@/utils/color.js'
   import { formatDate } from '@/utils/theme.js'
@@ -142,6 +155,7 @@
       AnniversarySection,
       MoreMenu,
       GuidePopup,
+      QuickWeightPopup,
     },
     data() {
       return {
@@ -161,6 +175,8 @@
 
         showMoreMenu: false,
         showGuidePanel: false,
+        showQuickWeight: false,
+        userProfileStore: null,
 
         showAerobicDetail: false,
         aerobicDetail: {
@@ -293,6 +309,8 @@
       this.daySettingsStore = useDaySettingsStore()
       this.daySettingsStore.load()
       this.todayTrainBtnVisible = this.daySettingsStore.todayTrainBtnVisible
+      this.userProfileStore = useUserProfileStore()
+      this.userProfileStore.load()
     },
     onShow() {
       this.authVersion++
@@ -1083,6 +1101,33 @@
         })
         this.showSplitPlan = true
       },
+
+      /* ========== 身体数据入口 ========== */
+      goToBodyData() {
+        uni.navigateTo({
+          url: '/subpkg-secondary/bodyData/bodyData'
+        })
+      },
+      onBodyDataBtnClick() {
+        if (!this.userProfileStore) {
+          this.userProfileStore = useUserProfileStore()
+        }
+        this.userProfileStore.load()
+        // 未填写身体数据：直接进入完整页面；已填写：弹出快捷体重记录
+        if (this.userProfileStore.isComplete()) {
+          this.showQuickWeight = true
+        } else {
+          this.goToBodyData()
+        }
+      },
+      onQuickWeightOpenFull() {
+        this.showQuickWeight = false
+        setTimeout(() => this.goToBodyData(), 150)
+      },
+      onGoBodyDataFromMenu() {
+        this.showMoreMenu = false
+        setTimeout(() => this.goToBodyData(), 200)
+      },
       onCloseSplitPlan() {
         this.showSplitPlan = false
       },
@@ -1227,9 +1272,19 @@
     background-color: var(--bg-primary);
   }
 
-  .today-train-btn {
+  .today-row {
+    display: flex;
+    align-items: stretch;
+    gap: 10px;
     margin: 10px 16px 6px;
-    padding: 14px 20px;
+  }
+
+  .today-train-btn {
+    flex: 1;
+    min-width: 0;
+    height: 48px;
+    padding: 0 20px;
+    box-sizing: border-box;
     border-radius: 14px;
     background: linear-gradient(135deg, #379bff, #2d82d6);
     box-shadow: 0 4px 16px rgba(55, 155, 255, 0.3);
@@ -1241,6 +1296,52 @@
   .today-train-btn:active {
     transform: scale(0.97);
     opacity: 0.9;
+  }
+
+  /* 身体数据圆形入口：直径与 today-train-btn 高度一致 */
+  .body-data-btn {
+    width: 48px;
+    height: 48px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  }
+
+  .body-data-btn:active {
+    transform: scale(0.94);
+    opacity: 0.85;
+  }
+
+  .body-data-icon {
+    width: 24px;
+    height: 24px;
+    display: inline-block;
+    background-color: var(--text-primary);
+    -webkit-mask-image: url('/static/body.svg');
+    mask-image: url('/static/body.svg');
+    -webkit-mask-size: contain;
+    mask-size: contain;
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    -webkit-mask-position: center;
+    mask-position: center;
+  }
+
+  /* 液态玻璃模式下圆形入口适配 */
+  .container.liquid-glass .body-data-btn {
+    background: var(--glass-bg) !important;
+    -webkit-backdrop-filter: blur(20px) saturate(160%);
+    backdrop-filter: blur(20px) saturate(160%);
+    border-color: var(--glass-border);
+    box-shadow:
+      0 0 0 0.5px var(--glass-edge) inset,
+      0 1px 3px var(--glass-shadow-inner) inset,
+      0 4px 12px var(--glass-shadow-outer) !important;
   }
 
   .today-train-text {

@@ -203,7 +203,16 @@ export function cloudLogout() {
 // ---------- 内部 ----------
 
 function _saveLocalSession(user) {
-  uni.setStorageSync(TOKEN_KEYS.USER, user)
+  // 合并写入而非整体覆盖：云数据库记录缺失的字段（如 avatarUrl 为 undefined/null）
+  // 不覆盖本地已保存的头像等数据，避免头像“自动消失”
+  const cur = uni.getStorageSync(TOKEN_KEYS.USER) || {}
+  const cleanUser = {}
+  Object.keys(user || {}).forEach((k) => {
+    const v = user[k]
+    if (v !== undefined && v !== null) cleanUser[k] = v
+  })
+  const next = Object.assign({}, cur, cleanUser)
+  uni.setStorageSync(TOKEN_KEYS.USER, next)
   // 占位 token，让 isLoggedIn() 返回 true
   uni.setStorageSync(TOKEN_KEYS.ACCESS, `cloud_${user.openid}`)
   uni.setStorageSync(TOKEN_KEYS.REFRESH, `cloud_${user.openid}`)

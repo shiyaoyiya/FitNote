@@ -8,6 +8,7 @@ export const useDaySettingsStore = defineStore('daySettings', {
     autoStartTimer: false,
     autoFillData: false,
     bubbleFill: true,
+    weightFirst: false,
     heavyTimerDuration: 180,
     lightTimerDuration: 120,
     todayTrainBtnVisible: true,
@@ -48,6 +49,7 @@ export const useDaySettingsStore = defineStore('daySettings', {
           this.autoStartTimer = !!data.autoStartTimer
           this.autoFillData = !!data.autoFillData
           if (data.hasOwnProperty('bubbleFill')) this.bubbleFill = !!data.bubbleFill
+          if (data.hasOwnProperty('weightFirst')) this.weightFirst = !!data.weightFirst
           if (data.heavyTimerDuration) this.heavyTimerDuration = data.heavyTimerDuration
           if (data.lightTimerDuration) this.lightTimerDuration = data.lightTimerDuration
           if (data.hasOwnProperty('todayTrainBtnVisible')) this.todayTrainBtnVisible = !!data.todayTrainBtnVisible
@@ -85,6 +87,7 @@ export const useDaySettingsStore = defineStore('daySettings', {
         autoStartTimer: this.autoStartTimer,
         autoFillData: this.autoFillData,
         bubbleFill: this.bubbleFill,
+        weightFirst: this.weightFirst,
         heavyTimerDuration: this.heavyTimerDuration,
         lightTimerDuration: this.lightTimerDuration,
         todayTrainBtnVisible: this.todayTrainBtnVisible,
@@ -106,6 +109,11 @@ export const useDaySettingsStore = defineStore('daySettings', {
 
     toggleBubbleFill() {
       this.bubbleFill = !this.bubbleFill
+      this.save()
+    },
+
+    toggleWeightFirst() {
+      this.weightFirst = !this.weightFirst
       this.save()
     },
 

@@ -4,7 +4,7 @@
       <!-- 头像区 -->
       <view class="avatar-area" @click="handleChooseAvatar">
         <view class="avatar-circle">
-          <image v-if="form.avatarUrl" class="avatar-img" :src="resolveAvatarUrl(form.avatarUrl)" mode="aspectFill" />
+          <image v-if="avatarDisplaySrc" class="avatar-img" :src="avatarDisplaySrc" mode="aspectFill" @error="onAvatarError" />
           <view v-else class="avatar-placeholder"></view>
         </view>
         <view class="avatar-edit-badge">
@@ -65,7 +65,9 @@
       <view class="info-row" style="margin-top: 20px;" @click="goToServerConfig">
         <text class="info-label">服务器设置</text>
         <view class="info-value-row">
-          <text class="info-value">配置连接地址</text>
+          <text class="info-value" :class="{ 'status-online': serverStatus === 'online', 'status-offline': serverStatus === 'offline' }">
+            {{ serverStatus === 'online' ? '已连接' : serverStatus === 'offline' ? '未连接' : '检测中…' }}
+          </text>
           <text class="edit-arrow">›</text>
         </view>
       </view>
@@ -84,13 +86,22 @@
     isLoggedIn,
     me,
     logoutUser,
+    isLocalServerAvailable,
   } from '@/utils/serverBackup.js'
   import {
     getMyProfile,
     updateMyProfile,
     uploadMyAvatar,
   } from '@/subpkg-secondary/utils/serverCommunity.js'
-  import { updateCurrentUser, resolveAvatarUrl } from '@/utils/serverRequest.js'
+  import {
+    updateCurrentUser,
+    resolveAvatarUrl,
+    cacheProfile,
+    getCachedProfile,
+    getCachedAvatarImage,
+    downloadAndCacheAvatar,
+  } from '@/utils/serverRequest.js'
+  import { rememberCurrentBaseUrl } from '@/utils/serverConfig.js'
   // #ifdef MP-WEIXIN
   import {
     isCloudLoginMode,
@@ -120,9 +131,26 @@
         editingNickname: false,
         statusType: '',
         statusMessage: '',
+        // 服务器连接状态：'checking' | 'online' | 'offline'
+        serverStatus: 'checking',
+        // 头像加载失败后的本地 base64 兜底
+        avatarFallback: '',
+        avatarFallbackTried: false,
       }
     },
     computed: {
+      /**
+       * 头像显示地址：优先本地 base64 缓存（离线/服务器地址变化时仍能显示），
+       * 其次原 URL；加载失败时通过 onAvatarError 下载并缓存 base64 兜底。
+       */
+      avatarDisplaySrc() {
+        const url = this.form.avatarUrl
+        if (!url) return ''
+        if (this.avatarFallback) return this.avatarFallback
+        const cached = getCachedAvatarImage(url)
+        if (cached) return cached
+        return resolveAvatarUrl(url)
+      },
       /**
        * 训练统计：直接从本地 storage 中 fitness_daydata_* 键聚合
        * 无论云开发还是本地服务器模式，训练数据都存在本地，
@@ -158,6 +186,13 @@
         }
       },
     },
+    watch: {
+      // 头像 URL 变化时重置错误兜底状态
+      'form.avatarUrl'() {
+        this.avatarFallback = ''
+        this.avatarFallbackTried = false
+      },
+    },
     onLoad() {
       this.daySettingsStore.load()
       useUserProfileStore().load()
@@ -169,6 +204,7 @@
         })
         return
       }
+      this.checkServerStatus()
       this.loadProfile()
     },
     methods: {
@@ -179,45 +215,105 @@
         // #endif
         return false
       },
-      async loadProfile() {
+      /** 自动检测服务器连接状态（本地服务器模式），并记住成功地址 */
+      async checkServerStatus() {
+        if (this._isCloudMode()) {
+          this.serverStatus = 'online'
+          return
+        }
         try {
-          let vo = null
-          if (this._isCloudMode()) {
-            // 云开发模式：从本地登录态直接读取（避免调用不可达的服务器接口）
-            const local = isLoggedIn() ? me() : null
-            vo = local ? {
-              id: local.id,
-              username: local.openid ? ('wx_' + (local.openid).slice(-6)) : (local.username || '云用户'),
-              nickname: local.nickname || '',
-              avatarUrl: local.avatarUrl || '',
-              birthday: local.birthday || '',
-              totalTrainDays: local.totalTrainDays ?? 0,
-              totalVolumeKg: local.totalVolumeKg ?? 0,
-              registerTime: local.createTime || local.registerTime || '',
-            } : null
-          } else {
-            vo = await getMyProfile()
-          }
+          const ok = await isLocalServerAvailable(true)
+          this.serverStatus = ok ? 'online' : 'offline'
+          if (ok) rememberCurrentBaseUrl()
+        } catch (e) {
+          this.serverStatus = 'offline'
+        }
+      },
+      async loadProfile() {
+        // ===== 云开发模式：本地登录态即权威数据 =====
+        if (this._isCloudMode()) {
+          const local = isLoggedIn() ? me() : null
+          const vo = local ? {
+            id: local.id,
+            username: local.openid ? ('wx_' + (local.openid).slice(-6)) : (local.username || '云用户'),
+            nickname: local.nickname || '',
+            avatarUrl: local.avatarUrl || '',
+            birthday: local.birthday || '',
+            totalTrainDays: local.totalTrainDays ?? 0,
+            totalVolumeKg: local.totalVolumeKg ?? 0,
+            registerTime: local.createTime || local.registerTime || '',
+          } : null
+          this.profile = vo || {}
+          this.form.nickname = vo?.nickname || vo?.username || ''
+          this.form.avatarUrl = vo?.avatarUrl || ''
+          this.form.birthday = vo?.birthday || ''
+          return
+        }
+
+        // ===== 本地服务器模式 =====
+        // 1) 先用本地登录态/缓存立即渲染，避免网络慢/不可达时整页显示“-”
+        const localUser = isLoggedIn() ? me() : null
+        const cached = getCachedProfile()
+        const initialVo = cached || (localUser ? {
+          id: localUser.id,
+          username: localUser.username || '',
+          nickname: localUser.nickname || '',
+          avatarUrl: localUser.avatarUrl || '',
+          birthday: localUser.birthday || '',
+          totalTrainDays: localUser.totalTrainDays ?? 0,
+          totalVolumeKg: localUser.totalVolumeKg ?? 0,
+          registerTime: localUser.createTime || localUser.registerTime || '',
+        } : null)
+        if (initialVo) {
+          this.profile = initialVo
+          this.form.nickname = initialVo.nickname || initialVo.username || ''
+          this.form.avatarUrl = initialVo.avatarUrl || ''
+          this.form.birthday = initialVo.birthday || ''
+        }
+
+        // 2) 异步拉取服务器最新资料
+        try {
+          const vo = await getMyProfile()
           this.profile = vo || {}
           // 昵称独立于账号（username），可自由修改
           this.form.nickname = vo?.nickname || vo?.username || ''
           this.form.avatarUrl = vo?.avatarUrl || ''
           this.form.birthday = vo?.birthday || ''
-          // 同步本地登录态（拉取后端最新昵称/头像等）
+          // 写离线缓存（24h），服务器不可达时也能显示账号信息
+          cacheProfile(vo)
+          // 预下载头像为 base64 缓存，供离线/服务器地址变化时兜底显示
+          if (vo?.avatarUrl) {
+            downloadAndCacheAvatar(vo.avatarUrl).catch(() => {})
+          }
+          // 同步本地登录态（后端最新昵称/头像等；缺失字段不会覆盖本地）
           const next = updateCurrentUser({
             username: vo?.username,
             nickname: vo?.nickname || vo?.username,
             avatarUrl: vo?.avatarUrl,
             totalTrainDays: vo?.totalTrainDays,
             totalVolumeKg: vo?.totalVolumeKg,
+            registerTime: vo?.registerTime,
           })
           uni.$emit && uni.$emit('cloud-user-changed', next)
         } catch (e) {
-          this.setStatus('error', e.message || '加载失败')
+          // 服务器不可达：保留第 1 步渲染的本地数据，仅提示数据来源
+          this.setStatus('error', '服务器未连接，当前显示本地缓存数据')
         }
       },
       resolveAvatarUrl(url) {
         return resolveAvatarUrl(url)
+      },
+      /** 头像图片加载失败：尝试用本地 base64 缓存兜底显示 */
+      onAvatarError() {
+        if (this.avatarFallbackTried) return
+        this.avatarFallbackTried = true
+        const url = this.form.avatarUrl
+        if (!url) return
+        downloadAndCacheAvatar(url)
+          .then((base64) => {
+            if (base64 && base64 !== url) this.avatarFallback = base64
+          })
+          .catch(() => {})
       },
       onBirthdayChange(e) {
         this.form.birthday = e.detail.value || ''
@@ -276,6 +372,8 @@
           this.form.avatarUrl = url
           // 同步本地登录态
           const next = updateCurrentUser({ avatarUrl: url })
+          // 异步下载图片并缓存为 base64，供离线/服务器地址变化时兜底显示
+          downloadAndCacheAvatar(url).catch(() => {})
           // 通知其他页面（如首页）刷新头像
           uni.$emit && uni.$emit('cloud-user-changed', next)
           uni.$emit && uni.$emit('avatar-changed', url)
@@ -325,6 +423,8 @@
             totalVolumeKg: vo?.totalVolumeKg,
           })
           uni.$emit && uni.$emit('cloud-user-changed', next)
+          // 同步更新离线缓存
+          cacheProfile(this.profile)
           this.setStatus('success', '保存成功')
           uni.showToast({ title: '已保存', icon: 'success' })
         } catch (e) {
@@ -372,6 +472,8 @@
             nickname: vo?.nickname || vo?.username,
           })
           uni.$emit && uni.$emit('cloud-user-changed', next)
+          // 同步更新离线缓存
+          cacheProfile(this.profile)
           uni.showToast({ title: '昵称已更新', icon: 'success' })
         } catch (e) {
           uni.showToast({ title: e.message || '更新失败', icon: 'none' })
@@ -563,6 +665,14 @@
     font-size: 18px;
     color: var(--text-muted);
     line-height: 1;
+  }
+  .status-online {
+    color: var(--success, #2ed573);
+    font-weight: 600;
+  }
+  .status-offline {
+    color: var(--danger, #ff5a5d);
+    font-weight: 600;
   }
   .edit-row {
     background: var(--bg-tertiary);

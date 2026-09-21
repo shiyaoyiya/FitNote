@@ -631,8 +631,6 @@ html .container.liquid-glass.light .custom-color-card {
 .container.liquid-glass .section-header-right {
   background: var(--glass-bg) !important;
   border: none !important;
-  -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
-  backdrop-filter: blur(12px) saturate(140%) !important;
 }
 
 /* 分类标签 */
@@ -651,10 +649,6 @@ html .container.liquid-glass.light .custom-color-card {
 
 .container.liquid-glass .category-tab.active {
   border-color: var(--focus-glow) !important;
-  box-shadow:
-    0 0 0 1px var(--focus-glow),
-    inset 0 0 0 1px var(--focus-glow),
-    inset 0 1px 3px var(--glass-shadow-inner) !important;
   background: var(--glass-bg) !important;
 }
 
@@ -672,8 +666,6 @@ html .container.liquid-glass.light .custom-color-card {
   background: var(--glass-bg) !important;
   border: none !important;
   border-radius: 20rpx !important;
-  -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
-  backdrop-filter: blur(12px) saturate(140%) !important;
 }
 
 /* 新建动作弹窗 */

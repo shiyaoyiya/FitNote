@@ -15,6 +15,7 @@
       <ActionCard v-for="(actName, idx) in chosenActions" :key="actName" :action-name="actName"
         :entries="actionEntries[idx]" :diff="diffs[idx]" :latest-record="actionLatestRecordCache[actName] || null"
         :bubble-fill="settingsStore.bubbleFill" :is-bodyweight="isBodyweightAction(actName)"
+        :weight-first="settingsStore.weightFirst"
         @confirm-entry="(data) => onConfirmEntry(idx, data)"
         @update-entry="(data) => onUpdateEntry(idx, data)" @delete-action="handleDeleteAction(idx)"
         @delete-entry="(eIdx) => handleDeleteEntry(idx, eIdx)" @edit-entry="(eIdx) => openEditEntryPopup(idx, eIdx)"
@@ -49,6 +50,7 @@
       :settings="settingsState" @close="showSettings = false" @add-action="onAddAction" @save-sort="onSaveSort"
       @toggle-auto-timer="settingsStore.toggleAutoStartTimer()" @toggle-auto-fill="settingsStore.toggleAutoFillData()"
       @toggle-bubble-fill="settingsStore.toggleBubbleFill()"
+      @toggle-weight-first="settingsStore.toggleWeightFirst()"
       @toggle-hr-button="settingsStore.toggleHrButton()"
       @set-heavy-timer="(v) => settingsStore.setHeavyTimerDuration(v)"
       @set-light-timer="(v) => settingsStore.setLightTimerDuration(v)" @export-data="onExportData"
@@ -196,6 +198,7 @@
           autoStartTimer: this.settingsStore.autoStartTimer,
           autoFillData: this.settingsStore.autoFillData,
           bubbleFill: this.settingsStore.bubbleFill,
+          weightFirst: this.settingsStore.weightFirst,
           hrButtonVisible: this.settingsStore.hrButtonVisible,
           heavyTimerDuration: this.settingsStore.heavyTimerDuration,
           lightTimerDuration: this.settingsStore.lightTimerDuration,

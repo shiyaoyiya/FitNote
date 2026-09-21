@@ -70,4 +70,40 @@ describe('用户档案 Store', () => {
     expect(p.age).toBe(ageOf('1996-05'))
     expect(p.gender).toBe('male')
   })
+
+  it('活动系数越界校验', () => {
+    const s = useUserInMemoryProfileStore()
+    expect(() => s.updateProfile({ activityFactor: 0.5 })).toThrow(/活动系数/)
+    expect(() => s.updateProfile({ activityFactor: 3 })).toThrow(/活动系数/)
+  })
+
+  it('getBMR/getTDEE 按 Mifflin-St Jeor 计算（男性 +5）', () => {
+    const s = useUserInMemoryProfileStore()
+    s.updateProfile({ gender: 'male', birthDate: '1990-01', height: 175, weight: 70 })
+    const age = s.age
+    const bmr = 10 * 70 + 6.25 * 175 - 5 * age + 5
+    expect(s.getBMR()).toBe(Math.round(bmr * 10) / 10)
+    // 未设置活动系数时按 1.2 保守估算
+    expect(s.getTDEE()).toBe(Math.round(Math.round(bmr * 10) / 10 * 1.2))
+    // 设置活动系数后按系数计算
+    s.updateProfile({ activityFactor: 1.55 })
+    expect(s.getTDEE()).toBe(Math.round(Math.round(bmr * 10) / 10 * 1.55))
+  })
+
+  it('getBMR 女性用 -161', () => {
+    const s = useUserInMemoryProfileStore()
+    s.updateProfile({ gender: 'female', birthDate: '1990-01', height: 165, weight: 55 })
+    const age = s.age
+    const bmr = 10 * 55 + 6.25 * 165 - 5 * age - 161
+    expect(s.getBMR()).toBe(Math.round(bmr * 10) / 10)
+  })
+
+  it('同一天多次记录体重只保留最新一条', () => {
+    const s = useUserInMemoryProfileStore()
+    s.updateProfile({ weight: 70 })
+    s.updateProfile({ weight: 70.5 })
+    s.updateProfile({ weight: 71 })
+    expect(s.state.weightHistory).toHaveLength(1)
+    expect(s.state.weightHistory[0].weight).toBe(71)
+  })
 })

@@ -80,8 +80,8 @@
               size="small"
               link
               :icon="Download"
-              @click="handleExportTemplate(row)"
-            >导出模板</el-button>
+              @click="handleDownloadBackup(row)"
+            >下载备份</el-button>
             <el-button
               v-hasPerm="'backup:delete'"
               type="danger"
@@ -335,8 +335,8 @@
           </div>
           <div class="footer-actions">
             <el-button @click="previewDialogVisible = false">关闭</el-button>
-            <el-button type="primary" :icon="Download" @click="handleExportFromPreview">
-              导出模板 JSON
+            <el-button type="primary" :icon="Download" @click="handleDownloadFromPreview">
+              下载完整备份
             </el-button>
           </div>
         </div>
@@ -349,7 +349,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Search, Refresh, View, Download, Calendar, ArrowDown } from '@element-plus/icons-vue'
-import { getBackupList, deleteBackup, getBackupPreview, exportBackupTemplates } from '@/api/backup'
+import { getBackupList, deleteBackup, getBackupPreview, downloadBackup } from '@/api/backup'
 
 const loading = ref(false)
 const tableData = ref([])
@@ -474,42 +474,22 @@ async function handlePreviewBackup(row) {
   }
 }
 
-/** 导出模板（从列表按钮） */
-async function handleExportTemplate(row) {
-  if (row.totalTemplates === 0) {
-    ElMessage.warning('该备份中没有模板数据')
-    return
-  }
+/** 下载完整备份（从列表按钮） */
+async function handleDownloadBackup(row) {
+  if (!row?.id) return
   try {
-    const blob = await exportBackupTemplates(row.id)
-    downloadBlob(blob, getExportFileName(row.fileName))
-    ElMessage.success('模板导出成功')
+    const blob = await downloadBackup(row.id)
+    downloadBlob(blob, row.fileName || `backup_${row.id}.json`)
+    ElMessage.success('备份下载成功')
   } catch (e) {
     // 错误已在 request 拦截器中提示
   }
 }
 
-/** 从预览弹窗导出 */
-async function handleExportFromPreview() {
+/** 从预览弹窗下载完整备份 */
+async function handleDownloadFromPreview() {
   if (!currentBackupRow.value) return
-  if (!previewData.value.templates?.length) {
-    ElMessage.warning('暂无可导出的模板')
-    return
-  }
-  try {
-    const blob = await exportBackupTemplates(currentBackupRow.value.id)
-    downloadBlob(blob, getExportFileName(currentBackupRow.value.fileName))
-    ElMessage.success('模板导出成功')
-  } catch (e) {
-    // 错误已在 request 拦截器中提示
-  }
-}
-
-/** 根据备份文件名生成导出文件名 */
-function getExportFileName(backupFileName) {
-  if (!backupFileName) return 'backup_templates.json'
-  const base = backupFileName.replace(/\.json$/i, '')
-  return `${base}_templates.json`
+  await handleDownloadBackup(currentBackupRow.value)
 }
 
 /** 下载 blob 文件 */

@@ -2,7 +2,24 @@
   <scroll-view class="container" :class="{ dark: daySettingsStore.isDarkMode, light: !daySettingsStore.isDarkMode, 'liquid-glass': daySettingsStore.liquidGlassEnabled }">
     <view class="config-card">
       <view class="section-title">服务器地址</view>
-      <view class="desc">配置后端服务器地址，切换 WiFi / 手机热点时只需修改此处的 IP 即可。</view>
+      <view class="desc">默认自动检测并连接已保存的服务器地址；切换 WiFi / 手机热点时若连接失败，再手动修改 IP 即可。</view>
+
+      <!-- 自动检测状态 -->
+      <view class="auto-detect-row">
+        <view class="auto-detect-status">
+          <view v-if="autoChecking" class="status-spinner"></view>
+          <text v-else-if="autoResult === 'ok'" class="status-icon">✅</text>
+          <text v-else-if="autoResult === 'fail'" class="status-icon">❌</text>
+          <text v-else class="status-icon">🔍</text>
+          <text class="status-text" :class="{ ok: autoResult === 'ok', fail: autoResult === 'fail' }">
+            {{ autoChecking ? '正在自动检测连接…' : (autoResult === 'ok' ? '已自动连接成功' : (autoResult === 'fail' ? '未检测到服务器，请确认后端已启动或手动配置' : '等待检测')) }}
+          </text>
+        </view>
+        <button class="btn-auto" @click="autoDetect" :disabled="autoChecking">重新检测</button>
+      </view>
+      <view v-if="autoResult === 'ok'" class="auto-ok-tip">
+        <text class="auto-ok-text">当前已记住连接地址：{{ currentBaseUrl }}</text>
+      </view>
 
       <view class="input-group">
         <text class="input-label">服务器 IP 地址</text>
@@ -63,7 +80,7 @@
 
 <script>
   import { useDaySettingsStore } from '@/stores/daySettings.js'
-  import { getCustomServerUrl, setCustomServerUrl, getServerBaseUrl, SERVER_ENV } from '@/utils/serverConfig.js'
+  import { getCustomServerUrl, setCustomServerUrl, getServerBaseUrl, SERVER_ENV, rememberCurrentBaseUrl } from '@/utils/serverConfig.js'
   import { isLocalServerAvailable } from '@/utils/serverBackup.js'
 
   export default {
@@ -75,6 +92,8 @@
         testing: false,
         testResult: null,
         saving: false,
+        autoChecking: false,
+        autoResult: null, // 'ok' | 'fail' | null
         currentBaseUrl: getServerBaseUrl(),
         serverEnv: SERVER_ENV,
       }
@@ -89,6 +108,7 @@
     },
     mounted() {
       this.loadCurrentConfig()
+      this.autoDetect()
     },
     methods: {
       loadCurrentConfig() {
@@ -103,6 +123,27 @@
           }
         } else {
           this.currentBaseUrl = getServerBaseUrl()
+        }
+      },
+      /**
+       * 自动检测当前生效地址是否可达：
+       * 可达 → 自动记住该地址（下次优先尝试），无需用户手动配置；
+       * 不可达 → 提示用户确认后端已启动，或手动输入新的 IP。
+       */
+      async autoDetect() {
+        this.autoChecking = true
+        this.autoResult = null
+        try {
+          const ok = await isLocalServerAvailable(true)
+          this.autoResult = ok ? 'ok' : 'fail'
+          if (ok) {
+            rememberCurrentBaseUrl()
+            this.currentBaseUrl = getServerBaseUrl()
+          }
+        } catch (e) {
+          this.autoResult = 'fail'
+        } finally {
+          this.autoChecking = false
         }
       },
       onIpInput(e) {
@@ -264,6 +305,55 @@
     align-items: center;
     gap: 8px;
     margin-bottom: 16px;
+  }
+
+  .auto-detect-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    background: var(--bg-tertiary);
+    border-radius: 12px;
+    padding: 12px 14px;
+    margin-bottom: 8px;
+  }
+
+  .auto-detect-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .btn-auto {
+    flex-shrink: 0;
+    height: 34px;
+    line-height: 34px;
+    padding: 0 16px;
+    border-radius: 17px;
+    font-size: 13px;
+    background: var(--primary);
+    color: #fff;
+    border: none;
+    margin: 0;
+  }
+
+  .btn-auto[disabled] {
+    opacity: 0.6;
+  }
+
+  .auto-ok-tip {
+    background: rgba(46, 213, 115, 0.1);
+    border-radius: 10px;
+    padding: 9px 14px;
+    margin-bottom: 16px;
+  }
+
+  .auto-ok-text {
+    font-size: 12px;
+    color: var(--success, #2ed573);
+    word-break: break-all;
   }
 
   .status-spinner {

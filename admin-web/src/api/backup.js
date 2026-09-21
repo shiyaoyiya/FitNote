@@ -22,10 +22,19 @@ export function getBackupTemplates(id) {
   return request({ url: `/admin/backup/${id}/templates`, method: 'get' })
 }
 
-/** 导出备份中的模板为 JSON 格式 */
+/** 导出备份中的模板为 JSON 格式（兼容备份导入格式） */
 export function exportBackupTemplates(id) {
   return request({
     url: `/admin/backup/${id}/export-templates`,
+    method: 'get',
+    responseType: 'blob'
+  })
+}
+
+/** 下载完整备份文件（原始 JSON，需携带登录 token，经 axios 以 blob 形式下载） */
+export function downloadBackup(id) {
+  return request({
+    url: `/admin/backup/${id}/download`,
     method: 'get',
     responseType: 'blob'
   })

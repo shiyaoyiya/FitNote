@@ -38,6 +38,16 @@
       </view>
       <!-- #endif -->
 
+      <!-- 分组：身体数据 -->
+      <view class="menu-section">
+        <text class="section-title">身体数据</text>
+        <view class="menu-item" @click="$emit('go-body-data'); close()">
+          <text class="menu-icon">⚖️</text>
+          <text class="menu-text">身体数据</text>
+          <text class="menu-sub">体重 / TDEE 记录</text>
+        </view>
+      </view>
+
       <!-- 分组：显示与偏好 -->
       <view class="menu-section">
         <text class="section-title">显示与偏好</text>
@@ -101,7 +111,7 @@
       },
     },
     emits: ['close', 'read-guide', 'add-anniv', 'toggle-train-btn', 'toggle-theme', 'toggle-liquid-glass',
-      'go-backup', 'go-template-manager', 'go-announce', 'go-notification', 'feedback', 'go-profile'
+      'go-backup', 'go-template-manager', 'go-announce', 'go-notification', 'feedback', 'go-profile', 'go-body-data'
     ],
     computed: {
       userAvatar() {

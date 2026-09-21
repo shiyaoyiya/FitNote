@@ -26,6 +26,12 @@
               <view class="switch-dot"></view>
             </view>
           </view>
+          <view class="setting-item" @click="$emit('toggle-weight-first')">
+            <text class="setting-label">先输入重量</text>
+            <view class="setting-switch" :class="{ on: settings.weightFirst }">
+              <view class="switch-dot"></view>
+            </view>
+          </view>
 
           <view class="settings-divider"></view>
 
@@ -91,13 +97,15 @@
       type: Object,
       default: () => ({
         autoStartTimer: false,
-        autoFillData: false
+        autoFillData: false,
+        weightFirst: false
       })
     },
   })
 
   const emit = defineEmits([
     'close', 'add-action', 'toggle-auto-timer', 'toggle-auto-fill', 'toggle-bubble-fill',
+    'toggle-weight-first',
     'toggle-hr-button', 'set-heavy-timer', 'set-light-timer', 'export-data', 'import-data',
     'open-body-profile', 'open-met-selector'
   ])

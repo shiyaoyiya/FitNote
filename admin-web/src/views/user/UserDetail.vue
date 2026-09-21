@@ -122,7 +122,7 @@
             </el-table-column>
             <el-table-column label="操作" width="110" fixed="right" align="center">
               <template #default="{row}">
-                <a :href="backupDownloadHref(row.id)" target="_blank" class="link-btn">下载 JSON</a>
+                <el-button type="primary" size="small" link @click="handleDownloadBackup(row)">下载 JSON</el-button>
               </template>
             </el-table-column>
           </el-table>
@@ -221,7 +221,7 @@ import * as echarts from 'echarts'
 import {
   getUserDetail, getUserTrainingStats, getUserShareTemplates, banUser, unbanUser
 } from '@/api/user'
-import { getBackupList } from '@/api/backup'
+import { getBackupList, downloadBackup } from '@/api/backup'
 import { getFeedbackPage } from '@/api/feedback'
 
 const route = useRoute()
@@ -454,11 +454,30 @@ async function fetchBackups() {
   }
 }
 
-function backupDownloadHref(id) {
-  const base = import.meta.env.VITE_API_BASE || '/api'
-  // axios/request 有 auth token 头；但普通 <a href> 下载不带 token，这里直接拼 URL。
-  // 若后续需要认证，改为创建 axios blob 下载。
-  return (base.endsWith('/') ? base.slice(0,-1) : base) + `/admin/backup/${id}/download`
+/**
+ * 下载备份：必须走 axios 携带 Authorization token。
+ * 原来的 <a href> 直链不带 token，后端返回 401 UNAUTHORIZED，故改为 blob 下载。
+ */
+async function handleDownloadBackup(row) {
+  if (!row?.id) return
+  try {
+    const blob = await downloadBackup(row.id)
+    downloadBlob(blob, row.fileName || `backup_${row.id}.json`)
+  } catch (e) {
+    // 错误已在 request 拦截器中提示
+  }
+}
+
+/** 下载 blob 文件 */
+function downloadBlob(blob, filename) {
+  const url = window.URL.createObjectURL(new Blob([blob]))
+  const link = document.createElement('a')
+  link.href = url
+  link.setAttribute('download', filename)
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  window.URL.revokeObjectURL(url)
 }
 
 // =================== 分享模板 ===================
@@ -635,7 +654,4 @@ watch(() => route.query.id, async () => {
   display: inline-flex; align-items: center; justify-content: center;
   color: #fff; font-size: 18px;
 }
-
-.link-btn { color: var(--accent-primary-light); text-decoration: none; font-size: 13px; }
-.link-btn:hover { text-decoration: underline; }
 </style>

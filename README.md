@@ -1,7 +1,7 @@
 # FitNote 健身记录小程序
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-2.2.0-blue?style=flat-square" alt="version">
+  <img src="https://img.shields.io/badge/version-2.3.0-blue?style=flat-square" alt="version">
   <img src="https://img.shields.io/badge/uni--app-v3-4fc08d?style=flat-square" alt="uni-app">
   <img src="https://img.shields.io/badge/Vue-3.x-4fc08d?style=flat-square" alt="Vue">
   <img src="https://img.shields.io/badge/Pinia-v3-f7d336?style=flat-square" alt="Pinia">
@@ -37,6 +37,7 @@ FitNote 是一款专为健身爱好者打造的训练记录小程序，帮助你
 #### 训练记录与执行
 - 快速从动作库或模板选择训练动作
 - 组数记录：重量(kg) + 次数，支持逐组录入
+- **录入顺序可切换**：「次数 × 重量」（默认）与「重量 × 次数」，在训练日设置中开启「先输入重量」即可互换
 - **上次对比**：完成一组后自动显示与上次同动作的重量对比
 - 内置组间休息倒计时（支持自定义时长）
 - 点击动作查看历史训练记录
@@ -83,6 +84,12 @@ FitNote 是一款专为健身爱好者打造的训练记录小程序，帮助你
 - 个人资料管理
 - 训练统计数据云端同步
 - 收藏模板管理
+
+#### 身体数据与代谢估算
+- **身体档案**：性别 / 出生年月 / 身高 / 体重 / 活动系数
+- **BMR / TDEE 估算**：基于 Mifflin-St Jeor 公式计算基础代谢，结合活动系数估算每日消耗
+- **体重趋势**：记录体重历史并绘制趋势图，同一天只保留最新一条
+- **快捷记录**：首页圆形入口一键弹出快捷体重记录；未填写档案时直达完整页面
 
 #### 其他功能
 - 公告通知系统
@@ -346,7 +353,18 @@ npm run build
 
 ## 版本历史
 
-### v2.2.0 (当前版本)
+### v2.3.0 (当前版本)
+- 新增「身体数据」页面：身体档案（性别/出生年月/身高/体重/活动系数）、BMR/TDEE 代谢估算、体重趋势图
+- 新增快捷体重记录弹窗与首页圆形入口
+- 新增「先输入重量」录入顺序设置（次数 × 重量 ⇄ 重量 × 次数）
+- 个人中心：服务器连接状态显示、头像离线 base64 缓存兜底
+- 修复服务端缺失字段覆盖本地登录信息导致头像"自动消失"的问题
+- 修复全量备份依赖内存索引导致部分日期缺失的问题
+- 小程序/App 端自动记住最近一次成功连接的服务器地址
+- 管理后台：备份下载改为携带 token 的 blob 下载，支持下载完整备份文件
+- 修复动作库液态玻璃模式下分类 tab/按键首帧不渲染问题
+
+### v2.2.0
 - 新增模板广场社区分享功能（分享/收藏/导入）
 - 新增用户反馈与公告通知系统
 - 新增 Spring Boot 后端服务（JWT 认证 + RESTful API）

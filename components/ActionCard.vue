@@ -6,12 +6,24 @@
       <text class="tag" @click.stop="$emit('go-history')">{{ actionName }}</text>
       <view class="header-right">
         <view class="input-pair">
-          <input type="digit" v-model="mainReps" placeholder="次数" class="input-reps" @focus="onInputFocus('reps')"
-            @blur="onInputBlur" />
-          <text v-if="!isBodyweight || currentBWMode !== 'bodyweight'" class="input-mult">×</text>
-          <input type="digit" v-model="mainWeight" :placeholder="weightPlaceholder" class="input-weight"
-            @focus="onInputFocus('weight')" @blur="onInputBlur"
-            v-if="!isBodyweight || currentBWMode !== 'bodyweight'" />
+          <!-- 先输入重量：重量 × 次数 -->
+          <template v-if="weightFirst">
+            <input type="digit" v-model="mainWeight" :placeholder="weightPlaceholder" class="input-weight"
+              @focus="onInputFocus('weight')" @blur="onInputBlur"
+              v-if="!isBodyweight || currentBWMode !== 'bodyweight'" />
+            <text v-if="!isBodyweight || currentBWMode !== 'bodyweight'" class="input-mult">×</text>
+            <input type="digit" v-model="mainReps" placeholder="次数" class="input-reps" @focus="onInputFocus('reps')"
+              @blur="onInputBlur" />
+          </template>
+          <!-- 先输入次数：次数 × 重量（默认） -->
+          <template v-else>
+            <input type="digit" v-model="mainReps" placeholder="次数" class="input-reps" @focus="onInputFocus('reps')"
+              @blur="onInputBlur" />
+            <text v-if="!isBodyweight || currentBWMode !== 'bodyweight'" class="input-mult">×</text>
+            <input type="digit" v-model="mainWeight" :placeholder="weightPlaceholder" class="input-weight"
+              @focus="onInputFocus('weight')" @blur="onInputBlur"
+              v-if="!isBodyweight || currentBWMode !== 'bodyweight'" />
+          </template>
         </view>
         <button class="confirm-btn glass-panel" @click="confirmEntry">✓️</button>
       </view>
@@ -51,11 +63,22 @@
       <view v-for="(stage, i) in extraStages" :key="i" class="extra-stage-row">
         <text class="stage-label">次组{{ i + 1 }}：</text>
         <view class="input-pair">
-          <input type="digit" v-model="stage.reps" placeholder="次数" class="input-reps"
-            @focus="onExtraInputFocus(i, 'reps')" @blur="onInputBlur" />
-          <text class="input-mult">×</text>
-          <input type="digit" v-model="stage.weight" placeholder="kg" class="input-weight"
-            @focus="onExtraInputFocus(i, 'weight')" @blur="onInputBlur" />
+          <!-- 先输入重量：重量 × 次数 -->
+          <template v-if="weightFirst">
+            <input type="digit" v-model="stage.weight" placeholder="kg" class="input-weight"
+              @focus="onExtraInputFocus(i, 'weight')" @blur="onInputBlur" />
+            <text class="input-mult">×</text>
+            <input type="digit" v-model="stage.reps" placeholder="次数" class="input-reps"
+              @focus="onExtraInputFocus(i, 'reps')" @blur="onInputBlur" />
+          </template>
+          <!-- 先输入次数：次数 × 重量（默认） -->
+          <template v-else>
+            <input type="digit" v-model="stage.reps" placeholder="次数" class="input-reps"
+              @focus="onExtraInputFocus(i, 'reps')" @blur="onInputBlur" />
+            <text class="input-mult">×</text>
+            <input type="digit" v-model="stage.weight" placeholder="kg" class="input-weight"
+              @focus="onExtraInputFocus(i, 'weight')" @blur="onInputBlur" />
+          </template>
         </view>
         <text class="stage-type-badge"
           :class="'stage-type-' + getSubStageType(stage)">{{ getSubStageTypeLabel(stage) }}</text>
@@ -127,6 +150,10 @@
       bubbleFill: {
         type: Boolean,
         default: true
+      },
+      weightFirst: {
+        type: Boolean,
+        default: false
       },
       isBodyweight: {
         type: Boolean,

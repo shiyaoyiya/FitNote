@@ -51,6 +51,20 @@ export function setCustomServerUrl(url) {
 }
 
 /**
+ * 自动记住当前成功连接的地址（写入自定义地址，下次优先尝试）
+ * 仅对小程序/App 生效：这些端无法像 H5 一样用 location 自动推导服务器地址，
+ * 记住最近一次可达的地址可避免用户每次切换网络都要重新手动配置。
+ */
+export function rememberCurrentBaseUrl() {
+  // #ifndef H5
+  const base = getServerBaseUrl()
+  if (base && base !== getCustomServerUrl()) {
+    setCustomServerUrl(base)
+  }
+  // #endif
+}
+
+/**
  * 动态解析服务器基础 URL（每次调用都读取最新配置）
  * 优先级：用户自定义地址 > H5 自动检测 > ENV_MODE 静态配置
  */
@@ -92,4 +106,5 @@ export default {
   getServerBaseUrl,
   getCustomServerUrl,
   setCustomServerUrl,
+  rememberCurrentBaseUrl,
 }

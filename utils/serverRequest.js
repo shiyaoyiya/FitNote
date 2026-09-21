@@ -27,8 +27,18 @@ export function setTokens({ accessToken, refreshToken, user }) {
   if (accessToken) uni.setStorageSync(TOKEN_KEYS.ACCESS, accessToken)
   if (refreshToken) uni.setStorageSync(TOKEN_KEYS.REFRESH, refreshToken)
   if (user) {
-    uni.setStorageSync(TOKEN_KEYS.USER, user)
-    if (user.avatarUrl) uni.setStorageSync(AVATAR_CACHE_KEY, user.avatarUrl)
+    // 只合并非 undefined/null 字段：避免字段缺失（JSON 中表现为 null）的服务端
+    // 响应把本地已保存的昵称、头像等覆盖掉，导致头像“自动消失”。
+    // 服务器明确返回空字符串（表示用户确实没有该字段）时仍会正常覆盖。
+    const cur = uni.getStorageSync(TOKEN_KEYS.USER) || {}
+    const cleanUser = {}
+    Object.keys(user).forEach((k) => {
+      const v = user[k]
+      if (v !== undefined && v !== null) cleanUser[k] = v
+    })
+    const next = Object.assign({}, cur, cleanUser)
+    uni.setStorageSync(TOKEN_KEYS.USER, next)
+    if (cleanUser.avatarUrl) uni.setStorageSync(AVATAR_CACHE_KEY, cleanUser.avatarUrl)
   }
 }
 export function clearAuth() {
@@ -53,7 +63,12 @@ export function getCurrentUser() {
  */
 export function updateCurrentUser(patch) {
   const cur = uni.getStorageSync(TOKEN_KEYS.USER) || {}
-  const next = Object.assign({}, cur, patch || {})
+  const next = Object.assign({}, cur)
+  // 跳过 undefined/null 字段：请求结果里缺失的字段不覆盖本地已有值（如头像）
+  Object.keys(patch || {}).forEach((k) => {
+    const v = patch[k]
+    if (v !== undefined && v !== null) next[k] = v
+  })
   uni.setStorageSync(TOKEN_KEYS.USER, next)
   if (patch && patch.avatarUrl) {
     uni.setStorageSync(AVATAR_CACHE_KEY, patch.avatarUrl)

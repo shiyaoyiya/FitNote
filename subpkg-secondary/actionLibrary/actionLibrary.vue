@@ -13,7 +13,7 @@
       </view>
     </view>
 
-    <view class="category-tabs" :class="{ 'no-transition': swipeNoTransition }">
+    <view class="category-tabs" :class="{ 'no-transition': swipeNoTransition }" :style="categoryTabsStyle">
       <view class="category-highlight" :style="categoryHighlightStyle"></view>
       <view class="category-scroll" @touchmove.stop>
         <view v-for="cat in allCategories" :key="cat.id" class="category-tab"
@@ -89,7 +89,7 @@
       </view>
     </scroll-view>
 
-    <view class="bottom-bar">
+    <view class="bottom-bar" :style="bottomBarStyle">
       <view class="btn-add-action glass-panel" @click="openAddPopup">
         <text class="btn-add-icon">+</text>
         <text class="btn-add-label">新建动作</text>
@@ -225,8 +225,6 @@
   export default {
     data() {
       return {
-        actStore: useActionStore(),
-        daySettingsStore: useDaySettingsStore(),
         searchQuery: '',
         activeCategory: 'all',
         collapsedCategories: this.getSavedCollapsedState(),
@@ -253,6 +251,7 @@
         swipeNoTransition: false,
         tabRects: [],
         tabRectsMeasured: false,
+        tabRepaint: false,
         contentAnimClass: '',
         showCategoryManager: false,
         newCategoryName: '',
@@ -417,22 +416,38 @@
       canConfirm() {
         return this.formName.trim().length > 0 && this.formCategories.length > 0
       },
+      // 首帧后置 translateZ 触发重绘，确保微信小程序 backdrop-filter 首帧正常绘制
+      categoryTabsStyle() {
+        return this.tabRepaint ? 'transform: translateZ(0);' : ''
+      },
+      bottomBarStyle() {
+        return this.tabRepaint ? 'transform: translateZ(0);' : ''
+      },
     },
 
     created() {
       this.actStore = useActionStore()
+      this.daySettingsStore = useDaySettingsStore()
       this.actStore.load()
       this.daySettingsStore.load()
     },
 
     onShow() {
-      this.actStore.load();
+      // 首次进入已在 created 中完成加载，避免首帧前重复替换 store 数据
+      if (this._hasShown) {
+        this.actStore.load();
+      }
+      this._hasShown = true;
       this.collapsedCategories = this.getSavedCollapsedState();
       this.measureTabRects();
     },
 
     onReady() {
       this.measureTabRects();
+      // 首帧渲染完成后强制触发一次重绘，规避微信小程序 backdrop-filter 首帧不绘制
+      setTimeout(() => {
+        this.tabRepaint = true
+      }, 120)
     },
 
     methods: {
@@ -2036,5 +2051,12 @@
 
   .cat-add-new-btn:active {
     opacity: 0.8;
+  }
+
+  /* 液态玻璃下移除小交互元素的 backdrop-filter，规避微信小程序首帧不绘制问题 */
+  .container.liquid-glass .search-inner,
+  .container.liquid-glass .manage-cat-btn {
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
   }
 </style>
