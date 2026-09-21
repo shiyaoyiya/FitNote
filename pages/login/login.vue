@@ -100,7 +100,7 @@
     me,
     isLocalServerAvailable,
   } from '@/utils/serverBackup.js'
-  import { SERVER_BASE_URL, SERVER_ENV } from '@/utils/serverConfig.js'
+  import { SERVER_ENV, getServerBaseUrl } from '@/utils/serverConfig.js'
   import { setTokens } from '@/utils/serverRequest.js'
   // #ifdef MP-WEIXIN
   import {
@@ -115,7 +115,7 @@
   async function registerUserFallback({ username, password, confirmPassword, nickname }) {
     return new Promise((resolve, reject) => {
       uni.request({
-        url: SERVER_BASE_URL + '/api/auth/user/register',
+        url: getServerBaseUrl() + '/api/auth/user/register',
         method: 'POST',
         data: { username, password, confirmPassword, nickname },
         header: { 'Content-Type': 'application/json' },
@@ -141,7 +141,7 @@
   async function loginUserDirect({ username, password }) {
     return new Promise((resolve, reject) => {
       uni.request({
-        url: SERVER_BASE_URL + '/api/auth/user/login',
+        url: getServerBaseUrl() + '/api/auth/user/login',
         method: 'POST',
         data: { username, password },
         header: { 'Content-Type': 'application/json' },

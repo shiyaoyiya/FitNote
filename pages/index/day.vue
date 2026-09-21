@@ -333,6 +333,13 @@
         this.loadDayData()
       })
 
+      // 监听备份恢复事件，重新加载缓存和历史对比
+      uni.$on('backup-restored', () => {
+        this.dayDataCacheStore.buildIndex()
+        this.dayDataCacheStore.clearCache()
+        this.loadDayData()
+      })
+
       // 心率广播与训练分析功能已移除
       // 训练日提醒（无设备时静默不崩）
       checkAndNotifyTrainingDay()
@@ -351,6 +358,7 @@
       // 只清理事件监听器，不断开 BLE 连接（保持手环连接，重进页面可恢复）
       if (this.hrBle) this.hrBle.detachCallbacks()
       uni.$off('day-data-updated')
+      uni.$off('backup-restored')
     },
     onShow() {
       this.checkPendingManageActions()
@@ -599,7 +607,9 @@
       calcDiffForSingleAction(idx) {
         const actName = this.chosenActions[idx]
         let record = this.actionLatestRecordCache[actName]
-        if (record === undefined) {
+        // undefined=从未查询；null=此前查询无结果（可能因导入后索引未刷新）。
+        // 两种情况都重新查询，避免缓存了空的查找结果导致一直显示「无历史记录」
+        if (record === undefined || record === null) {
           record = this.calcActionLatestRecord(actName)
         }
         if (!record) {
@@ -659,6 +669,8 @@
         this.dayDataCacheStore.saveDayData(todayDateStr, dayData)
         delete this.actionLatestRecordCache[actName]
         this.calcActionLatestRecord(actName)
+        // 用最新查询结果刷新「对比上次」，避免停留在保存前的旧状态
+        this.calcDiffForSingleAction(idx)
       },
       debounceSaveToStorage(idx) {
         if (this.saveTimer) clearTimeout(this.saveTimer)
@@ -1145,6 +1157,18 @@
         this.showImportModal = true
       },
 
+      getActionMetaMap() {
+        // 构建动作元数据映射（单侧/自重标志），保证导入容量与手动录入口径一致
+        const actionMeta = {}
+        this.actionStore.actions.forEach(a => {
+          actionMeta[a.name] = {
+            isUnilateral: !!a.isUnilateral,
+            bodyweightMode: a.bodyweightMode || false
+          }
+        })
+        return actionMeta
+      },
+
       onImportConfirm(importedData) {
         this.showImportModal = false
 
@@ -1169,12 +1193,13 @@
           )
         })
 
-        // 合并数据（传入当天模板动作列表）
+        // 合并数据（传入当天模板动作列表 + 动作元数据）
         const { mergedData, matchResults } = mergeImportData(
           existingData,
           importedData,
           this.availableActionNames,
-          this.chosenActions
+          this.chosenActions,
+          this.getActionMetaMap()
         )
 
         // 如果有多个匹配结果，需要用户选择
@@ -1236,7 +1261,8 @@
         return applyMatchSelections(
           this._pendingMergedData,
           this._pendingMatchResults,
-          this._matchSelections
+          this._matchSelections,
+          this.getActionMetaMap()
         )
       },
 

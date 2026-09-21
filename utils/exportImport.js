@@ -107,15 +107,32 @@ export function formatDayData(dayData) {
 }
 
 /**
+ * 格式化动作库为文本（每行一个 JSON，无损保留 isUnilateral/bodyweightMode 等全部字段）
+ * @param {Array} actions - 动作数组
+ * @returns {string} 格式化后的文本
+ */
+export function formatActions(actions) {
+  if (!actions || actions.length === 0) return ''
+
+  let text = '=== 动作库 ===\n'
+  actions.forEach((act, idx) => {
+    if (idx > 0) text += '\n'
+    text += JSON.stringify(act)
+  })
+  return text
+}
+
+/**
  * 导出数据到剪贴板
  * @param {Object} options - 导出选项
  * @param {Array} options.templates - 选中的模板数组
  * @param {Object} options.splitPlan - 分化计划对象
  * @param {Object} options.dayData - 训练数据对象
+ * @param {Array} options.actions - 动作库数组
  * @returns {Promise<boolean>} 是否成功
  */
 export async function exportToClipboard(options) {
-  const { templates, splitPlan, dayData } = options
+  const { templates, splitPlan, dayData, actions } = options
 
   let text = ''
 
@@ -129,6 +146,10 @@ export async function exportToClipboard(options) {
 
   if (dayData && Object.keys(dayData).length > 0) {
     text += formatDayData(dayData) + '\n\n'
+  }
+
+  if (actions && actions.length > 0) {
+    text += formatActions(actions) + '\n\n'
   }
 
   text = text.trim()
@@ -251,9 +272,10 @@ function parseSplitPlan(text) {
 /**
  * 解析训练数据
  * @param {string} text - 训练数据文本
+ * @param {Object} actionMeta - 动作元数据映射 { 动作名: { isUnilateral, bodyweightMode } }
  * @returns {Object} 训练数据对象
  */
-function parseDayData(text) {
+function parseDayData(text, actionMeta = {}) {
   const dayData = {}
   // 统一换行符，支持 \r\n 和 \n
   const normalizedText = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n')
@@ -307,8 +329,13 @@ function parseDayData(text) {
     if (setMatch && currentData && currentActionName) {
       const reps = parseInt(setMatch[2])
       const weight = parseFloat(setMatch[3])
-      const total = Math.round(reps * weight * 100) / 100
-      
+      // 与手动录入口径一致：单侧动作容量 ×2，助力模式为负值
+      const meta = actionMeta[currentActionName] || {}
+      const isUnilateral = !!meta.isUnilateral
+      const bwMode = meta.bodyweightMode
+      let total = Math.round(reps * weight * (isUnilateral ? 2 : 1) * 100) / 100
+      if (bwMode === 'assisted') total = -Math.abs(total)
+
       const entry = {
         isPlaceholder: false,
         type: 'normal',
@@ -320,6 +347,7 @@ function parseDayData(text) {
           total: total
         }]
       }
+      if (bwMode) entry.bwMode = bwMode
       currentData.entries[currentActionName].push(entry)
       
       // 更新动作总重量
@@ -344,19 +372,48 @@ function parseDayData(text) {
 }
 
 /**
+ * 解析动作库文本（每行一个 JSON）
+ * @param {string} text - 动作库文本
+ * @returns {Array} 动作数组
+ */
+function parseActions(text) {
+  const actions = []
+  if (!text) return actions
+  const normalizedText = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n')
+  const lines = normalizedText.split('\n')
+
+  lines.forEach(line => {
+    const trimmed = line.trim()
+    if (!trimmed) return
+    try {
+      const obj = JSON.parse(trimmed)
+      if (obj && typeof obj === 'object' && obj.name) {
+        actions.push(obj)
+      }
+    } catch (e) {
+      // 跳过无法解析的行，保证向后兼容
+    }
+  })
+
+  return actions
+}
+
+/**
  * 解析导入的文本数据
  * @param {string} text - 要解析的文本
+ * @param {Object} actionMeta - 动作元数据映射 { 动作名: { isUnilateral, bodyweightMode } }
  * @returns {Object} 解析结果
  */
-export function parseImportText(text) {
+export function parseImportText(text, actionMeta = {}) {
   if (!text || !text.trim()) {
-    return { templates: [], splitPlan: null, dayData: {} }
+    return { templates: [], splitPlan: null, dayData: {}, actions: [] }
   }
 
   const result = {
     templates: [],
     splitPlan: null,
-    dayData: {}
+    dayData: {},
+    actions: []
   }
 
   // 按分隔符分割文本
@@ -372,7 +429,9 @@ export function parseImportText(text) {
     } else if (header.includes('分化计划')) {
       result.splitPlan = parseSplitPlan(content)
     } else if (header.includes('训练数据')) {
-      result.dayData = parseDayData(content)
+      result.dayData = parseDayData(content, actionMeta)
+    } else if (header.includes('动作库')) {
+      result.actions = parseActions(content)
     }
   })
 
@@ -381,15 +440,16 @@ export function parseImportText(text) {
 
 /**
  * 从剪贴板导入数据
+ * @param {Object} actionMeta - 动作元数据映射 { 动作名: { isUnilateral, bodyweightMode } }
  * @returns {Promise<Object>} 解析后的数据
  */
-export async function importFromClipboard() {
+export async function importFromClipboard(actionMeta = {}) {
   return new Promise((resolve, reject) => {
     uni.getClipboardData({
       success: (res) => {
         if (res && res.data) {
           try {
-            const parsed = parseImportText(res.data)
+            const parsed = parseImportText(res.data, actionMeta)
             resolve(parsed)
           } catch (err) {
             reject(new Error('无法解析剪贴板中的数据'))

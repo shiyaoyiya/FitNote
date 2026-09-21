@@ -49,6 +49,23 @@
       </view>
     </view>
 
+    <!-- 动作库选择 -->
+    <view class="export-section">
+      <view class="section-header">
+        <view class="section-title">
+          <text class="icon">🏋️</text>
+          <text>动作库</text>
+        </view>
+        <view class="toggle-switch" @click="toggleActions">
+          <view :class="['switch', { active: includeActions }]"></view>
+        </view>
+      </view>
+      <view v-if="includeActions" class="plan-preview">
+        <text class="plan-mode">包含动作库（含单侧/自重等标记）</text>
+        <text class="plan-days">{{ actions.length }}个动作</text>
+      </view>
+    </view>
+
     <!-- 训练数据选择 -->
     <view class="export-section">
       <view class="section-header">
@@ -107,7 +124,8 @@
   import {
     formatTemplates,
     formatSplitPlan,
-    formatDayData
+    formatDayData,
+    formatActions
   } from '@/utils/exportImport.js'
   import DateRangePicker from '@/components/DateRangePicker.vue'
 
@@ -121,10 +139,12 @@
         includeTemplates: true,
         includeSplitPlan: true,
         includeDayData: true,
+        includeActions: true,
         selectedTemplates: [],
         selectedDates: [],
         showDatePicker: false,
-        templates: []
+        templates: [],
+        actions: []
       }
     },
     computed: {
@@ -152,7 +172,7 @@
         return dates.sort()
       },
       canExport() {
-        if (!this.includeTemplates && !this.includeSplitPlan && !this.includeDayData) {
+        if (!this.includeTemplates && !this.includeSplitPlan && !this.includeDayData && !this.includeActions) {
           return false
         }
         if (this.includeTemplates && this.selectedTemplates.length === 0) {
@@ -171,6 +191,9 @@
         if (this.includeSplitPlan && this.splitPlan && this.splitPlan.enabled) {
           parts.push('分化计划')
         }
+        if (this.includeActions && this.actions.length > 0) {
+          parts.push(`${this.actions.length}个动作`)
+        }
         if (this.includeDayData && this.selectedDates.length > 0) {
           parts.push(`${this.selectedDates.length}天数据`)
         }
@@ -179,6 +202,7 @@
     },
     created() {
       this.loadTemplates()
+      this.loadActions()
     },
     methods: {
       loadTemplates() {
@@ -193,6 +217,16 @@
           console.error('加载模板失败:', err)
         }
       },
+      loadActions() {
+        try {
+          const data = uni.getStorageSync('fitness_actions')
+          if (data && Array.isArray(data)) {
+            this.actions = data
+          }
+        } catch (err) {
+          console.error('加载动作库失败:', err)
+        }
+      },
       toggleTemplateSection() {
         this.includeTemplates = !this.includeTemplates
       },
@@ -201,6 +235,9 @@
       },
       toggleDayData() {
         this.includeDayData = !this.includeDayData
+      },
+      toggleActions() {
+        this.includeActions = !this.includeActions
       },
       toggleSelectAll() {
         if (this.allTemplatesSelected) {
@@ -264,6 +301,12 @@
             })
           }
 
+          // 收集动作库
+          let actions = []
+          if (this.includeActions) {
+            actions = uni.getStorageSync('fitness_actions') || []
+          }
+
           // 格式化并导出
           let text = ''
 
@@ -277,6 +320,10 @@
 
           if (Object.keys(dayData).length > 0) {
             text += formatDayData(dayData) + '\n\n'
+          }
+
+          if (actions.length > 0) {
+            text += formatActions(actions) + '\n\n'
           }
 
           text = text.trim()

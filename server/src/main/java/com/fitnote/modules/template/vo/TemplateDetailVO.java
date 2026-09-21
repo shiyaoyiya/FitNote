@@ -8,4 +8,5 @@ import lombok.EqualsAndHashCode;
 public class TemplateDetailVO extends SquareTemplateVO {
     private String templateData;
     private String rejectReason;
+    private Boolean collected;
 }

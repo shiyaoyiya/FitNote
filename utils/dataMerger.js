@@ -1,12 +1,46 @@
 /**
+ * 按动作元数据构建导入条目（与手动录入 buildEntry/createStage 口径一致）
+ * 单侧动作（isUnilateral）容量 ×2；自重模式（bodyweightMode）保留 bwMode 标记
+ * @param {Array} entries - 导入条目 [{reps, weight}]
+ * @param {Object} meta - 动作元数据 { isUnilateral, bodyweightMode }
+ * @returns {Array} 格式化后的条目
+ */
+function buildImportEntries(entries, meta = {}) {
+  const isUnilateral = !!(meta && meta.isUnilateral)
+  const bwMode = meta && meta.bodyweightMode
+  return (entries || []).map(entry => {
+    const reps = Number(entry.reps) || 0
+    const weight = Number(entry.weight) || 0
+    let stageTotal = weight > 0
+      ? Math.round(reps * weight * (isUnilateral ? 2 : 1) * 100) / 100
+      : reps
+    // 助力模式与手动录入口径一致：容量为负值
+    if (bwMode === 'assisted') stageTotal = -Math.abs(stageTotal)
+    const formatted = {
+      input: weight > 0 ? `${reps}×${weight}` : `${reps}`,
+      total: stageTotal,
+      type: 'normal',
+      stages: [{
+        reps,
+        weight,
+        total: stageTotal
+      }]
+    }
+    if (bwMode) formatted.bwMode = bwMode
+    return formatted
+  })
+}
+
+/**
  * 合并导入数据到现有数据
  * @param {Object} existingData - 现有训练数据
  * @param {Array} importedData - 导入的训练数据
  * @param {Array} actionNames - 现有动作名数组（本地动作库）
  * @param {Array} templateActions - 当天模板的动作列表
+ * @param {Object} actionMeta - 动作元数据映射 { 动作名: { isUnilateral, bodyweightMode } }
  * @returns {Object} { mergedData, matchResults }
  */
-export function mergeImportData(existingData, importedData, actionNames = [], templateActions = []) {
+export function mergeImportData(existingData, importedData, actionNames = [], templateActions = [], actionMeta = {}) {
   if (!existingData || !importedData || importedData.length === 0) {
     return { mergedData: existingData, matchResults: [] }
   }
@@ -47,16 +81,7 @@ export function mergeImportData(existingData, importedData, actionNames = [], te
     }
     // matches.length === 0 时，使用原始动作名（新增动作）
 
-    const formattedEntries = entries.map(entry => ({
-      input: `${entry.reps}×${entry.weight}`,
-      total: entry.reps * entry.weight,
-      type: 'normal',
-      stages: [{
-        reps: entry.reps,
-        weight: entry.weight,
-        total: entry.reps * entry.weight
-      }]
-    }))
+    const formattedEntries = buildImportEntries(entries, actionMeta[finalName])
 
     if (result.entries[finalName]) {
       // 合并时过滤掉占位符
@@ -79,8 +104,12 @@ export function mergeImportData(existingData, importedData, actionNames = [], te
 
 /**
  * 应用用户选择的匹配结果
+ * @param {Object} mergedData - 合并后的数据
+ * @param {Array} matchResults - 匹配结果列表
+ * @param {Array} selections - 用户选择的动作名
+ * @param {Object} actionMeta - 动作元数据映射 { 动作名: { isUnilateral, bodyweightMode } }
  */
-export function applyMatchSelections(mergedData, matchResults, selections) {
+export function applyMatchSelections(mergedData, matchResults, selections, actionMeta = {}) {
   const result = {
     ...mergedData,
     entries: { ...mergedData.entries },
@@ -92,16 +121,7 @@ export function applyMatchSelections(mergedData, matchResults, selections) {
     const selectedName = selections[i] || matchResult.selected
     const entries = matchResult.entries
 
-    const formattedEntries = entries.map(entry => ({
-      input: `${entry.reps}×${entry.weight}`,
-      total: entry.reps * entry.weight,
-      type: 'normal',
-      stages: [{
-        reps: entry.reps,
-        weight: entry.weight,
-        total: entry.reps * entry.weight
-      }]
-    }))
+    const formattedEntries = buildImportEntries(entries, actionMeta[selectedName])
 
     if (result.entries[selectedName]) {
       // 合并时过滤掉占位符

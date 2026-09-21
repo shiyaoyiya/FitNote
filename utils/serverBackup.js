@@ -21,8 +21,10 @@ import {
   getCurrentUser,
 } from '@/utils/serverRequest.js'
 import {
-  SERVER_BASE_URL
+  SERVER_BASE_URL,
+  getServerBaseUrl
 } from '@/utils/serverConfig.js'
+import { useDayDataCacheStore } from '@/stores/dayDataCache.js'
 // #ifdef MP-WEIXIN
 import {
   listCloudBackups as _listCloudBackups,
@@ -162,6 +164,9 @@ export function collectFullData() {
       fitness_actions: Array.isArray(actions) ? actions : [],
       fitness_annivs: annivs,
       fitness_daydata: daydata,
+      fitness_day_settings: uni.getStorageSync('fitness_day_settings') || null,
+      fitness_categories: uni.getStorageSync('fitness_categories') || null,
+      fitness_user_profile: uni.getStorageSync('fitness_user_profile') || null,
     },
   }
 }
@@ -199,6 +204,9 @@ export function applyBackupToLocal(backupData, mode = 'overwrite') {
         k === ACTION_KEY ||
         k === ANNIV_KEY ||
         k === 'fitness_index' ||
+        k === 'fitness_day_settings' ||
+        k === 'fitness_categories' ||
+        k === 'fitness_user_profile' ||
         k.startsWith(DAYDATA_PREFIX)
       ) {
         uni.removeStorageSync(k)
@@ -210,6 +218,15 @@ export function applyBackupToLocal(backupData, mode = 'overwrite') {
     Object.keys(daydata).forEach((date) => {
       uni.setStorageSync(DAYDATA_PREFIX + date, daydata[date] || {})
     })
+    if (payload.fitness_day_settings) {
+      uni.setStorageSync('fitness_day_settings', payload.fitness_day_settings)
+    }
+    if (payload.fitness_categories) {
+      uni.setStorageSync('fitness_categories', payload.fitness_categories)
+    }
+    if (payload.fitness_user_profile) {
+      uni.setStorageSync('fitness_user_profile', payload.fitness_user_profile)
+    }
   } else {
     const curTpl = uni.getStorageSync(TEMPLATE_KEY) || []
     const curAct = uni.getStorageSync(ACTION_KEY) || []
@@ -227,6 +244,26 @@ export function applyBackupToLocal(backupData, mode = 'overwrite') {
       const existed = uni.getStorageSync(key) || {}
       uni.setStorageSync(key, Object.assign({}, existed, daydata[date] || {}))
     })
+    if (payload.fitness_day_settings) {
+      uni.setStorageSync('fitness_day_settings', payload.fitness_day_settings)
+    }
+    // 分类按项合并（自定义分类/子分类保留）
+    if (payload.fitness_categories && Array.isArray(payload.fitness_categories)) {
+      const curCats = uni.getStorageSync('fitness_categories') || []
+      uni.setStorageSync('fitness_categories', mergeArraysUnique(curCats, payload.fitness_categories))
+    }
+    if (payload.fitness_user_profile) {
+      uni.setStorageSync('fitness_user_profile', payload.fitness_user_profile)
+    }
+  }
+  // 重建日期索引并清空缓存：保证 day 页「对比上次」、月/年统计等基于索引的查询
+  // 能拿到导入后的最新日期，避免索引停留在导入前的旧状态而查不到历史记录
+  try {
+    const cacheStore = useDayDataCacheStore()
+    cacheStore.buildIndex()
+    cacheStore.clearCache()
+  } catch (e) {
+    console.warn('恢复备份后重建日期索引失败:', e)
   }
   uni.$emit && uni.$emit('backup-restored')
 }
@@ -515,7 +552,7 @@ function _uploadH5(jsonContent, filename, note) {
     const headers = {}
     if (at) headers.Authorization = `Bearer ${at}`
 
-    const base = (SERVER_BASE_URL || '').replace(/\/$/, '')
+    const base = getServerBaseUrl().replace(/\/$/, '')
     fetch(base + '/api/backup/upload', {
         method: 'POST',
         body: fd,
@@ -536,7 +573,7 @@ function _uploadH5(jsonContent, filename, note) {
  */
 async function _downloadFromServerLocal(id) {
   const at = uni.getStorageSync('fitnote_access_token') || ''
-  const base = (SERVER_BASE_URL || '').replace(/\/$/, '')
+  const base = getServerBaseUrl().replace(/\/$/, '')
 
   // #ifdef H5
   const resp = await fetch(base + `/api/backup/download/${id}`, {

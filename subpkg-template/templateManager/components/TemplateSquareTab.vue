@@ -29,16 +29,21 @@
     <scroll-view class="sq-list" scroll-y show-scrollbar="false">
       <view class="sq-list-content" :class="animClass" :key="search + sort + activeTag">
         <view v-if="filtered.length > 0" class="sq-grid">
-          <view v-for="tpl in filtered" :key="tpl.id" class="sq-tpl-card" @click="openDetail(tpl)">
+          <view v-for="tpl in filtered" :key="tpl.id"
+            class="sq-tpl-card"
+            :class="{ 'card-float-active': activeCardId === tpl.id }"
+            @click="onCardClick(tpl)" @longpress="onCardLongPress(tpl, $event)">
             <view class="sq-tpl-cover" :style="{ backgroundColor: tpl.coverColor || '#379bff' }">
               <text class="sq-tpl-cover-icon">📋</text>
               <view v-if="tpl.isOfficial" class="sq-official-badge">官方</view>
+              <view v-if="tpl._collected" class="sq-collected-badge">★</view>
             </view>
             <view class="sq-tpl-info">
               <text class="sq-tpl-title">{{ tpl.name }}</text>
               <view class="sq-tpl-stats">
                 <text class="sq-tpl-stat">{{ tpl.actionCount ?? tpl.actions?.length ?? 0 }}动作</text>
                 <text class="sq-tpl-stat">⬇{{ tpl.downloadCount ?? tpl.downloads ?? 0 }}</text>
+                <text class="sq-tpl-stat" :class="{ 'stat-collected': tpl._collected }">★{{ tpl.collectCount ?? 0 }}</text>
               </view>
             </view>
           </view>
@@ -162,6 +167,17 @@
         </view>
       </view>
     </view>
+
+    <!-- 长按收藏气泡（原位浮动） -->
+    <view v-if="showCollectBubble" class="collect-bubble-overlay" @click="closeCollectBubble">
+      <view class="collect-bubble-blur"></view>
+      <view class="collect-bubble" @click.stop="toggleBubbleCollect" :class="{ collected: bubbleCollected }"
+        :style="bubbleStyle">
+        <text class="bubble-icon">{{ bubbleCollected ? '★' : '☆' }}</text>
+        <text class="bubble-text">{{ bubbleCollected ? '已收藏' : '收藏' }}</text>
+      </view>
+      <text class="collect-bubble-tip" :style="tipStyle">点击切换 · 点击空白关闭</text>
+    </view>
   </view>
 </template>
 
@@ -174,7 +190,9 @@
     shareTemplate,
     downloadTemplate,
     listTemplateTags,
-    getTemplateDetail
+    getTemplateDetail,
+    collectTemplate,
+    uncollectTemplate
   } from '@/subpkg-template/utils/serverCommunity.js'
   import {
     getCachedTemplateList,
@@ -211,6 +229,16 @@
         showDetail: false,
         showShare: false,
         detailTpl: null,
+        isCollected: false,
+        isTogglingCollect: false,
+        showCollectBubble: false,
+        bubbleTpl: null,
+        bubbleCollected: false,
+        isTogglingBubbleCollect: false,
+        activeCardId: null,
+        bubbleStyle: {},
+        tipStyle: {},
+        _longPressTriggered: false,
         myTemplates: [],
         shareForm: {
           tplId: null,
@@ -381,22 +409,130 @@
       },
       async openDetail(tpl) {
         this.detailTpl = tpl
+        this.isCollected = false
         this.showDetail = true
         try {
           const detail = await getTemplateDetail(tpl.id)
           if (!this._isMounted) return
           if (detail) {
             this.detailTpl = detail
+            this.isCollected = !!detail.collected
             cacheTemplateDetail(tpl.id, detail)
           }
         } catch (e) {
           const cached = getCachedTemplateDetail(tpl.id)
-          if (cached && this._isMounted) this.detailTpl = cached
+          if (cached && this._isMounted) {
+            this.detailTpl = cached
+            this.isCollected = !!cached.collected
+          }
         }
       },
       closeDetail() {
         this.showDetail = false
         this.detailTpl = null
+        this.isCollected = false
+      },
+      onCardClick(tpl) {
+        if (this._longPressTriggered) {
+          this._longPressTriggered = false
+          return
+        }
+        this.openDetail(tpl)
+      },
+      async onCardLongPress(tpl, event) {
+        if (!tpl || !tpl.id) return
+        this._longPressTriggered = true
+        uni.vibrateShort && uni.vibrateShort({ type: 'light' })
+        this.bubbleTpl = tpl
+        this.bubbleCollected = !!tpl._collected
+        this.activeCardId = tpl.id
+        // 先显示气泡（默认屏幕中间偏上），再用 SelectorQuery 修正位置到卡片正上方
+        this.bubbleStyle = {
+          left: '50%',
+          top: '40%',
+        }
+        this.tipStyle = {
+          left: '50%',
+          top: 'calc(40% - 46px)',
+        }
+        this.showCollectBubble = true
+        // 异步修正气泡位置到被长按卡片的正上方
+        const tplIndex = this.filtered.findIndex(t => t.id === tpl.id)
+        const query = uni.createSelectorQuery().in(this)
+        query.selectAll('.sq-tpl-card').boundingClientRect()
+        query.exec((res) => {
+          if (!this._isMounted || !Array.isArray(res) || !res.length) return
+          const rectArray = Array.isArray(res[0]) ? res[0] : res
+          const card = rectArray[tplIndex] || rectArray[0]
+          if (!card) return
+          this.bubbleStyle = {
+            left: (card.left + card.width / 2) + 'px',
+            top: (card.top - 8) + 'px',
+          }
+          this.tipStyle = {
+            left: (card.left + card.width / 2) + 'px',
+            top: (card.top - 54) + 'px',
+          }
+        })
+        // 异步获取最新收藏状态
+        try {
+          const detail = await getTemplateDetail(tpl.id)
+          if (!this._isMounted) return
+          if (detail) {
+            this.bubbleTpl = { ...tpl, ...detail }
+            this.bubbleCollected = !!detail.collected
+            const idx = this.templates.findIndex(t => t.id === tpl.id)
+            if (idx > -1) {
+              this.templates[idx] = { ...this.templates[idx], _collected: !!detail.collected, collectCount: detail.collectCount }
+            }
+          }
+        } catch (e) {
+          // 离线时用本地状态
+        }
+      },
+      closeCollectBubble() {
+        this.showCollectBubble = false
+        this.bubbleTpl = null
+        this.bubbleCollected = false
+        this.activeCardId = null
+        this.bubbleStyle = {}
+        this.tipStyle = {}
+        this._longPressTriggered = false
+      },
+      async toggleBubbleCollect() {
+        if (!this.bubbleTpl || !this.bubbleTpl.id || this.isTogglingBubbleCollect) return
+        this.isTogglingBubbleCollect = true
+        const tplId = this.bubbleTpl.id
+        try {
+          if (this.bubbleCollected) {
+            await uncollectTemplate(tplId)
+            this.bubbleCollected = false
+            this.bubbleTpl = { ...this.bubbleTpl, collectCount: Math.max(0, (this.bubbleTpl.collectCount || 0) - 1) }
+            const idx = this.templates.findIndex(t => t.id === tplId)
+            if (idx > -1) {
+              this.templates[idx] = { ...this.templates[idx], _collected: false, collectCount: this.bubbleTpl.collectCount }
+            }
+            uni.showToast({ title: '已取消收藏', icon: 'none' })
+          } else {
+            await collectTemplate(tplId)
+            this.bubbleCollected = true
+            this.bubbleTpl = { ...this.bubbleTpl, collectCount: (this.bubbleTpl.collectCount || 0) + 1 }
+            const idx = this.templates.findIndex(t => t.id === tplId)
+            if (idx > -1) {
+              this.templates[idx] = { ...this.templates[idx], _collected: true, collectCount: this.bubbleTpl.collectCount }
+            }
+            uni.showToast({ title: '收藏成功', icon: 'success' })
+          }
+        } catch (e) {
+          if (!this._isMounted) return
+          const msg = (e && e.message) || '操作失败'
+          uni.showToast({
+            title: msg === 'UNAUTHORIZED' ? '请先登录后再收藏' : msg,
+            icon: 'none'
+          })
+        } finally {
+          if (this._isMounted) this.isTogglingBubbleCollect = false
+        }
       },
       maskAuthor(name) {
         if (!name) return 'FitNote 用户'
@@ -1047,6 +1183,118 @@
   .sq-detail-btn.ghost {
     background: var(--bg-tertiary);
     color: var(--text-primary);
+  }
+
+  .sq-detail-btn.primary {
+    background: linear-gradient(135deg, var(--primary, #379bff), #0048ff);
+    color: #fff;
+  }
+
+  .sq-detail-btn.disabled {
+    opacity: 0.5;
+    pointer-events: none;
+  }
+
+  /* —— 长按收藏气泡（原位浮动） —— */
+  .card-float-active {
+    position: relative;
+    z-index: 1201;
+    transform: scale(1.08);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+    transition: transform 0.2s cubic-bezier(0.22, 0.61, 0.36, 1), box-shadow 0.2s ease;
+  }
+
+  .collect-bubble-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1200;
+  }
+
+  .collect-bubble-blur {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+  }
+
+  .collect-bubble {
+    position: absolute;
+    z-index: 1202;
+    transform: translate(-50%, -100%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 8px 20px;
+    border-radius: 16px;
+    background: rgba(30, 38, 60, 0.92);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+    animation: bubblePop 0.22s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+  }
+
+  .collect-bubble.collected {
+    background: rgba(255, 184, 0, 0.92);
+    border-color: rgba(255, 200, 50, 0.6);
+  }
+
+  @keyframes bubblePop {
+    from {
+      opacity: 0;
+      transform: translate(-50%, -90%) scale(0.7);
+    }
+    to {
+      opacity: 1;
+      transform: translate(-50%, -100%) scale(1);
+    }
+  }
+
+  .bubble-icon {
+    font-size: 28rpx;
+    line-height: 1.2;
+  }
+
+  .collect-bubble.collected .bubble-icon {
+    color: #fff;
+  }
+
+  .bubble-text {
+    font-size: 22rpx;
+    color: rgba(255, 255, 255, 0.9);
+    font-weight: 600;
+  }
+
+  .collect-bubble-tip {
+    position: absolute;
+    z-index: 1202;
+    transform: translate(-50%, -100%);
+    font-size: 20rpx;
+    color: rgba(255, 255, 255, 0.5);
+    white-space: nowrap;
+  }
+
+  /* 卡片上的已收藏标记 */
+  .sq-collected-badge {
+    position: absolute;
+    top: 8rpx;
+    right: 8rpx;
+    width: 32rpx;
+    height: 32rpx;
+    border-radius: 50%;
+    background: rgba(255, 184, 0, 0.9);
+    color: #fff;
+    font-size: 20rpx;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* 卡片统计行收藏数字高亮 */
+  .sq-tpl-stat.stat-collected {
+    color: #ffb800 !important;
+    font-weight: 600;
   }
 
   /* sq-detail-btn.ghost 已改用 glass-btn 工具类 */

@@ -35,6 +35,10 @@
           <text class="preview-label">分化计划：</text>
           <text class="preview-value">有</text>
         </view>
+        <view class="preview-item" v-if="parsedData.actions && parsedData.actions.length > 0">
+          <text class="preview-label">动作库：</text>
+          <text class="preview-value">{{ parsedData.actions.length }}个</text>
+        </view>
         <view class="preview-item" v-if="Object.keys(parsedData.dayData).length > 0">
           <text class="preview-label">训练数据：</text>
           <text class="preview-value">{{ Object.keys(parsedData.dayData).length }}天</text>
@@ -135,6 +139,7 @@
 import { importFromClipboard } from '@/utils/exportImport.js'
 import { useDayDataCacheStore } from '@/stores/dayDataCache.js'
 import { useDaySettingsStore } from '@/stores/daySettings.js'
+import { useActionStore } from '@/stores/action.js'
 
 export default {
   data() {
@@ -152,15 +157,27 @@ export default {
     }
   },
   methods: {
+    buildActionMeta() {
+      // 构建动作元数据映射（单侧/自重标志），保证导入容量与手动录入口径一致
+      const actionMeta = {}
+      useActionStore().actions.forEach(a => {
+        actionMeta[a.name] = {
+          isUnilateral: !!a.isUnilateral,
+          bodyweightMode: a.bodyweightMode || false
+        }
+      })
+      return actionMeta
+    },
     async handlePaste() {
       this.errorMessage = ''
       
       try {
         uni.showLoading({ title: '解析中...' })
-        this.parsedData = await importFromClipboard()
+        this.parsedData = await importFromClipboard(this.buildActionMeta())
         
         if (!this.parsedData.templates.length && 
             !this.parsedData.splitPlan && 
+            !(this.parsedData.actions && this.parsedData.actions.length) &&
             !Object.keys(this.parsedData.dayData).length) {
           this.errorMessage = '未能识别到有效数据'
           this.parsedData = null
@@ -179,7 +196,19 @@ export default {
       uni.showLoading({ title: '导入中...' })
       
       try {
-        const { templates, splitPlan, dayData } = this.parsedData
+        const { templates, splitPlan, dayData, actions } = this.parsedData
+        
+        // 导入动作库（含单侧/自重等标记）
+        if (actions && actions.length > 0) {
+          if (this.importMode === 'overwrite') {
+            uni.setStorageSync('fitness_actions', actions)
+          } else {
+            const existing = uni.getStorageSync('fitness_actions') || []
+            uni.setStorageSync('fitness_actions', this.mergeArraysUnique(existing, actions))
+          }
+          // 重新加载动作 store，让导入的动作及标记立即生效
+          useActionStore().load()
+        }
         
         // 导入模板
         if (templates && templates.length > 0) {

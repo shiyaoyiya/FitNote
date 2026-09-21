@@ -118,6 +118,12 @@
           "style": {
             "navigationBarTitleText": "管理动作"
           }
+        },
+        {
+          "path": "serverConfig/serverConfig",
+          "style": {
+            "navigationBarTitleText": "服务器设置"
+          }
         }
       ]
     }

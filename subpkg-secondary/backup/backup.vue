@@ -174,6 +174,12 @@
   import {
     useDaySettingsStore
   } from '@/stores/daySettings.js'
+  import {
+    useActionStore
+  } from '@/stores/action.js'
+  import {
+    useUserProfileStore
+  } from '@/stores/userProfile.js'
   import ExportTab from '@/components/ExportTab.vue'
   import ImportTab from '@/components/ImportTab.vue'
   import {
@@ -189,7 +195,7 @@
     me,
   } from '@/utils/serverBackup.js'
   import {
-    SERVER_BASE_URL
+    getServerBaseUrl
   } from '@/utils/serverConfig.js'
 
   export default {
@@ -223,7 +229,7 @@
         return me()
       },
       serverAddress() {
-        return this.currentMode === 'cloud' ? '微信云开发' : SERVER_BASE_URL
+        return this.currentMode === 'cloud' ? '微信云开发' : getServerBaseUrl()
       },
       tabHighlightStyle() {
         if (!this.tabRectsMeasured || this.tabRects.length === 0) return {
@@ -539,6 +545,9 @@
               })
               try {
                 applyBackupToLocal(backupData, mode)
+                this.daySettingsStore.load()
+                useActionStore().load()
+                useUserProfileStore().load()
                 uni.$emit('backup-restored')
                 uni.showToast({
                   title: '恢复成功',
@@ -838,6 +847,7 @@
             }
             if (typeof raw[0] === 'object') {
               return raw.map(a => {
+                if (!a || typeof a !== 'object') return a
                 let cats = a.categories
                 if (!cats || !Array.isArray(cats) || cats.length === 0) {
                   const oldCat = a.category || dt(a.name)
@@ -847,6 +857,7 @@
                   cats = cats.map(c => LEGACY_CATEGORY_MAP[c] || c)
                 }
                 return {
+                  ...a, // 保留全部原始字段（isUnilateral / bodyweightMode 等标记）
                   id: a.id || gid(),
                   name: a.name,
                   categories: cats,
@@ -872,7 +883,8 @@
             const info = uni.getStorageInfoSync()
             info.keys.forEach(key => {
               if (key === TEMPLATE_KEY || key === ACTION_KEY || key.startsWith(DAYDATA_PREFIX) || key ===
-                'annivs' || key === INDEX_KEY) {
+                'annivs' || key === INDEX_KEY || key === 'fitness_day_settings' || key ===
+                'fitness_categories' || key === 'fitness_user_profile') {
                 uni.removeStorageSync(key)
               }
             })
@@ -902,6 +914,15 @@
             if (annivsArr.length > 0) {
               uni.setStorageSync('annivs', JSON.stringify(annivsArr))
             }
+            if (data.fitness_day_settings) {
+              uni.setStorageSync('fitness_day_settings', data.fitness_day_settings)
+            }
+            if (data.fitness_categories) {
+              uni.setStorageSync('fitness_categories', data.fitness_categories)
+            }
+            if (data.fitness_user_profile) {
+              uni.setStorageSync('fitness_user_profile', data.fitness_user_profile)
+            }
           } else {
             const currentTpl = uni.getStorageSync(TEMPLATE_KEY) || []
             const currentAct = uni.getStorageSync(ACTION_KEY) || []
@@ -923,12 +944,28 @@
               const mergedAnnivs = mergeArraysUnique(currentAnnivs, annivsArr)
               uni.setStorageSync('annivs', JSON.stringify(mergedAnnivs))
             }
+            // 分类按项合并（自定义分类/子分类保留）
+            if (data.fitness_categories && Array.isArray(data.fitness_categories)) {
+              const currentCats = uni.getStorageSync('fitness_categories') || []
+              uni.setStorageSync('fitness_categories', mergeArraysUnique(currentCats, data.fitness_categories))
+            }
+            if (data.fitness_day_settings) {
+              uni.setStorageSync('fitness_day_settings', data.fitness_day_settings)
+            }
+            if (data.fitness_user_profile) {
+              uni.setStorageSync('fitness_user_profile', data.fitness_user_profile)
+            }
           }
 
           const cacheStore = useDayDataCacheStore()
           cacheStore.buildIndex()
           cacheStore.clearCache()
 
+          this.daySettingsStore.load()
+          // 恢复动作库后重新加载动作 store，保证单侧/自重等标记立即生效
+          useActionStore().load()
+          // 恢复个人档案后重新加载，让卡路里/心率估算立即生效
+          useUserProfileStore().load()
           uni.$emit('backup-restored')
 
           this.setStatus('success', '导入成功，数据已更新')

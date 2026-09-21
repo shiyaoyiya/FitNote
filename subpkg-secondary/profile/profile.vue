@@ -62,6 +62,14 @@
         <text>{{ statusMessage }}</text>
       </view>
 
+      <view class="info-row" style="margin-top: 20px;" @click="goToServerConfig">
+        <text class="info-label">服务器设置</text>
+        <view class="info-value-row">
+          <text class="info-value">配置连接地址</text>
+          <text class="edit-arrow">›</text>
+        </view>
+      </view>
+
       <button class="btn-logout" @click="handleLogout" :disabled="loggingOut">
         {{ loggingOut ? '退出中…' : '退出登录' }}
       </button>
@@ -420,6 +428,11 @@
         const n = Number(v)
         if (Number.isNaN(n)) return '0'
         return Number.isInteger(n) ? String(n) : n.toFixed(1)
+      },
+      goToServerConfig() {
+        uni.navigateTo({
+          url: '/subpkg-secondary/serverConfig/serverConfig',
+        })
       },
     },
   }

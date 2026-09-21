@@ -1,4 +1,4 @@
-import { SERVER_BASE_URL } from '@/utils/serverConfig.js'
+import { SERVER_BASE_URL, getServerBaseUrl } from '@/utils/serverConfig.js'
 
 /**
  * uni.request 统一封装（小程序 / H5 / App 通用）
@@ -210,7 +210,7 @@ export function getCachedProfile() {
 
 function buildUrl(url) {
   if (/^https?:\/\//i.test(url)) return url
-  const base = SERVER_BASE_URL.replace(/\/$/, '')
+  const base = getServerBaseUrl().replace(/\/$/, '')
   const path = url.startsWith('/') ? url : `/${url}`
   return `${base}${path}`
 }
@@ -429,7 +429,7 @@ export function resolveAvatarUrl(url) {
   // uni-app 静态资源路径（/static/xxx 或 /@/static/xxx）直接放行
   if (/^\/(@\/)?static\//i.test(s)) return s
   // 其余作为相对路径，拼 SERVER_BASE_URL
-  const base = (SERVER_BASE_URL || '').replace(/\/$/, '')
+  const base = getServerBaseUrl().replace(/\/$/, '')
   const path = s.startsWith('/') ? s : '/' + s
   return base + path
 }

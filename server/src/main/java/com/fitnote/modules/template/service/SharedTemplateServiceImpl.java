@@ -6,7 +6,9 @@ import com.fitnote.common.BusinessException;
 import com.fitnote.common.PageVO;
 import com.fitnote.common.ResultCode;
 import com.fitnote.entity.SharedTemplate;
+import com.fitnote.entity.UserTemplateCollect;
 import com.fitnote.mapper.SharedTemplateMapper;
+import com.fitnote.mapper.UserTemplateCollectMapper;
 import com.fitnote.modules.notification.NotificationService;
 import com.fitnote.modules.template.dto.OfficialDTO;
 import com.fitnote.modules.template.dto.SquarePageQuery;
@@ -28,6 +30,7 @@ import java.util.stream.Collectors;
 public class SharedTemplateServiceImpl implements SharedTemplateService {
 
     private final SharedTemplateMapper sharedTemplateMapper;
+    private final UserTemplateCollectMapper userTemplateCollectMapper;
     private final TemplateLoadHelper loadHelper;
     private final TemplateCountService countService;
     private final NotificationService notificationService;
@@ -97,6 +100,15 @@ public class SharedTemplateServiceImpl implements SharedTemplateService {
         // rejectReason 仅本人或 ADMIN 可见（status=1 时通常为空，仅做兜底）
         boolean showReject = (currentUserId != null && currentUserId.equals(t.getUserId())) || isAdmin;
         vo.setRejectReason(showReject ? t.getRejectReason() : null);
+        // 检查当前用户是否已收藏
+        if (currentUserId != null) {
+            Long cnt = userTemplateCollectMapper.selectCount(new LambdaQueryWrapper<UserTemplateCollect>()
+                    .eq(UserTemplateCollect::getUserId, currentUserId)
+                    .eq(UserTemplateCollect::getTemplateId, id));
+            vo.setCollected(cnt != null && cnt > 0);
+        } else {
+            vo.setCollected(false);
+        }
         return vo;
     }
 

@@ -5,6 +5,7 @@ const DAYDATA_PREFIX = 'fitness_daydata_'
 const BACKUP_VERSION = '1.0'
 const ANNIV_KEY = 'annivs'
 const INDEX_KEY = 'fitness_index'
+import { useDayDataCacheStore } from '@/stores/dayDataCache.js'
 export function getBackupConfig() {
   const raw = uni.getStorageSync(BACKUP_CONFIG_KEY)
   if (raw && typeof raw === 'object') {
@@ -148,7 +149,10 @@ function collectFullData() {
     fitness_templates: filteredTemplates,
     fitness_actions: Array.isArray(actions) ? actions : [],
     fitness_annivs: Array.isArray(annivs) ? annivs : [],
-    fitness_daydata: daydata
+    fitness_daydata: daydata,
+    fitness_day_settings: uni.getStorageSync('fitness_day_settings') || null,
+    fitness_categories: uni.getStorageSync('fitness_categories') || null,
+    fitness_user_profile: uni.getStorageSync('fitness_user_profile') || null
   }
 }
 
@@ -196,7 +200,10 @@ async function collectFullDataWithProgress(dayDataCacheStore, onProgress) {
     fitness_templates: filteredTemplates,
     fitness_actions: Array.isArray(actions) ? actions : [],
     fitness_annivs: Array.isArray(annivs) ? annivs : [],
-    fitness_daydata: daydata
+    fitness_daydata: daydata,
+    fitness_day_settings: uni.getStorageSync('fitness_day_settings') || null,
+    fitness_categories: uni.getStorageSync('fitness_categories') || null,
+    fitness_user_profile: uni.getStorageSync('fitness_user_profile') || null
   }
 }
 
@@ -247,7 +254,10 @@ function collectIncrementalData(lastBackupTime) {
     fitness_templates: filteredTemplates,
     fitness_actions: Array.isArray(actions) ? actions : [],
     fitness_annivs: Array.isArray(annivs) ? annivs : [],
-    fitness_daydata: daydata
+    fitness_daydata: daydata,
+    fitness_day_settings: uni.getStorageSync('fitness_day_settings') || null,
+    fitness_categories: uni.getStorageSync('fitness_categories') || null,
+    fitness_user_profile: uni.getStorageSync('fitness_user_profile') || null
   }
 }
 
@@ -1005,7 +1015,9 @@ export function isFolderUri(uri) {
 function clearAllData() {
   const info = getStorageInfo()
   info.keys.forEach(key => {
-    if (key === TEMPLATE_KEY || key === ACTION_KEY || key === ANNIV_KEY || key === INDEX_KEY || key.startsWith(DAYDATA_PREFIX)) {
+    if (key === TEMPLATE_KEY || key === ACTION_KEY || key === ANNIV_KEY || key === INDEX_KEY ||
+        key === 'fitness_day_settings' || key === 'fitness_categories' || key === 'fitness_user_profile' ||
+        key.startsWith(DAYDATA_PREFIX)) {
       uni.removeStorageSync(key)
     }
   })
@@ -1075,6 +1087,7 @@ function migrateActionsIfNeeded(rawActions) {
   }
   if (typeof rawActions[0] === 'object') {
     return rawActions.map(a => {
+      if (!a || typeof a !== 'object') return a
       let cats = a.categories
       if (!cats || !Array.isArray(cats) || cats.length === 0) {
         const oldCat = a.category || detectCategoryByName(a.name)
@@ -1084,6 +1097,7 @@ function migrateActionsIfNeeded(rawActions) {
         cats = cats.map(c => LEGACY_CATEGORY_MAP[c] || c)
       }
       return {
+        ...a, // 保留全部原始字段（isUnilateral / bodyweightMode 等标记）
         id: a.id || generateId(),
         name: a.name,
         categories: cats,
@@ -1276,6 +1290,15 @@ export async function restoreData(filePath, overwrite) {
         const value = daydata[date] || {}
         uni.setStorageSync(DAYDATA_PREFIX + date, value)
       })
+      if (data.fitness_day_settings) {
+        uni.setStorageSync('fitness_day_settings', data.fitness_day_settings)
+      }
+      if (data.fitness_categories) {
+        uni.setStorageSync('fitness_categories', data.fitness_categories)
+      }
+      if (data.fitness_user_profile) {
+        uni.setStorageSync('fitness_user_profile', data.fitness_user_profile)
+      }
 
     } else {
       console.log('执行合并导入')
@@ -1304,9 +1327,30 @@ export async function restoreData(filePath, overwrite) {
         const next = Object.assign({}, existed, daydata[date] || {})
         uni.setStorageSync(key, next)
       })
+      if (data.fitness_day_settings) {
+        uni.setStorageSync('fitness_day_settings', data.fitness_day_settings)
+      }
+      // 分类按项合并（自定义分类/子分类保留）
+      if (data.fitness_categories && Array.isArray(data.fitness_categories)) {
+        const currentCats = uni.getStorageSync('fitness_categories') || []
+        uni.setStorageSync('fitness_categories', mergeArraysUnique(currentCats, data.fitness_categories))
+      }
+      if (data.fitness_user_profile) {
+        uni.setStorageSync('fitness_user_profile', data.fitness_user_profile)
+      }
     }
 
     console.log('数据恢复完成')
+
+    // 重建日期索引并清空缓存：保证 day 页「对比上次」、月/年统计等基于索引的查询
+    // 能拿到导入后的最新日期，避免索引停留在导入前的旧状态而查不到历史记录
+    try {
+      const cacheStore = useDayDataCacheStore()
+      cacheStore.buildIndex()
+      cacheStore.clearCache()
+    } catch (e) {
+      console.warn('恢复数据后重建日期索引失败:', e)
+    }
 
   } catch (err) {
     console.error('恢复数据失败:', err)
@@ -1668,6 +1712,8 @@ export function writeCSVFile(csvContent, fileName) {
 export {
   clearAllData, // 确保导出
   mergeArraysUnique, // 确保导出
+  migrateActionsIfNeeded, // 确保导出
+  collectFullData, // 确保导出（含分类/日设置/个人档案等全量字段）
   // 添加常量导出
   BACKUP_CONFIG_KEY,
   TEMPLATE_KEY,

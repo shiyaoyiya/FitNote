@@ -5,7 +5,7 @@
  *   - 可达 → 走本地接口（/api/template/** 等）
  *   - 不可达 → 走微信云开发（云数据库 shared_templates 集合，纯前端直连）
  */
-import { request } from '@/utils/serverRequest.js'
+import { request, getAccessToken } from '@/utils/serverRequest.js'
 import { isLocalServerAvailable } from '@/utils/serverBackup.js'
 // #ifdef MP-WEIXIN
 import {
@@ -40,10 +40,14 @@ function _listTemplateTagsLocal() {
 }
 
 function _getTemplateDetailLocal(id) {
+  // 登录态下携带 token 访问详情，后端才能返回当前用户真实的收藏状态（collected）；
+  // 未登录时匿名访问仍可用（collected=false），不影响公开浏览
+  const token = getAccessToken()
   return request({
     url: `/api/template/square/${id}`,
     method: 'GET',
     auth: false,
+    header: token ? { Authorization: `Bearer ${token}` } : {},
   })
 }
 
@@ -61,6 +65,22 @@ function _shareTemplateLocal(dto) {
     method: 'POST',
     auth: true,
     data: dto,
+  })
+}
+
+function _collectTemplateLocal(id) {
+  return request({
+    url: `/api/template/collect/${id}`,
+    method: 'POST',
+    auth: true,
+  })
+}
+
+function _uncollectTemplateLocal(id) {
+  return request({
+    url: `/api/template/collect/${id}`,
+    method: 'DELETE',
+    auth: true,
   })
 }
 
@@ -128,10 +148,24 @@ export async function shareTemplate(dto) {
   // #endif
 }
 
+/** 收藏模板（自动路由；需登录） */
+export async function collectTemplate(id) {
+  if (await isLocalServerAvailable()) return _collectTemplateLocal(id)
+  throw new Error('服务器不可达，无法收藏')
+}
+
+/** 取消收藏（自动路由；需登录） */
+export async function uncollectTemplate(id) {
+  if (await isLocalServerAvailable()) return _uncollectTemplateLocal(id)
+  throw new Error('服务器不可达，无法取消收藏')
+}
+
 export default {
   listSquareTemplates,
   listTemplateTags,
   getTemplateDetail,
   downloadTemplate,
   shareTemplate,
+  collectTemplate,
+  uncollectTemplate,
 }

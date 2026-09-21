@@ -1,22 +1,21 @@
 /**
  * 后端服务地址配置
  * ------------------------------------------------------
- * 手机基座 / 真机调试 / H5局域网测试 场景：
- *   请把 ENV_MODE 改为 'lan' 并把 LAN_HOST 改成你电脑的局域网 IP，
- *   确保手机和电脑处于同一个 Wi-Fi（不能是校园网/企业网等 AP 隔离的网络）。
- *   H5 模式下 lan 模式会自动从当前页面 URL 提取 IP，无需手动修改。
- * 本机 H5 调试（浏览器访问 localhost）：
- *   用 'local' 即可，走本机回环 127.0.0.1。
- * 已部署到服务器 / 生产环境：
- *   用 'prod'，在 PROD_HOST 填你的公网域名。
+ * 支持用户在小程序内动态配置服务器地址，切换网络（WiFi/手机热点）时
+ * 只需在设置页修改 IP 即可，无需改代码重新编译。
+ *
+ * 优先级：用户自定义地址（localStorage）> ENV_MODE 静态配置 > H5 自动检测
+ *
+ * 本机 H5 调试（浏览器访问 localhost）：用 'local'
+ * 局域网调试：用 'lan'，并在设置页输入电脑当前 IP
+ * 生产环境：用 'prod'
  * ------------------------------------------------------
  * 查看本机 LAN IP：Windows PowerShell 执行 `ipconfig`，找到和手机同网段的 IPv4。
- *   示例：192.168.1.180（本会话当前电脑 LAN IP）
  */
 const ENV_MODE = 'lan' // 'local' | 'lan' | 'prod'
 
 const LOCAL_HOST = 'http://127.0.0.1:8080'
-const LAN_HOST = 'http://10.72.69.74:8080' // ← 手机热点当前 IP，H5 模式下会自动检测
+const LAN_HOST = 'http://10.72.69.74:8080' // 默认 fallback IP
 const PROD_HOST = 'https://your-domain.com'
 const SERVER_PORT = '8080'
 
@@ -26,16 +25,43 @@ const HOST_MAP = {
   prod: PROD_HOST,
 }
 
+const CUSTOM_URL_STORAGE_KEY = 'fitnote_custom_server_url'
+
 /**
- * H5 环境下自动从当前页面 URL 提取 IP，拼接后端端口
- * 这样切换网络（WiFi / 手机热点）时无需手动修改 IP
+ * 读取用户自定义服务器地址（小程序内设置页配置）
  */
-function resolveBaseUrl() {
+export function getCustomServerUrl() {
+  try {
+    return uni.getStorageSync(CUSTOM_URL_STORAGE_KEY) || ''
+  } catch (e) {
+    return ''
+  }
+}
+
+/**
+ * 设置用户自定义服务器地址
+ * @param {string} url 形如 http://192.168.1.100:8080
+ */
+export function setCustomServerUrl(url) {
+  if (url) {
+    uni.setStorageSync(CUSTOM_URL_STORAGE_KEY, url)
+  } else {
+    uni.removeStorageSync(CUSTOM_URL_STORAGE_KEY)
+  }
+}
+
+/**
+ * 动态解析服务器基础 URL（每次调用都读取最新配置）
+ * 优先级：用户自定义地址 > H5 自动检测 > ENV_MODE 静态配置
+ */
+export function getServerBaseUrl() {
+  const customUrl = getCustomServerUrl()
+  if (customUrl) return customUrl.replace(/\/$/, '')
+
   const raw = HOST_MAP[ENV_MODE] || LOCAL_HOST
   // #ifdef H5
   if (ENV_MODE === 'lan' && typeof window !== 'undefined' && window.location) {
     const hostname = window.location.hostname
-    // 如果是回环地址，保持原样
     if (hostname !== 'localhost' && hostname !== '127.0.0.1') {
       return `${window.location.protocol}//${hostname}:${SERVER_PORT}`
     }
@@ -44,7 +70,8 @@ function resolveBaseUrl() {
   return raw
 }
 
-export const SERVER_BASE_URL = resolveBaseUrl()
+// 保留静态导出以兼容已有引用，但实际请求应使用 getServerBaseUrl()
+export const SERVER_BASE_URL = getServerBaseUrl()
 export const SERVER_ENV = ENV_MODE
 
 // ============ 微信云开发配置 ============
@@ -62,4 +89,7 @@ export default {
   CLOUD_ENV,
   CLOUD_DB_COLLECTION,
   CLOUD_STORAGE_PREFIX,
+  getServerBaseUrl,
+  getCustomServerUrl,
+  setCustomServerUrl,
 }

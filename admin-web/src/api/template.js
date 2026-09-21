@@ -20,6 +20,11 @@ export function getSquareList(params) {
   return request({ url: '/template/square/page', method: 'get', params })
 }
 
+// 广场模板详情（复用公开接口，返回 TemplateDetailVO 含 templateData）
+export function getSquareDetail(id) {
+  return request({ url: `/template/square/${id}`, method: 'get' })
+}
+
 // 设为/取消官方（isOfficial:0/1, sortWeight）
 export function setOfficial(id, data) {
   return request({ url: `/admin/template/square/${id}/official`, method: 'put', data })

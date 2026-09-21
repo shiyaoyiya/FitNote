@@ -24,20 +24,34 @@ export const useTemplateStore = defineStore('template', {
       }
       console.log('【模板加载】处理后templates:', this.templates)
 
-      // 兼容老数据：如果模板没有 id，则给它补 id
+      // 兼容老数据：如果模板没有 id 或 id 无效，则给它补 id
+      // 注意：id 必须放在 ...t 之后，否则 t.id=null 会覆盖生成的 id
       let patched = false
       this.templates = this.templates.map(t => {
-        if (!t.id) {
+        if (!t || !t.id) {
           patched = true
+          const { id: _oldId, ...rest } = t || {}
           return {
+            ...rest,
             id: String(Date.now()) + Math.random().toString(36).slice(2),
-            ...t
           }
         }
         return t
       })
+
+      // 去重：如果存在重复 id，保留第一个，后续的重新生成 id
+      const seenIds = new Set()
+      this.templates = this.templates.map(t => {
+        if (seenIds.has(t.id)) {
+          patched = true
+          return { ...t, id: String(Date.now()) + Math.random().toString(36).slice(2) }
+        }
+        seenIds.add(t.id)
+        return t
+      })
+
       if (patched) {
-        console.log('【模板加载】补全了模板ID，开始保存')
+        console.log('【模板加载】补全/去重了模板ID，开始保存')
         this.save()
       }
     },
