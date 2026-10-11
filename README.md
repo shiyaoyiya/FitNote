@@ -1,7 +1,7 @@
 # FitNote 健身记录小程序
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-2.3.0-blue?style=flat-square" alt="version">
+  <img src="https://img.shields.io/badge/version-2.5.6-blue?style=flat-square" alt="version">
   <img src="https://img.shields.io/badge/uni--app-v3-4fc08d?style=flat-square" alt="uni-app">
   <img src="https://img.shields.io/badge/Vue-3.x-4fc08d?style=flat-square" alt="Vue">
   <img src="https://img.shields.io/badge/Pinia-v3-f7d336?style=flat-square" alt="Pinia">
@@ -353,7 +353,15 @@ npm run build
 
 ## 版本历史
 
-### v2.3.0 (当前版本)
+### v2.5.6 (当前版本)
+- 身体数据页：体重趋势折线图新增十字准星交互（手指滑动显示跟随虚线 + 数值气泡），支持补录历史日期体重
+- 训练统计：新增基线设置，优化部位统计与训练概览
+- 重构模板管理：合并模板广场与模板管理入口
+- 服务端：新增存储路径统一配置，优化备份与用户档案接口
+- 管理后台样式与交互更新
+- 移除心率/BLE 旧模块，精简前端代码
+
+### v2.3.0
 - 新增「身体数据」页面：身体档案（性别/出生年月/身高/体重/活动系数）、BMR/TDEE 代谢估算、体重趋势图
 - 新增快捷体重记录弹窗与首页圆形入口
 - 新增「先输入重量」录入顺序设置（次数 × 重量 ⇄ 重量 × 次数）
