@@ -97,6 +97,12 @@
           </button>
           <button class="btn-outline" @click="goServerConfig">修改服务器地址</button>
         </view>
+        <view class="server-offline-tip demo-tip">
+          👇 网页演示环境无需后端，可直接体验
+        </view>
+        <button class="btn-demo" @click="enterDemo" :disabled="authLoading">
+          体验演示模式
+        </button>
       </view>
       <!-- #endif -->
 
@@ -126,6 +132,7 @@
   } from '@/utils/serverBackup.js'
   import { SERVER_ENV, getServerBaseUrl } from '@/utils/serverConfig.js'
   import { setTokens } from '@/utils/serverRequest.js'
+  import { enterDemoMode } from '@/utils/demoMode.js'
   // #ifdef MP-WEIXIN
   import {
     cloudLogin,
@@ -310,6 +317,19 @@
         uni.navigateBack({
           fail: () => uni.switchTab({ url: '/pages/index/index' }),
         })
+      },
+      /**
+       * 进入演示模式（网页演示环境：后端不可达时，零依赖体验全部本地功能）
+       */
+      enterDemo() {
+        if (this.authLoading) return
+        enterDemoMode()
+        this.setStatus('success', '已进入演示模式，正在进入应用…')
+        setTimeout(() => {
+          uni.reLaunch({
+            url: '/pages/index/index',
+          })
+        }, 500)
       },
 
       // ============ 微信登录（纯云函数，无 HTTP 请求） ============
@@ -522,8 +542,8 @@
     width: 34px;
     height: 34px;
     background-color: #ffffff;
-    -webkit-mask-image: url('/static/profile.svg');
-    mask-image: url('/static/profile.svg');
+    -webkit-mask-image: url('@/static/profile.svg');
+    mask-image: url('@/static/profile.svg');
     -webkit-mask-size: 100% 100%;
     mask-size: 100% 100%;
     -webkit-mask-repeat: no-repeat;
@@ -679,6 +699,32 @@
     color: var(--text-muted);
     margin-top: 6px;
     line-height: 1.5;
+  }
+
+  .server-offline-tip.demo-tip {
+    margin-top: 14px;
+    text-align: center;
+    color: var(--success, #2ed573);
+    font-weight: 500;
+  }
+
+  .btn-demo {
+    width: 100%;
+    margin-top: 10px;
+    background: linear-gradient(135deg, var(--success, #2ed573), #1fa855);
+    color: #fff;
+    border: none;
+    border-radius: 14px;
+    height: 48px;
+    line-height: 48px;
+    font-size: 15px;
+    font-weight: 600;
+    box-shadow: 0 6px 16px rgba(46, 213, 115, 0.25);
+  }
+
+  .btn-demo[disabled] {
+    opacity: 0.6;
+    box-shadow: none;
   }
 
   .server-offline-actions {

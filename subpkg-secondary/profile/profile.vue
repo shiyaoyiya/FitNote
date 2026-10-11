@@ -608,8 +608,8 @@
     width: 50px;
     height: 50px;
     background-color: #ffffff;
-    -webkit-mask-image: url('/static/profile.svg');
-    mask-image: url('/static/profile.svg');
+    -webkit-mask-image: url('@/static/profile.svg');
+    mask-image: url('@/static/profile.svg');
     -webkit-mask-size: 100% 100%;
     mask-size: 100% 100%;
     -webkit-mask-repeat: no-repeat;

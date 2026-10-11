@@ -16,6 +16,7 @@ node_modules/
 
 # 构建产物
 unpackage/
+dist/
 server/target/
 
 # 运行时数据

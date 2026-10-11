@@ -36,7 +36,7 @@
         <text class="today-train-text">{{ todayBtnText }}</text>
       </view>
       <view class="body-data-btn" @click="onBodyDataBtnClick">
-        <image class="body-data-icon" src="/static/body.svg" mode="aspectFit" />
+        <image class="body-data-icon" src="@/static/body.svg" mode="aspectFit" />
       </view>
     </view>
 
@@ -1347,8 +1347,8 @@
     height: 24px;
     display: inline-block;
     background-color: var(--text-primary);
-    -webkit-mask-image: url('/static/body.svg');
-    mask-image: url('/static/body.svg');
+    -webkit-mask-image: url('@/static/body.svg');
+    mask-image: url('@/static/body.svg');
     -webkit-mask-size: contain;
     mask-size: contain;
     -webkit-mask-repeat: no-repeat;
@@ -1478,38 +1478,38 @@
   }
 
   .icon-muscle {
-    -webkit-mask-image: url('/static/muscle.svg');
-    mask-image: url('/static/muscle.svg');
+    -webkit-mask-image: url('@/static/muscle.svg');
+    mask-image: url('@/static/muscle.svg');
   }
 
   .icon-template {
-    -webkit-mask-image: url('/static/template.svg');
-    mask-image: url('/static/template.svg');
+    -webkit-mask-image: url('@/static/template.svg');
+    mask-image: url('@/static/template.svg');
   }
 
   .icon-backup {
-    -webkit-mask-image: url('/static/backup.svg');
-    mask-image: url('/static/backup.svg');
+    -webkit-mask-image: url('@/static/backup.svg');
+    mask-image: url('@/static/backup.svg');
   }
 
   .icon-statistic {
-    -webkit-mask-image: url('/static/statistic.svg');
-    mask-image: url('/static/statistic.svg');
+    -webkit-mask-image: url('@/static/statistic.svg');
+    mask-image: url('@/static/statistic.svg');
   }
 
   .icon-profile {
-    -webkit-mask-image: url('/static/profile.svg');
-    mask-image: url('/static/profile.svg');
+    -webkit-mask-image: url('@/static/profile.svg');
+    mask-image: url('@/static/profile.svg');
   }
 
   .icon-moon {
-    -webkit-mask-image: url('/static/moon.svg');
-    mask-image: url('/static/moon.svg');
+    -webkit-mask-image: url('@/static/moon.svg');
+    mask-image: url('@/static/moon.svg');
   }
 
   .icon-sun {
-    -webkit-mask-image: url('/static/ty.svg');
-    mask-image: url('/static/ty.svg');
+    -webkit-mask-image: url('@/static/ty.svg');
+    mask-image: url('@/static/ty.svg');
   }
 
   .tab-label {

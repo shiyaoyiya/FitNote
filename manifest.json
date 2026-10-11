@@ -130,5 +130,11 @@
     "uniStatistics" : {
         "enable" : false
     },
+    "h5" : {
+        "router" : {
+            "base" : "./"
+        },
+        "publicPath" : "./"
+    },
     "vueVersion" : "3"
 }
