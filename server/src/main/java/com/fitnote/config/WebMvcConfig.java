@@ -2,11 +2,10 @@ package com.fitnote.config;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
+import com.fitnote.common.StoragePaths;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
-
-import java.nio.file.Paths;
 
 @Configuration
 public class WebMvcConfig implements WebMvcConfigurer {
@@ -34,7 +33,8 @@ public class WebMvcConfig implements WebMvcConfigurer {
      */
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        String location = Paths.get(avatarBaseDir).toAbsolutePath().toUri().toString();
+        // 相对路径统一锚定到 server 模块根目录，避免随启动工作目录变化导致头像时有时无
+        String location = StoragePaths.resolve(avatarBaseDir).toUri().toString();
         String prefix = avatarUrlPrefix.startsWith("/") ? avatarUrlPrefix : "/" + avatarUrlPrefix;
         String pattern = prefix.endsWith("/") ? prefix + "**" : prefix + "/**";
         registry.addResourceHandler(pattern)

@@ -27,3 +27,7 @@ data/backups/
 
 # python
 *.pyc
+
+data/avatars/
+server/data/avatars/
+server/data/backups/

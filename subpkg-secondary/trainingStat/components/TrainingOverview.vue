@@ -38,7 +38,7 @@
 </template>
 
 <script setup>
-import { computed, ref, nextTick, getCurrentInstance } from 'vue'
+import { computed, ref, nextTick, getCurrentInstance, watch } from 'vue'
 
 const DIM_TABS = ['days', 'sets', 'volume']
 
@@ -70,6 +70,10 @@ const props = defineProps({
   noTransition: {
     type: Boolean,
     default: false,
+  },
+  ready: {
+    type: Boolean,
+    default: true,
   },
 })
 
@@ -105,15 +109,23 @@ function measureTabRects() {
   })
 }
 
-// 首次挂载时测量
+// 首次挂载时测量（此时组件 display:none，测量结果会被 ready watch 纠正）
 nextTick(() => {
   setTimeout(() => measureTabRects(), 100)
 })
 
 // dimension 变化时重新测量
-import { watch } from 'vue'
 watch(() => props.dimension, () => {
   measureTabRects()
+})
+
+// v-show 从隐藏切到可见时重新测量（display:none 时 boundingClientRect 全为 0）
+watch(() => props.ready, (val) => {
+  if (val) {
+    nextTick(() => {
+      setTimeout(() => measureTabRects(), 50)
+    })
+  }
 })
 
 const highlightStyle = computed(() => {

@@ -14,10 +14,10 @@
  */
 const ENV_MODE = 'lan' // 'local' | 'lan' | 'prod'
 
-const LOCAL_HOST = 'http://127.0.0.1:8080'
-const LAN_HOST = 'http://10.72.69.74:8080' // 默认 fallback IP
+const LOCAL_HOST = 'http://127.0.0.1:8088'
+const LAN_HOST = 'http://192.168.1.180:8088' // 默认 fallback IP
 const PROD_HOST = 'https://your-domain.com'
-const SERVER_PORT = '8080'
+const SERVER_PORT = '8088'
 
 const HOST_MAP = {
   local: LOCAL_HOST,

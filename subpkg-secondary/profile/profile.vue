@@ -247,6 +247,10 @@
           this.form.nickname = vo?.nickname || vo?.username || ''
           this.form.avatarUrl = vo?.avatarUrl || ''
           this.form.birthday = vo?.birthday || ''
+          // 预下载头像为 base64 缓存，供离线/云存储不可达时兜底显示
+          if (vo?.avatarUrl) {
+            downloadAndCacheAvatar(vo.avatarUrl).catch(() => {})
+          }
           return
         }
 
@@ -296,8 +300,17 @@
           })
           uni.$emit && uni.$emit('cloud-user-changed', next)
         } catch (e) {
-          // 服务器不可达：保留第 1 步渲染的本地数据，仅提示数据来源
-          this.setStatus('error', '服务器未连接，当前显示本地缓存数据')
+          // 区分失败类型：只有“网络不可达”才是真正的服务器未连接；
+          // 登录态失效（401/Token 过期）不代表服务器未连接，提示需可操作。
+          const msg = (e && e.message) || ''
+          if (/unauthorized|未登录|未授权|token|登录已过期|认证失败|FORBIDDEN/i.test(msg)) {
+            this.setStatus('error', '登录状态已失效，请退出后重新登录')
+          } else if (/request:fail|timeout|超时|refused|connection|网络|NETWORK/i.test(msg)) {
+            // 服务器不可达：保留第 1 步渲染的本地数据，仅提示数据来源
+            this.setStatus('error', '服务器未连接，当前显示本地缓存数据')
+          } else {
+            this.setStatus('error', msg || '服务器未连接，当前显示本地缓存数据')
+          }
         }
       },
       resolveAvatarUrl(url) {

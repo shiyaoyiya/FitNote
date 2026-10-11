@@ -1,5 +1,5 @@
 <template>
-  <view class="container" :class="{ dark: daySettingsStore.isDarkMode, light: !daySettingsStore.isDarkMode }">
+  <view class="container" :class="{ dark: daySettingsStore.isDarkMode, light: !daySettingsStore.isDarkMode, 'liquid-glass': daySettingsStore.liquidGlassEnabled }">
     <scroll-view class="page-scroll" scroll-y="true">
       <!-- 身体档案 -->
       <view class="card">
@@ -54,7 +54,7 @@
             <text class="input-unit">kg</text>
           </view>
         </view>
-        <text class="field-hint">体重输入后自动保存，并记入下方趋势图（同一天只保留最新一次）</text>
+        <text class="field-hint">体重输入后自动保存并记入下方趋势图（同一天只保留最新一次）。补录历史某天体重，请在下方“体重趋势”卡片点“补录历史体重”。</text>
 
         <!-- 活动系数 -->
         <view class="field-row column">
@@ -99,20 +99,94 @@
 
       <!-- 体重趋势 -->
       <view class="card chart-card">
-        <view class="card-title">
-          <text class="card-title-text">体重趋势</text>
-          <text class="card-title-sub">首条记录位于图中线，刻度随波动自适应</text>
-        </view>
-        <view class="chart-box">
-          <canvas :id="canvasId" :canvas-id="canvasId" class="chart-canvas"
-            :style="{ width: canvasWidth + 'px', height: canvasHeight + 'px' }"></canvas>
-          <view v-if="chartEmpty" class="chart-empty">
-            <text>暂无体重记录，填写体重后自动生成趋势图</text>
-          </view>
-        </view>
+        <view class="card-title chart-title-row">
+        <text class="card-title-text">体重趋势</text>
         <view v-if="!chartEmpty" class="chart-legend">
           <text class="legend-dot"></text>
           <text class="legend-text">体重 (kg)</text>
+        </view>
+        <view class="chart-title-actions">
+          <view class="backfill-btn" @click="showBackfill = true">补录历史体重</view>
+          <view class="chart-help-btn" @click="showWeightHelp = true">?</view>
+        </view>
+      </view>
+        <view v-if="!chartEmpty" class="range-btns">
+          <view v-for="r in ranges" :key="r.value" class="range-btn"
+            :class="{ active: activeRange === r.value }" @click="onRangeClick(r.value)">{{ r.label }}</view>
+        </view>
+        <view class="chart-box">
+          <canvas :id="canvasId" :canvas-id="canvasId" class="chart-canvas"
+            :style="{ width: canvasWidth + 'px', height: canvasHeight + 'px' }"
+            @touchstart="onChartTouchStart" @touchmove="onChartTouchMove"
+            @touchend="onChartTouchEnd" @touchcancel="onChartTouchEnd"></canvas>
+          <view v-if="chartEmpty" class="chart-empty">
+            <text>暂无体重记录，填写体重后自动生成趋势图</text>
+          </view>
+          <view v-else-if="rangeEmpty" class="chart-empty">
+            <text>该时间段暂无记录</text>
+          </view>
+        </view>
+        <view class="stats-row">
+          <view v-if="chartEmpty" class="stats-empty">暂无体重记录</view>
+          <template v-else>
+            <view class="stats-item">
+              <text class="stats-label">近7天平均体重</text>
+              <view class="stats-value-wrap">
+                <text class="stats-value">{{ weekStats.avgText }}</text>
+                <text v-if="weekStats.insufficient" class="stats-sample-hint">样本不足</text>
+              </view>
+            </view>
+            <view class="stats-item">
+              <text class="stats-label">相比一周前</text>
+              <text :class="['stats-value', weekStats.diffClass]">{{ weekStats.diffLabel }}</text>
+            </view>
+          </template>
+        </view>
+        <text class="chart-hint">7日均值每日滚动更新，抹平单日水分、排便带来的波动；周对比为两段7天均值之差，非单日比较。</text>
+      </view>
+
+      <!-- 补录历史体重弹窗 -->
+      <view v-if="showBackfill" class="help-overlay" @click="showBackfill = false">
+        <view class="help-panel" @click.stop>
+          <view class="help-title">补录历史体重</view>
+          <picker mode="date" :value="backfillDate" :end="todayDate" @change="onBackfillDateChange">
+            <view class="backfill-row">
+              <text class="backfill-label">日期</text>
+              <text class="backfill-value">{{ backfillDate === todayDate ? '今天' : backfillDate }} ›</text>
+            </view>
+          </picker>
+          <view class="backfill-row">
+            <text class="backfill-label">体重(kg)</text>
+            <input class="backfill-input" type="digit" v-model="backfillWeight" placeholder="20-300" maxlength="5" />
+          </view>
+          <view class="backfill-actions">
+            <view class="backfill-cancel" @click="showBackfill = false">取消</view>
+            <view class="backfill-confirm" @click="confirmBackfill">确认补录</view>
+          </view>
+        </view>
+      </view>
+
+      <!-- 体重指标说明弹窗 -->
+      <view v-if="showWeightHelp" class="help-overlay" @click="showWeightHelp = false">
+        <view class="help-panel" @click.stop>
+          <view class="help-title">体重指标说明</view>
+          <view class="help-section">
+            <text class="help-h">✅ 7日滑动平均体重</text>
+            <text class="help-p">自动滚动计算最近连续7天体重的平均值，每天更新。</text>
+            <text class="help-p">作用：过滤每日水分、盐分、排便造成的短期体重起伏，得到更真实的体重基线。</text>
+          </view>
+          <view class="help-section">
+            <text class="help-h">✅ 周变化（相比一周前）</text>
+            <text class="help-p">使用【今日的7天平均】减去【7天前那一天的7天平均快照】。</text>
+            <text class="help-p">本质是两段相隔一周的平滑数据对比，用来判断你的真实增肌/减脂速率。</text>
+          </view>
+          <view class="help-section">
+            <text class="help-h">⚠️ 注意事项</text>
+            <text class="help-p">建议固定在晨起空腹上完厕所称重，保证数据一致性。</text>
+            <text class="help-p">单日体重波动属于正常现象，不要依靠单日体重判断效果。</text>
+            <text class="help-p">记录未满7天，暂不展示周变化。</text>
+          </view>
+          <view class="help-close" @click="showWeightHelp = false">知道了</view>
         </view>
       </view>
     </scroll-view>
@@ -122,7 +196,7 @@
 <script>
   import { useDaySettingsStore } from '@/stores/daySettings.js'
   import { useUserProfileStore } from '@/stores/userProfile.js'
-  import { getSystemInfo } from '@/utils/canvasHelper.js'
+  import { getSystemInfo, measureTextWidth } from '@/utils/canvasHelper.js'
 
   // y 轴刻度候选（单位间隔随波动幅度自适应）
   const NICE_STEPS = [0.05, 0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 50]
@@ -161,6 +235,7 @@
         ],
         hint: '',
         profileCollapsed: false,
+        showWeightHelp: false,
         canvasId: 'weightTrendCanvas',
         canvasWidth: 340,
         canvasHeight: 220,
@@ -168,6 +243,22 @@
         ctx: null,
         isMiniProgram: false,
         todayMonth: '',
+        todayDate: '',
+        backfillDate: '',
+        backfillWeight: '',
+        showBackfill: false,
+        // 十字准星（手指滑动查看）
+        crosshairActive: false,
+        crosshairIndex: -1,
+        // 趋势图时间范围（拖动杆），对齐动作历史页
+        ranges: [
+          { label: '全部', value: 'all' },
+          { label: '1月', value: 1 },
+          { label: '3月', value: 3 },
+          { label: '6月', value: 6 },
+          { label: '1年', value: 12 },
+        ],
+        activeRange: 'all',
       }
     },
     computed: {
@@ -207,6 +298,61 @@
       chartEmpty() {
         return this.chartItems.length === 0
       },
+      // 按时间范围过滤后的序列（拖动杆）
+      rangeItems() {
+        const items = this.chartItems
+        if (!items.length) return []
+        if (this.activeRange === 'all') return items
+        const now = new Date()
+        const cutoff = new Date(now.getFullYear(), now.getMonth() - this.activeRange, now.getDate())
+        return items.filter(it => {
+          const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(it.date)
+          if (!m) return false
+          const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]))
+          return d >= cutoff
+        })
+      },
+      // 有整体数据、但当前时间范围内没有记录
+      rangeEmpty() {
+        return this.chartItems.length > 0 && this.rangeItems.length === 0
+      },
+
+      // 近7日平均体重 & 较上周变化（涨红跌绿）
+      weekStats() {
+        const items = this.chartItems
+        if (!items.length) return null
+        const now = new Date()
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+        const statIn = (startDay, endDay) => {
+          let s = 0, n = 0
+          items.forEach(it => {
+            const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(it.date)
+            if (!m) return
+            const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]))
+            const diffDays = Math.round((today - d) / 86400000)
+            if (diffDays >= startDay && diffDays <= endDay) {
+              s += Number(it.weight)
+              n++
+            }
+          })
+          return n ? { avg: s / n, count: n } : null
+        }
+        // 近7天窗口；窗口内无记录时退化为全部记录（标注样本不足）
+        const thisWeek = statIn(0, 6) || statIn(0, 9999)
+        if (!thisWeek) return null
+        const lastWeek = statIn(7, 13)
+        const a1 = Math.round(thisWeek.avg * 100) / 100
+        const insufficient = thisWeek.count < 7
+        let diffClass = 'stats-none'
+        let diffLabel = '记录不足7天'
+        if (lastWeek) {
+          const diff = Math.round((thisWeek.avg - lastWeek.avg) * 100) / 100
+          if (diff > 0) { diffClass = 'stats-up'; diffLabel = '+' + diff.toFixed(2) + ' kg' }
+          else if (diff < 0) { diffClass = 'stats-down'; diffLabel = diff.toFixed(2) + ' kg' }
+          else { diffLabel = '0.00 kg' }
+        }
+        return { avgText: a1.toFixed(2) + ' kg', insufficient, diffLabel, diffClass }
+      },
     },
     onLoad() {
       this.daySettingsStore = useDaySettingsStore()
@@ -214,6 +360,8 @@
       this.store = useUserProfileStore()
       const now = new Date()
       this.todayMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+      this.todayDate = `${this.todayMonth}-${String(now.getDate()).padStart(2, '0')}`
+      this.backfillDate = this.todayDate
     },
     onShow() {
       if (!this.store) return
@@ -256,6 +404,64 @@
       onBirthChange(e) {
         this.form.birthDate = e.detail.value
         this.saveField('birthDate')
+      },
+      onBackfillDateChange(e) {
+        this.backfillDate = e.detail.value
+      },
+      onRangeClick(val) {
+        this.activeRange = val
+        this.crosshairActive = false
+        this.$nextTick(() => this.drawChart())
+      },
+      onChartTouchStart(e) {
+        const touch = e.touches ? e.touches[0] : (e.changedTouches ? e.changedTouches[0] : null)
+        if (!touch) return
+        this.crosshairActive = true
+        this.updateCrosshair(touch)
+      },
+      onChartTouchMove(e) {
+        if (!this.crosshairActive) return
+        const touch = e.touches ? e.touches[0] : (e.changedTouches ? e.changedTouches[0] : null)
+        if (!touch) return
+        this.updateCrosshair(touch)
+      },
+      onChartTouchEnd() {
+        this.crosshairActive = false
+        this.drawChart()
+      },
+      updateCrosshair(touch) {
+        const items = this.rangeItems
+        if (!items || !items.length) return
+        const pad = { top: 22, right: 20, bottom: 34, left: 48 }
+        const plotW = this.canvasWidth - pad.left - pad.right
+        const x = (touch.clientX || touch.x || 0) - pad.left
+        const idx = this.nearestIndex(x, plotW, items.length)
+        if (idx !== this.crosshairIndex) {
+          this.crosshairIndex = idx
+          this.drawChart()
+        }
+      },
+      nearestIndex(x, plotW, count) {
+        if (count <= 1) return 0
+        const step = plotW / (count - 1)
+        const raw = Math.round(x / step)
+        return Math.max(0, Math.min(count - 1, raw))
+      },
+      confirmBackfill() {
+        const v = Number(this.backfillWeight)
+        if (!this.backfillWeight || Number.isNaN(v)) {
+          uni.showToast({ title: '请输入体重', icon: 'none' })
+          return
+        }
+        if (v < 20 || v > 300) {
+          uni.showToast({ title: '体重需在 20-300', icon: 'none' })
+          return
+        }
+        this.store.recordWeight(this.backfillDate, v)
+        uni.showToast({ title: '已补录 ' + this.backfillDate, icon: 'success' })
+        this.showBackfill = false
+        this.backfillWeight = ''
+        this.$nextTick(() => this.drawChart())
       },
       toggleProfileCollapse() {
         this.profileCollapsed = !this.profileCollapsed
@@ -341,10 +547,8 @@
         const w = this.canvasWidth
         const h = this.canvasHeight
         const isLight = !this.daySettingsStore.isDarkMode
-        const items = this.chartItems
+        const items = this.rangeItems
 
-        ctx.setFillStyle(isLight ? '#f5f5f5' : '#121212')
-        ctx.fillRect(0, 0, w, h)
 
         if (items.length === 0) {
           ctx.draw && ctx.draw()
@@ -495,6 +699,58 @@
           ctx.setTextAlign('center')
           ctx.setFillStyle(isLight ? '#64748b' : '#999999')
           ctx.fillText('首记录 ' + fmt(first), Math.max(fx, pad.left + 20), fy - 10)
+        }
+
+        // 十字准星（跟随手指，虚线 + 数值气泡）
+        if (this.crosshairActive && items.length > 0) {
+          const ci = Math.max(0, Math.min(items.length - 1, this.crosshairIndex))
+          const cx = xAt(ci)
+          const cy = yAt(items[ci].weight)
+
+          ctx.save()
+          ctx.setLineWidth(1)
+          ctx.setStrokeStyle(isLight ? 'rgba(0,0,0,0.3)' : 'rgba(255,255,255,0.5)')
+          ctx.setLineDash([4, 3])
+          ctx.beginPath()
+          ctx.moveTo(cx, pad.top)
+          ctx.lineTo(cx, pad.top + plotH)
+          ctx.stroke()
+          ctx.restore()
+
+          ctx.beginPath()
+          ctx.arc(cx, cy, 5, 0, Math.PI * 2)
+          ctx.setFillStyle('#ffffff')
+          ctx.fill()
+          ctx.beginPath()
+          ctx.arc(cx, cy, 3, 0, Math.PI * 2)
+          ctx.setFillStyle('#379bff')
+          ctx.fill()
+
+          const d = items[ci].date
+          const label = fmt(items[ci].weight) + 'kg ' + Number(d.slice(5, 7)) + '/' + Number(d.slice(8, 10))
+          ctx.setFontSize(11)
+          ctx.setTextAlign('center')
+          const tw = measureTextWidth(ctx, label)
+          const lx = Math.max(pad.left + tw / 2 + 8, Math.min(pad.left + plotW - tw / 2 - 8, cx))
+          const ly = pad.top + 4
+          const bw = tw + 16
+          const bh = 22
+          const br = 6
+          ctx.beginPath()
+          ctx.moveTo(lx - bw / 2 + br, ly)
+          ctx.lineTo(lx + bw / 2 - br, ly)
+          ctx.arcTo(lx + bw / 2, ly, lx + bw / 2, ly + br, br)
+          ctx.lineTo(lx + bw / 2, ly + bh - br)
+          ctx.arcTo(lx + bw / 2, ly + bh, lx + bw / 2 - br, ly + bh, br)
+          ctx.lineTo(lx - bw / 2 + br, ly + bh)
+          ctx.arcTo(lx - bw / 2, ly + bh, lx - bw / 2, ly + bh - br, br)
+          ctx.lineTo(lx - bw / 2, ly + br)
+          ctx.arcTo(lx - bw / 2, ly, lx - bw / 2 + br, ly, br)
+          ctx.closePath()
+          ctx.setFillStyle('rgba(55, 155, 255, 0.9)')
+          ctx.fill()
+          ctx.setFillStyle('#fff')
+          ctx.fillText(label, lx, ly + 16)
         }
 
         ctx.draw && ctx.draw()
@@ -765,9 +1021,112 @@
   }
 
   /* 图表 */
+  .chart-card {
+    padding-bottom: 28px;
+  }
+
   .chart-box {
     position: relative;
     margin-top: 8px;
+  }
+
+  /* 时间范围选择（拖动杆） */
+  .range-btns {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+  }
+
+  .range-btn {
+    padding: 4px 12px;
+    font-size: 12px;
+    border-radius: 6px;
+    background: var(--bg-tertiary);
+    color: var(--text-secondary);
+    transition: all 0.2s;
+  }
+
+  .container.light .range-btn {
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
+  }
+
+  .range-btn.active {
+    background: var(--primary);
+    color: #fff;
+  }
+
+  /* 标题行右侧操作区 */
+  .chart-title-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .backfill-btn {
+    padding: 4px 10px;
+    font-size: 11px;
+    border-radius: 12px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+  }
+
+  /* 补录弹窗表单 */
+  .backfill-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 46px;
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  .backfill-label {
+    font-size: 14px;
+    color: var(--text-secondary);
+  }
+
+  .backfill-value {
+    font-size: 14px;
+    color: var(--text-primary);
+  }
+
+  .backfill-input {
+    width: 120px;
+    height: 36px;
+    font-size: 15px;
+    color: var(--text-primary);
+    text-align: right;
+    background: var(--bg-tertiary);
+    border-radius: 8px;
+    padding: 0 10px;
+  }
+
+  .backfill-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 14px;
+  }
+
+  .backfill-cancel,
+  .backfill-confirm {
+    flex: 1;
+    text-align: center;
+    padding: 10px 0;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 600;
+  }
+
+  .backfill-cancel {
+    background: var(--bg-tertiary);
+    color: var(--text-secondary);
+  }
+
+  .backfill-confirm {
+    background: linear-gradient(135deg, #379bff, #2d82d6);
+    color: #fff;
   }
 
   .chart-canvas {
@@ -790,8 +1149,246 @@
   .chart-legend {
     display: flex;
     align-items: center;
-    gap: 6px;
+    justify-content: space-between;
     margin-top: 8px;
+  }
+
+  .legend-left {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .legend-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .legend-stat {
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+
+  .legend-up {
+    color: var(--danger);
+  }
+
+  .legend-down {
+    color: var(--success);
+  }
+
+  .chart-help-btn {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: 1px solid var(--border-color);
+    font-size: 12px;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .stats-row {
+    display: flex;
+    margin-top: 12px;
+  }
+
+  .stats-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .stats-item + .stats-item {
+    align-items: flex-end;
+  }
+
+  .stats-label {
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+
+  .stats-value {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+
+  .stats-up {
+    color: var(--danger);
+  }
+
+  .stats-down {
+    color: var(--success);
+  }
+
+  .stats-neutral,
+  .stats-none {
+    color: var(--text-muted);
+  }
+
+  .chart-hint {
+    display: block;
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 10px;
+    line-height: 1.6;
+  }
+
+  .help-overlay {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 9990;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .help-panel {
+    width: 82vw;
+    max-width: 340px;
+    max-height: 70vh;
+    overflow-y: auto;
+    background: var(--bg-secondary);
+    border-radius: 18px;
+    padding: 20px 16px 14px;
+  }
+
+  .help-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text-primary);
+    text-align: center;
+    margin-bottom: 14px;
+  }
+
+  .help-section {
+    margin-bottom: 12px;
+  }
+
+  .help-h {
+    display: block;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 6px;
+  }
+
+  .help-p {
+    display: block;
+    font-size: 12px;
+    color: var(--text-secondary);
+    line-height: 1.7;
+  }
+
+  .help-close {
+    margin-top: 8px;
+    text-align: center;
+    font-size: 15px;
+    font-weight: 600;
+    color: #379bff;
+    padding: 10px 0;
+  }
+
+  /* 标题行：图例居中 */
+  .chart-title-row {
+    align-items: center;
+  }
+
+  .chart-title-row .chart-legend {
+    flex: 1;
+    justify-content: center;
+    margin-top: 0;
+  }
+
+  .stats-empty {
+    flex: 1;
+    text-align: center;
+    font-size: 13px;
+    color: var(--text-muted);
+    padding: 6px 0;
+  }
+
+  .stats-compact {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    width: 100%;
+  }
+
+  .stats-compact-item {
+    display: flex;
+    align-items: baseline;
+    gap: 5px;
+  }
+
+  .stats-compact-label {
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+
+  .stats-compact-value {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  .stats-value-wrap {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+  }
+
+  .stats-sample-hint {
+    font-size: 10px;
+    color: var(--text-muted);
+    font-weight: 400;
+  }
+
+  /* ===== 液态玻璃适配 ===== */
+  .container.liquid-glass.dark .card:not(.tdee-card) {
+    background: #191919 !important;
+    -webkit-backdrop-filter: blur(20px) saturate(160%);
+    backdrop-filter: blur(20px) saturate(160%);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow:
+      0 1px 3px var(--glass-shadow-inner) inset,
+      0 8px 24px var(--glass-shadow-outer) !important;
+  }
+
+  .container.liquid-glass.light .card:not(.tdee-card) {
+    background: rgba(255, 255, 255, 0.75) !important;
+    -webkit-backdrop-filter: blur(20px) saturate(160%);
+    backdrop-filter: blur(20px) saturate(160%);
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    border-top: 1px solid rgba(255, 255, 255, 0.6);
+    box-shadow:
+      0 1px 3px var(--glass-shadow-inner) inset,
+      0 8px 24px var(--glass-shadow-outer) !important;
+  }
+
+  .container.liquid-glass .input-wrap,
+  .container.liquid-glass .chip:not(.on),
+  .container.liquid-glass .factor-chip:not(.on) {
+    background: var(--glass-btn-bg) !important;
+    border-color: var(--glass-border);
+  }
+
+  .container.liquid-glass .help-panel {
+    background: var(--glass-bg) !important;
+    -webkit-backdrop-filter: blur(20px) saturate(160%);
+    backdrop-filter: blur(20px) saturate(160%);
+    box-shadow:
+      0 0 0 0.5px var(--glass-edge) inset,
+      0 12px 36px var(--glass-shadow-outer) !important;
   }
 
   .legend-dot {

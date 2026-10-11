@@ -36,6 +36,7 @@
         stripe
         style="width: 100%"
         class="glass-table"
+        scrollbar-always-on
       >
         <el-table-column prop="id" label="ID" width="70" />
         <el-table-column prop="username" label="用户名" min-width="120" />

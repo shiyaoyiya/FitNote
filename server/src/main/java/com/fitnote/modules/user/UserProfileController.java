@@ -3,6 +3,7 @@ package com.fitnote.modules.user;
 import com.fitnote.common.BusinessException;
 import com.fitnote.common.Result;
 import com.fitnote.common.ResultCode;
+import com.fitnote.common.StoragePaths;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.fitnote.entity.SysUser;
 import com.fitnote.mapper.SysUserMapper;
@@ -151,7 +152,8 @@ public class UserProfileController {
             throw new BusinessException(ResultCode.BAD_REQUEST, "仅支持 png/jpg/jpeg/webp/gif 格式");
         }
 
-        Path dir = Paths.get(avatarBaseDir);
+        // 相对路径统一锚定到 server 模块根目录，避免随启动工作目录变化导致头像目录漂移
+        Path dir = StoragePaths.resolve(avatarBaseDir);
         Files.createDirectories(dir);
         String filename = "u" + userId + "_" + System.currentTimeMillis() + "_" +
                 UUID.randomUUID().toString().replace("-", "").substring(0, 8) + ext;

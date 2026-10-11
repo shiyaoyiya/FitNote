@@ -33,7 +33,7 @@
 
     <!-- 表格 -->
     <el-card shadow="never" class="table-card glass-card glass-loading">
-      <el-table v-loading="loading" :data="tableData" border stripe style="width:100%" class="glass-table">
+      <el-table v-loading="loading" :data="tableData" border stripe style="width:100%" class="glass-table" scrollbar-always-on>
         <el-table-column prop="id" label="ID" width="70" />
         <el-table-column prop="title" label="标题" min-width="240" show-overflow-tooltip />
         <el-table-column label="类型" width="110">

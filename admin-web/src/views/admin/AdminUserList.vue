@@ -31,7 +31,7 @@
 
     <!-- 表格 -->
     <el-card shadow="never" class="table-card glass-card glass-loading">
-      <el-table v-loading="loading" :data="tableData" border stripe style="width:100%" class="glass-table">
+      <el-table v-loading="loading" :data="tableData" border stripe style="width:100%" class="glass-table" scrollbar-always-on>
         <el-table-column prop="id" label="ID" width="70" />
         <el-table-column prop="username" label="用户名" width="160" />
         <el-table-column prop="nickname" label="昵称" width="150" />

@@ -117,6 +117,9 @@ export default {
     this.measureTabRects()
   },
   onShow() {
+    // 每次回到模板中心都重新读取模板数据，
+    // 确保从详情页增删动作返回后列表数量是最新的
+    this.templateStore.load()
     this.measureTabRects()
   },
   methods: {

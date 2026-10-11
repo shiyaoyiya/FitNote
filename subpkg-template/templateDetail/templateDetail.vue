@@ -709,46 +709,15 @@
         if (this.isDragMode) return;
         const actName = this.chosenActions[idx];
         uni.navigateTo({
-          url: `/subpkg-action/actionHistory/actionHistory?action=${encodeURIComponent(actName)}`
-        });
-      },
-      goHistory(idx) {
-        if (this.isDragMode) return;
-
-        if (!this.chosenActions || !this.chosenActions[idx]) return;
-
-        this.isNavigating = true;
-
-        this.saveToStoreNow();
-        uni.setStorageSync('temp_template_actions_last_state', {
-          templateName: this.templateName,
-          actions: [...this.chosenActions],
-          timestamp: Date.now()
-        });
-
-        const actName = this.chosenActions[idx];
-
-        uni.navigateTo({
-          url: `../actionHistory/actionHistory?action=${encodeURIComponent(actName)}`,
+          url: `/subpkg-secondary/actionHistory/actionHistory?action=${encodeURIComponent(actName)}`,
           fail: (err) => {
-            this.isNavigating = false;
-          },
-          complete: () => {
-            this.isNavigating = false;
+            console.error('跳转动作历史失败:', err);
+            uni.showToast({
+              title: '跳转失败，请重试',
+              icon: 'none'
+            });
           }
         });
-      },
-      saveToStoreNow() {
-        if (!this.templateName || !this.chosenActions) return;
-
-        const template = this.tplStore.templates.find(t => t.name === this.templateName);
-        if (template) {
-          template.actions = [...this.chosenActions];
-          template.actionSets = {
-            ...this.chosenActionSets
-          };
-          this.tplStore.save();
-        }
       },
       onNameBlur() {
         const oldName = this.originalName.trim()

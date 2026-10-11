@@ -51,7 +51,6 @@
       @toggle-auto-timer="settingsStore.toggleAutoStartTimer()" @toggle-auto-fill="settingsStore.toggleAutoFillData()"
       @toggle-bubble-fill="settingsStore.toggleBubbleFill()"
       @toggle-weight-first="settingsStore.toggleWeightFirst()"
-      @toggle-hr-button="settingsStore.toggleHrButton()"
       @set-heavy-timer="(v) => settingsStore.setHeavyTimerDuration(v)"
       @set-light-timer="(v) => settingsStore.setLightTimerDuration(v)" @export-data="onExportData"
       @import-data="onImportData" />
@@ -102,16 +101,7 @@
   import DaySettings from '@/components/DaySettings.vue'
   import ImportDataModal from '@/components/ImportDataModal.vue'
   import EditEntryPopup from '@/components/EditEntryPopup.vue'
-  import HeartRateToggle from '@/components/HeartRateToggle.vue'
-  import HeartRateChartPopup from '@/components/HeartRateChartPopup.vue'
-  import TrainingAnalysisCard from '@/components/TrainingAnalysisCard.vue'
-  import { createBleHeartRate } from '@/utils/bleHeartRate.js'
-  import { startFloatTimer, updateFloatTimerText, stopFloatTimer, notifyTimerEnd, hasOverlayPermission, requestOverlayPermission } from '@/utils/floatTimer.js'
-  import { estimateAvgHr } from '@/utils/calorieEstimate.js'
-  import { getZones, getZone } from '@/utils/heartRateZones.js'
-  import { calcMetCalories, calcNetCalories, estimateMetFromHr, getMetPreset } from '@/utils/metEstimate.js'
-  import { calculateHrTrend, getTrendIcon, getTrendColor } from '@/utils/heartRateTrend.js'
-  import { evaluateSignalQuality, shouldShowWeakSignalWarning } from '@/utils/bleConnectionQuality.js'
+  import { notifyTimerEnd } from '@/utils/floatTimer.js'
   import { useUserProfileStore } from '@/stores/userProfile.js'
   import { mergeImportData, getNewActions, applyMatchSelections } from '@/utils/dataMerger'
   import { checkAndNotifyTrainingDay, notifyRestEnd } from '@/utils/notification.js'
@@ -124,9 +114,6 @@
       DaySettings,
       ImportDataModal,
       EditEntryPopup,
-      HeartRateToggle,
-      HeartRateChartPopup,
-      TrainingAnalysisCard,
     },
     data() {
       return {
@@ -158,28 +145,6 @@
         showEditEntryPopup: false,
         showImportModal: false,
         savingDay: false,
-        // 心率与热量累计
-        hrBle: null,            // createBleHeartRate() 实例
-        hrConnected: false,
-        hr: null,                // 当前心率
-        hrSamples: [],           // [{hr, durMin}] 累计采样
-        hrKcalTotal: 0,
-        hrDurationSec: 0,
-        hrBaseDurationSec: 0,    // ★ 上次持久化的"基准时长"（存储中的累计，重启/间隙不会被计入）
-        hrTimer: null,           // 每分钟累计定时器
-        hrStartTs: 0,            // 当前会话开始时间戳（每开始一段新会话都是 Date.now()，
-                                 // 永不反推，避免相机杀进程后把拍照时间算成训练）
-        lastHrTs: 0,              // 最后收到心率的时间戳（用于检测手环断开）
-        _hrSaveTimer: null,        // 每 10 秒持久化一次的定时器
-        showDeviceScan: false,
-        showHrChart: false,      // 心率折线图弹窗
-        hrHistorySamples: [],    // 历史心率采样（从 dayData 加载）
-        hrHistoryKcal: 0,
-        hrHistoryDur: 0,
-        totalCalories: 0,
-        netCalories: 0,
-        hrTrend: { trend: 'stable', change: 0 },
-        signalQuality: null,
         editEntryInfo: {
           actionIdx: -1,
           entryIdx: -1
@@ -199,7 +164,6 @@
           autoFillData: this.settingsStore.autoFillData,
           bubbleFill: this.settingsStore.bubbleFill,
           weightFirst: this.settingsStore.weightFirst,
-          hrButtonVisible: this.settingsStore.hrButtonVisible,
           heavyTimerDuration: this.settingsStore.heavyTimerDuration,
           lightTimerDuration: this.settingsStore.lightTimerDuration,
         }
@@ -222,63 +186,6 @@
             timeText: fmt(l)
           },
         ]
-      },
-      hrZones() {
-        const p = useUserProfileStore()
-        return p.age ? getZones(p.age) : []
-      },
-      hrZone() {
-        const p = useUserProfileStore()
-        if (!p.age || this.hr == null) return null
-        return getZone(this.hr, p.age)
-      },
-      trainingGuidance() {
-        if (!this.hrZone) return null
-        const guidanceMap = {
-          0: '保持轻松，热身阶段',
-          1: '燃脂区间，继续保持',
-          2: '有氧训练，强度适中',
-          3: '无氧训练，注意休息',
-          4: '极限强度，谨慎使用'
-        }
-        return guidanceMap[this.hrZone.index] || ''
-      },
-      // 链接1: TrainingAnalysisCard 所需 props
-      trainingEntries() {
-        // actionEntries 是数组形式，转换为 {动作名: [...entries]} 对象
-        const obj = {}
-        this.chosenActions.forEach((name, i) => {
-          obj[name] = this.actionEntries[i] || []
-        })
-        return obj
-      },
-      profileForAnalysis() {
-        const p = useUserProfileStore()
-        return {
-          age: p.age,
-          weight: p.weight,
-          restingHr: p.restingHr,
-        }
-      },
-      hrSamplesWithTsComputed() {
-        // hrSamples 格式 [{hr, durMin}]，转换为 [{hr, ts}]
-        const now = Date.now()
-        return (this.hrSamples || []).map((s, i) => ({
-          hr: s.hr,
-          ts: now - ((this.hrSamples.length - 1 - i) * 60 * 1000)
-        }))
-      },
-      hrPausedForNoHrFlag() {
-        const raw = this.dayDataCacheStore.getDayData(this.date)
-        return raw?.hrPausedForNoHr === true
-      },
-      hrLastActiveTsValue() {
-        const raw = this.dayDataCacheStore.getDayData(this.date)
-        return Number(raw?.hrLastActiveTs) || 0
-      },
-      existingTrainingAnalysis() {
-        const raw = this.dayDataCacheStore.getDayData(this.date)
-        return raw?.trainingAnalysis || null
       },
     },
     watch: {},
@@ -304,33 +211,6 @@
       this.loadDayData()
       useUserProfileStore().load()
 
-      // 从 dayData 恢复心率累计数据 + 判定 gap 是否计入
-      const raw = this.dayDataCacheStore.getDayData(this.date)
-      if (raw.durationSec) {
-        this.hrDurationSec = raw.durationSec
-        this.hrBaseDurationSec = raw.durationSec   // 基准 = 存储中的累计值
-      }
-      if (raw.caloriesTotal) this.hrKcalTotal = raw.caloriesTotal
-      if (raw.hrSamples && Array.isArray(raw.hrSamples)) this.hrSamples = raw.hrSamples
-
-      // ★ 判定是否因为"手环停止广播"才结束上一次保存：
-      //   hrPausedForNoHr=true  → 手环确实停了，gap（之后未训练的空白）不计入，startTs=0 等心率重连再新会话
-      //   hrPausedForNoHr=false → 训练其实仍在进行（只是退页面/后台/被杀），gap 算入训练时间
-      if (raw.durationSec && raw.durationSec > 0) {
-        if (raw.hrPausedForNoHr) {
-          this.hrStartTs = 0          // 等待心率恢复，再开始新会话
-          console.log('[HR] 恢复：上次是手环停止广播，startTs=0，gap 不计入')
-        } else {
-          // 训练仍在进行：把 gap 累加到基准时长，startTs 置 0 等心率重连再新会话
-          const lastActive = raw.hrLastActiveTs || Date.now()
-          const gapSec = Math.floor((Date.now() - lastActive) / 1000)
-          this.hrBaseDurationSec = this.hrBaseDurationSec + gapSec
-          this.hrDurationSec = this.hrBaseDurationSec
-          this.hrStartTs = 0
-          console.log('[HR] 恢复：训练仍在进行，gap=', gapSec, 's 已计入基准，当前时长=', this.hrDurationSec)
-        }
-      }
-
       // 监听数据更新事件
       uni.$on('day-data-updated', () => {
         this.loadDayData()
@@ -343,73 +223,22 @@
         this.loadDayData()
       })
 
-      // 心率广播与训练分析功能已移除
       // 训练日提醒（无设备时静默不崩）
       checkAndNotifyTrainingDay()
     },
     beforeUnmount() {
       this.clearAllTimers()
-      this.stopHrAccumulate()
-      stopFloatTimer()
-      // 训练结束写入心率与热量累计到当日 dayData（只要有采样就保存，不看连接状态）
-      this._saveHrToDayData()
-      // 停止心率定时保存
-      if (this._hrSaveTimer) {
-        clearInterval(this._hrSaveTimer)
-        this._hrSaveTimer = null
-      }
-      // 只清理事件监听器，不断开 BLE 连接（保持手环连接，重进页面可恢复）
-      if (this.hrBle) this.hrBle.detachCallbacks()
       uni.$off('day-data-updated')
       uni.$off('backup-restored')
     },
     onShow() {
       this.checkPendingManageActions()
       if (!this.showChooseTpl) this.loadDayData()
-      // 页面显示时检查心率连接状态
-      if (this.hrBle && !this.hrConnected) {
-        const last = this.hrBle.getLastDeviceId()
-        if (last) {
-          console.log('[HR] 页面显示，检查连接状态')
-          this.hrBle.checkConnected().then((connectedId) => {
-            if (connectedId) {
-              // BLE 连接仍在，直接重新订阅（有超时检测不会卡死）
-              console.log('[HR] onShow: BLE 连接仍在，重新订阅')
-              this.hrConnected = true
-              this.hrBle.subscribe()
-            } else {
-              // 已断连，重连
-              this._doScanConnect()
-            }
-          })
-        }
-      }
-      // 计时进行中且页面恢复时，检查悬浮窗权限是否已开启
-      // #ifdef APP-PLUS
-      if (this.timerActive && hasOverlayPermission()) {
-        startFloatTimer(this.timerDisplay || this.formatMiniTime(this.timerDuration))
-      }
-      // #endif
     },
     onHide() {
       // App 切后台时：
       // 1) 自动保存当日训练数据（原保存按钮已移除，改为离开页面自动保存）
       this.saveAllDay(true)
-      // 2) 立即保存心率计时数据（防止相机/内存杀进程丢失）
-      this._saveHrToDayData()
-      // 3) 计时器后台提醒：
-      //    - 有悬浮窗权限：系统悬浮窗在后台/桌面也可见，无需额外操作
-      //    - 无悬浮窗权限：推送本地通知作为降级提醒
-      // #ifdef APP-PLUS
-      if (this.timerActive && this.timerDisplay && !hasOverlayPermission()) {
-        try {
-          plus.push.createPush(
-            `计时进行中：${this.timerDisplay}，请回到 App 查看`,
-            { title: 'FitNote 计时器' }
-          )
-        } catch (e) {}
-      }
-      // #endif
     },
     onUnload() {
       this.clearAllTimers()
@@ -423,7 +252,6 @@
         if (this.calcDiffTimer) clearTimeout(this.calcDiffTimer)
         if (this.loadTimer) clearTimeout(this.loadTimer)
         this.saveTimer = this.calcDiffTimer = this.loadTimer = null
-        stopFloatTimer()
       },
 
       startQuickTimer(duration) {
@@ -434,52 +262,18 @@
         this.showTimer = false
         this.$nextTick(() => {
           if (this.$refs.timerModal) this.$refs.timerModal.startTimer(dur)
-          // 尝试显示系统悬浮窗
-          this.tryStartFloatTimer(this.formatMiniTime(dur))
         })
-      },
-      // 尝试启动系统悬浮窗：先直接尝试显示，失败再引导权限
-      tryStartFloatTimer(text) {
-        // #ifdef APP-PLUS
-        const ok = startFloatTimer(text)
-        if (ok) return
-        // 显示失败，输出权限状态便于诊断
-        const perm = hasOverlayPermission()
-        console.log('[floatTimer] 悬浮窗启动失败，hasOverlayPermission=', perm)
-        // 无权限时引导用户开启（只提示一次）
-        const prompted = uni.getStorageSync('float_perm_prompted')
-        if (!prompted) {
-          uni.showModal({
-            title: '开启悬浮窗权限',
-            content: '悬浮窗可在桌面显示倒计时，APP 后台也能看到。\n请前往设置开启"显示在其他应用上层"权限。',
-            confirmText: '去开启',
-            cancelText: '暂不',
-            success: (res) => {
-              if (res.confirm) {
-                const jumpOk = requestOverlayPermission()
-                if (!jumpOk) {
-                  uni.showToast({ title: '跳转失败，请手动在设置中开启', icon: 'none' })
-                }
-              }
-              uni.setStorageSync('float_perm_prompted', '1')
-            },
-          })
-        }
-        // #endif
       },
       onTimerTimeChange(newDuration, displayText) {
         this.lastManualTimerDuration = newDuration
         this.timerDuration = newDuration
         if (displayText) this.timerDisplay = displayText
-        // 同步更新系统悬浮窗
-        updateFloatTimerText(displayText || this.formatMiniTime(newDuration))
       },
 
       onTimerComplete() {
         this.showTimer = false
         this.timerActive = false
         this.timerDisplay = ''
-        stopFloatTimer()
         // 推送本地通知（后台时可见）
         notifyTimerEnd()
         notifyRestEnd()
@@ -1346,148 +1140,6 @@
         })
       },
 
-      /* ========== 心率与热量累计 ========== */
-      async initHeartRate() {
-        this.hrBle = createBleHeartRate()
-        const ok = await this.hrBle.initAdapter()
-        if (!ok) { this.hrConnected = false; return }
-        this.hrBle.onHeartRate((h) => {
-          this.hr = h
-          this.lastHrTs = Date.now()
-          this.hrTrend = calculateHrTrend(this.hrSamples.map(s => s.hr))
-          // 首次收到心率 或 暂停后恢复：启动/恢复计时
-          if (!this.hrTimer) this.startHrAccumulate()
-        })
-        this.hrBle.onStateChange((s) => {
-          this.hrConnected = (s === 'connected')
-          if (s === 'connected' && this.hrBle) {
-            this.hrBle.getDeviceRssi(this.hrBle.getLastDeviceId())
-              .then(rssi => {
-                this.signalQuality = evaluateSignalQuality(rssi)
-                if (shouldShowWeakSignalWarning(rssi)) {
-                  uni.showToast({ title: '信号较弱，请靠近设备', icon: 'none' })
-                }
-              })
-          }
-          // 订阅失败/断连时自动重连（限制：1 秒后检查一次）
-          if (s === 'disconnected' && this.hrBle && this.hrBle.getLastDeviceId()) {
-            setTimeout(() => {
-              if (!this.hrConnected) this._doScanConnect()
-            }, 1000)
-          }
-        })
-        // 检查 BLE 是否已连接（退出页面但未断连的情况）
-        const last = this.hrBle.getLastDeviceId()
-        if (last) {
-          const connectedId = await this.hrBle.checkConnected()
-          if (connectedId) {
-            // BLE 连接仍在，直接重新订阅（有超时检测不会卡死）
-            console.log('[HR] BLE 连接仍在，直接重新订阅')
-            this.hrConnected = true
-            this.hrBle.subscribe()
-          } else {
-            // 未连接，尝试重连
-            this.onToggleHrConnect()
-          }
-        }
-      },
-      onToggleHrConnect() {
-        if (this.hrConnected) return
-        if (!this.hrBle) this.initHeartRate().then(() => this._doScanConnect())
-        else this._doScanConnect()
-      },
-      _doScanConnect() {
-        const last = this.hrBle.getLastDeviceId()
-        if (last) {
-          this.hrBle.connect(last).catch(() => { this.showDeviceScan = true })
-        } else {
-          // 简化：弹出 actionSheet 选设备
-          this.hrBle.startScan((d) => {
-            uni.showActionSheet({ itemList: [d.name || d.deviceId], success: () => {
-              this.hrBle.stopScan(); this.hrBle.connect(d.deviceId)
-            } })
-          })
-        }
-      },
-      _saveHrToDayData(extraFlags = {}) {
-        if (!this.hrSamples || this.hrSamples.length === 0) {
-          // 没采样但有暂停标志也要保存（用于恢复时判定是否计入 gap）
-          if (!extraFlags.hrPausedForNoHr) return
-        }
-        // hrPausedForNoHr=true 表示这一次保存是"手环停止广播导致的暂停"，后续 gap 不计入
-        // hrPausedForNoHr=false（默认）= 正常保存/后台/关页，训练仍在进行，gap 应计入
-        const pausedForNoHrFlag = extraFlags.hrPausedForNoHr === true
-        const hrPayload = {
-          heartRateAvg: this.hrSamples.length > 0 ? estimateAvgHr(this.hrSamples) : undefined,
-          caloriesTotal: Math.round(this.hrKcalTotal || 0),
-          durationSec: this.hrDurationSec || 0,
-          hrSamples: this.hrSamples,
-          hrLastActiveTs: Date.now(),                       // ★ 保存时的时间戳
-          hrPausedForNoHr: pausedForNoHrFlag,                // ★ 暂停是否因手环停止广播
-        }
-        const raw = this.dayDataCacheStore.getDayData(this.date)
-        const dayData = { ...raw, ...hrPayload }
-        this.dayDataCacheStore.saveDayData(this.date, dayData)
-        console.log('[HR] 已保存，采样数=', this.hrSamples.length,
-          '时长=', this.hrDurationSec,
-          'kcal=', Math.round(this.hrKcalTotal || 0),
-          'pausedForNoHr=', pausedForNoHrFlag)
-      },
-      _startHrSaveTimer() {
-        if (this._hrSaveTimer) return
-        // 每 10 秒持久化一次心率计时数据，防止相机杀进程丢失
-        this._hrSaveTimer = setInterval(() => {
-          this._saveHrToDayData()
-        }, 10 * 1000)
-      },
-      startHrAccumulate() {
-        // hrStartTs === 0：新会话从 NOW 开始，基准时长 = 已有的 hrDurationSec
-        if (this.hrStartTs === 0) {
-          this.hrBaseDurationSec = this.hrDurationSec || 0
-          this.hrStartTs = Date.now()
-          console.log('[HR] start: 新会话起点，base=', this.hrBaseDurationSec, 's')
-        }
-        if (this.hrTimer) clearInterval(this.hrTimer)
-        let tickCount = 0
-        this._startHrSaveTimer()
-        // 心率超时检测：10 秒没收到新心率，认为手环停止广播，暂停计时
-        this.hrTimer = setInterval(() => {
-          if (this.lastHrTs && Date.now() - this.lastHrTs > 10000) {
-            console.log('[HR] 心率数据超时（10s 无心率），暂停计时，gap 不再计入后续恢复')
-            clearInterval(this.hrTimer)
-            this.hrTimer = null
-            // 合并当前会话到基准（此时 hrDurationSec 已经包含 base + 本次会话）
-            this.hrBaseDurationSec = this.hrDurationSec
-            // 标记为"手环停止"：下次恢复时 gap 不计入
-            this.hrStartTs = 0
-            this.hr = null
-            this._saveHrToDayData({ hrPausedForNoHr: true })   // ★ 写暂停标志 true
-            return
-          }
-          // 统一公式：基准 + 从会话起点到现在的秒数
-          //   - Case A: startTs = now at first session start → 基准 + 本次会话秒数
-          //   - Case B: startTs = lastActive - base*1000 (mounted恢复) → 基准 + gap + 本次会话秒数
-          this.hrDurationSec = this.hrBaseDurationSec + Math.floor((Date.now() - this.hrStartTs) / 1000)
-          tickCount++
-          if (this.hr != null) {
-            this.hrSamples.push({ hr: this.hr, durMin: 1 })
-          }
-          if (tickCount % 60 === 0 && this.hr != null) {
-            const profile = useUserProfileStore().toProfile()
-            if (useUserProfileStore().isComplete()) {
-              const hrEstMet = estimateMetFromHr(this.hr, profile.age)
-              const durationMin = 1
-              this.totalCalories += calcMetCalories(hrEstMet, profile.weight, durationMin)
-              this.netCalories += calcNetCalories(hrEstMet, profile.weight, durationMin)
-              this.hrKcalTotal = this.netCalories
-            }
-          }
-        }, 1000)
-      },
-      stopHrAccumulate() {
-        if (this.hrTimer) { clearInterval(this.hrTimer); this.hrTimer = null }
-      },
-      onOpenHrSettings() { this.showSettings = true },
       saveAllDay(silent = false) {
         // 保存当日所有动作到存储 + 训练通知（silent=true 时为自动保存，不提示）
         const today = this.date
@@ -1511,37 +1163,10 @@
           tplInfo.totalWeight = Object.values(tplInfo.actionWeights).reduce((a, b) => a + b, 0)
           dayData.templates[this.chosenTplName] = tplInfo
         }
-        // 心率会话等扩展数据（原样保留）
-        if (raw.durationSec) dayData.durationSec = raw.durationSec
-        if (raw.hrSamples) dayData.hrSamples = raw.hrSamples
-        if (raw.caloriesTotal) dayData.caloriesTotal = raw.caloriesTotal
-        if (raw.startTs) dayData.startTs = raw.startTs
-        if (raw.hrPausedForNoHr) dayData.hrPausedForNoHr = raw.hrPausedForNoHr
-        if (raw.hrZonesSummary) dayData.hrZonesSummary = raw.hrZonesSummary
         this.dayDataCacheStore.saveDayData(today, dayData)
         if (silent) return
         uni.vibrateShort({ fail: () => {} })
         uni.showToast({ title: '已保存', icon: 'success' })
-      },
-      goToTrainingAnalysis() {
-        uni.vibrateShort({ fail: () => {} })
-        uni.navigateTo({
-          url: '/subpkg-training/trainingAnalysis/trainingAnalysis'
-        })
-      },
-      onShowHrChart() {
-        // 从 dayData 加载今日历史心率数据
-        const raw = this.dayDataCacheStore.getDayData(this.date)
-        this.hrHistorySamples = raw.hrSamples || []
-        this.hrHistoryKcal = raw.caloriesTotal || 0
-        this.hrHistoryDur = raw.durationSec || 0
-        // 如果当前正在训练，合并当前采样
-        if (this.hrSamples.length > 0) {
-          this.hrHistorySamples = [...this.hrHistorySamples, ...this.hrSamples]
-          this.hrHistoryKcal = Math.round(this.hrKcalTotal)
-          this.hrHistoryDur = this.hrDurationSec
-        }
-        this.showHrChart = true
       },
     },
   }
@@ -1836,70 +1461,4 @@
     display: none !important;
   }
 
-  /* ========== MET选择器弹窗（复用 BodyProfilePopup 样式） ========== */
-  .bp-overlay {
-    position: fixed;
-    top: 0; bottom: 0; left: 0; right: 0;
-    z-index: 1000;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-  }
-  .bp-bg {
-    position: absolute;
-    top: 0; bottom: 0; left: 0; right: 0;
-    background-color: rgba(0, 0, 0, 0.3);
-  }
-  .bp-panel {
-    position: relative;
-    width: 80vw;
-    background: var(--glass-bg, rgba(255,255,255,0.7));
-    backdrop-filter: blur(20px) saturate(140%);
-    -webkit-backdrop-filter: blur(20px) saturate(140%);
-    border: 1rpx solid var(--glass-border, rgba(200,210,230,0.6));
-    border-radius: 16px;
-    overflow: hidden;
-    z-index: 1001;
-    margin-top: -44px;
-    box-shadow: var(--glass-float, 0 8px 24px rgba(0,0,0,0.06)),
-      0 0 0 0.5px var(--glass-edge, rgba(255,255,255,0.65)) inset;
-  }
-  .fade-in { animation: bpFadeIn 0.2s ease-out; }
-  @keyframes bpFadeIn {
-    from { opacity: 0; transform: scale(0.9); }
-    to { opacity: 1; transform: scale(1); }
-  }
-  .bp-header {
-    position: relative;
-    padding: 12px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-  .bp-header::after {
-    content: '';
-    position: absolute;
-    left: 50%; bottom: 0;
-    transform: translateX(-50%);
-    width: 72vw; height: 1px;
-    background-color: var(--divider-color);
-  }
-  .bp-title { font-size: 16px; font-weight: bold; color: var(--text-primary); }
-  .bp-close {
-    width: 40px; height: 40px;
-    display: flex; justify-content: center; align-items: center;
-    font-size: 20px; border-radius: 50%;
-    color: var(--text-secondary);
-  }
-  .bp-body { padding: 12px 16px; }
-
-  /* 深色模式 - MET选择器 */
-  .container.dark .bp-panel {
-    background: rgba(31,41,55,0.85);
-    border-color: rgba(75,85,99,0.6);
-    box-shadow: 0 8px 24px rgba(0,0,0,0.3),
-      0 0 0 0.5px rgba(255,255,255,0.08) inset;
-  }
-
-  /* 液态玻璃 - MET选择器已改用 glass-base 工具类 */
 </style>

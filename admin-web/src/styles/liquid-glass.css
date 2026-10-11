@@ -649,11 +649,17 @@ body::after {
   border: 1px solid var(--glass-border) !important;
   border-radius: var(--glass-radius-lg) !important;
   box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5) !important;
+  /* 弹窗框架固定在屏幕中间：上下保留外边距、高度不超过视口，整窗不再随遮罩/页面滚动 */
+  margin: 5vh auto 5vh !important;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
 }
 
 .el-dialog__header {
   border-bottom: 1px solid var(--glass-border-soft);
   padding: 20px 24px;
+  flex-shrink: 0;
 }
 
 .el-dialog__title {
@@ -665,11 +671,16 @@ body::after {
 .el-dialog__body {
   color: var(--glass-text-secondary);
   padding: 20px 24px;
+  /* 仅弹窗内容区可滚动：弹窗框架与遮罩背景固定不滚动 */
+  overflow-y: auto;
+  flex: 1 1 auto;
+  min-height: 0;
 }
 
 .el-dialog__footer {
   border-top: 1px solid var(--glass-border-soft);
   padding: 16px 24px;
+  flex-shrink: 0;
 }
 
 .el-dialog__headerbtn .el-dialog__close {
@@ -1055,4 +1066,20 @@ body::after {
 /* el-scrollbar 内部 */
 .el-scrollbar__bar {
   opacity: 0.5;
+}
+
+/* 表格水平滚动条：配合 el-table 的 scrollbar-always-on，始终可见且高亮 */
+.el-table .el-scrollbar__bar.is-horizontal {
+  opacity: 1;
+  height: 8px;
+  left: 0;
+}
+
+.el-table .el-scrollbar__bar.is-horizontal .el-scrollbar__thumb {
+  background: rgba(91, 157, 255, 0.45);
+  border-radius: 4px;
+}
+
+.el-table .el-scrollbar__bar.is-horizontal .el-scrollbar__thumb:hover {
+  background: rgba(91, 157, 255, 0.7);
 }

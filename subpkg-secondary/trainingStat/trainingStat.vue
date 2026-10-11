@@ -15,15 +15,18 @@
           @update:month="onMonthChange" />
       </view>
 
-      <TrainingOverview :stats="overviewStats" :period="currentPeriod" :dimension="currentDimension"
-        :swipeDeltaX="swipeDeltaX" :swipeViewWidth="swipeViewWidth" :noTransition="swipeNoTransition"
+      <TrainingOverview v-show="dataReady" :stats="overviewStats" :period="currentPeriod" :dimension="currentDimension"
+        :swipeDeltaX="swipeDeltaX" :swipeViewWidth="swipeViewWidth" :noTransition="swipeNoTransition" :ready="dataReady"
         @update:dimension="onDimensionChange" />
 
-      <BodyPartTrend :trendData="trendData" :selectedBodyPart="selectedBodyPart" :period="currentPeriod"
+      <BodyPartTrend v-show="dataReady" :trendData="trendData" :selectedBodyPart="selectedBodyPart" :period="currentPeriod"
         :dimension="currentDimension" @select:bodyPart="onBodyPartSelect" />
 
-      <BodyPartGrid :bodyPartData="bodyPartGridData" :dimension="currentDimension" :bodyPartOrder="bodyPartOrder"
-        :bodyPartVisibility="bodyPartVisibility" :badgeStatus="badgeStatus" @manage="showBodyPartManager = true"
+      <BodyPartGrid v-show="dataReady" :bodyPartData="bodyPartGridData" :dimension="currentDimension" :bodyPartOrder="bodyPartOrder"
+        :bodyPartVisibility="bodyPartVisibility" :badgeStatus="badgeStatus" :window="compareWindow"
+        :baselineConfig="baselineConfig" :adaptiveRanges="adaptiveRanges"
+        @manage="showBodyPartManager = true" @update:window="onCompareWindowChange"
+        @update:baselineConfig="onBaselineConfigChange"
         @select:bodyPart="onBodyPartSelect" />
 
 
@@ -62,12 +65,16 @@
     isCategoryId,
     CATEGORY_NAMES,
     MERGED_CATEGORIES,
-    collectAllWeeklyVolume,
-    collectCalories
+    computeBodyPartTotalsByDays,
+    computeWindowTotalsByBodyPart,
+    computeAdaptiveBaselineByBodyPart
   } from './statUtil.js'
   import {
-    rebuildVolumeHistory,
-    getStatus
+    loadConfig,
+    saveConfig,
+    getStatusFromConfig,
+    computeAdaptiveRange,
+    DEFAULT_CONFIG
   } from './volumeHistory.js'
 
   const CONFIG_KEY = 'training_stat_bodypart_config'
@@ -92,6 +99,10 @@
   const DIM_TABS = ['days', 'sets', 'volume']
   const currentDimension = ref('days')
 
+  // ============ 部位对比时间窗（近7天 / 两周 / 一个月） ============
+  const COMPARE_WINDOWS = { '7d': 7, '14d': 14, '30d': 30 }
+  const compareWindow = ref('14d')
+
   // ============ 侧滑手势 ============
   const swipeStartX = ref(0)
   const swipeStartY = ref(0)
@@ -103,7 +114,14 @@
 
   const selectedBodyPart = ref('chest')
   const allStats = ref(null)
+  const dataReady = ref(false)
   const showBodyPartManager = ref(false)
+
+  // 训练基线配置（自适应开关 + 自定义区间），用户显式设置，随备份导出导入
+  const baselineConfig = ref(DEFAULT_CONFIG)
+
+  // 自适应基线现算区间（供基线弹窗实时显示，仅自适应开启且有数据时非空）
+  const adaptiveRanges = ref({})
 
   const bodyPartOrder = ref([])
   const bodyPartVisibility = ref({})
@@ -137,14 +155,22 @@
 
   const bodyPartGridData = computed(() => {
     if (!allStats.value) return []
-    const subTotals = allStats.value.subcategoryTotals
+    // 卡片 sets 显示统一折算为"平均每周"口径（与周基线同口径对照）
+    const windowDays = COMPARE_WINDOWS[compareWindow.value]
+    const totals = computeBodyPartTotalsByDays({
+      days: windowDays,
+      refDate: getLatestDate(),
+      actionStore,
+      dayDataCacheStore,
+    })
+    const subTotals = totals.subcategoryTotals
+    const categoryTotals = totals.categoryTotals
     const mergedMap = {}
 
     for (const [catId, mergeInfo] of Object.entries(MERGED_CATEGORIES)) {
       const children = mergeInfo.children
       let totalSets = 0
       let totalVolume = 0
-      const daySet = new Set()
 
       for (const item of subTotals) {
         if (children.includes(item.id)) {
@@ -153,16 +179,13 @@
         }
       }
 
-      const catDays = allStats.value.categoryTrends[catId]
-      const days = catDays && catDays.length > 0 ?
-        catDays.reduce((max, d) => Math.max(max, d.days), 0) :
-        0
+      const catItem = categoryTotals.find(c => c.id === catId)
 
       mergedMap[catId] = {
         id: catId,
         name: MERGED_CATEGORIES[catId].name,
-        days,
-        sets: totalSets,
+        days: catItem ? catItem.days : 0,
+        sets: Math.round(totalSets * 7 / windowDays),
         volume: totalVolume,
       }
     }
@@ -179,7 +202,8 @@
     for (const item of subTotals) {
       if (!childrenIds.has(item.id)) {
         result.push({
-          ...item
+          ...item,
+          sets: Math.round(item.sets * 7 / windowDays),
         })
       }
     }
@@ -199,56 +223,6 @@
 
     return result
   })
-
-  const caloriesData = computed(() => {
-    // 引用 allStats.value 建立响应式依赖，使 refreshStats 完成后同步重算
-    if (!allStats.value) return {
-      total: 0,
-      daily: []
-    }
-    return collectCalories({
-      year: currentYear.value,
-      month: currentMonth.value - 1,
-      periodType: currentPeriod.value,
-      dayDataCacheStore,
-    })
-  })
-
-  const caloriesChartData = computed(() => {
-    const raw = caloriesData.value.daily || []
-    if (currentPeriod.value === 'year') {
-      const monthBuckets = {}
-      for (const item of raw) {
-        const m = parseInt(item.date.split('-')[1])
-        const label = `${m}月`
-        monthBuckets[label] = (monthBuckets[label] || 0) + item.kcal
-      }
-      return Object.keys(monthBuckets)
-        .sort((a, b) => parseInt(a) - parseInt(b))
-        .map(label => ({
-          label,
-          kcal: Math.round(monthBuckets[label])
-        }))
-    }
-    return raw.map(item => {
-      const parts = item.date.split('-')
-      return {
-        label: `${parseInt(parts[1])}/${parseInt(parts[2])}`,
-        kcal: Math.round(item.kcal)
-      }
-    })
-  })
-
-  const caloriesMaxValue = computed(() => {
-    const arr = caloriesChartData.value
-    if (arr.length === 0) return 1
-    return Math.max(...arr.map(i => i.kcal), 1)
-  })
-
-  function caloriesBarHeight(kcal) {
-    const maxBarHeight = 120
-    return Math.max(2, (kcal / caloriesMaxValue.value) * maxBarHeight)
-  }
 
   const OLD_TO_NEW_MAP = {
     upper_chest: 'chest',
@@ -361,6 +335,10 @@
     refreshStats()
   }
 
+  function onCompareWindowChange(window) {
+    compareWindow.value = window
+  }
+
   // ============ 侧滑手势 ============
   function onPageTouchStart(e) {
     if (e.touches.length !== 1) return
@@ -419,6 +397,20 @@
     selectedBodyPart.value = bodyPartId
   }
 
+  /**
+   * 全局数据最新日期（'YYYY-MM-DD'）：所有部位统一的参考日期。
+   * 徽章与时间窗窗口均锚定于此，同一份数据 + 相同 refDate 结果可复现（跨设备一致）。
+   */
+  function getLatestDate() {
+    const dates = dayDataCacheStore.indexedDates
+    if (!dates || dates.length === 0) return null
+    let max = dates[0]
+    for (const d of dates) {
+      if (d > max) max = d
+    }
+    return max
+  }
+
   function refreshStats() {
     allStats.value = computeStats({
       year: currentYear.value,
@@ -428,20 +420,58 @@
       dayDataCacheStore,
     })
 
-    const history = rebuildVolumeHistory(
-      collectAllWeeklyVolume(actionStore, dayDataCacheStore)
-    )
-
+    // 徽章：固定 14 天滑动窗口，锚定全局数据最新日期（不随时间窗/月年切换）
+    // 判定 = 纯函数（数据 + 显式配置），不读写任何派生状态 → 跨设备可复现
+    const refDate = getLatestDate()
     const statusMap = {}
-    if (allStats.value) {
+    if (allStats.value && refDate) {
+      const windowTotals = computeWindowTotalsByBodyPart({
+        refDate,
+        days: 14,
+        actionStore,
+        dayDataCacheStore,
+      })
+      const cfg = baselineConfig.value || DEFAULT_CONFIG
+      let baselineTotals = null
+      if (cfg.adaptive) {
+        // 自适应基线：当前窗口之前的 8 周（56 天），现算、零持久化
+        baselineTotals = computeAdaptiveBaselineByBodyPart({
+          refDate,
+          windowDays: 14,
+          historyDays: 56,
+          actionStore,
+          dayDataCacheStore,
+        })
+      }
+      // 自适应区间（组/训练日 ±30%），供基线弹窗实时显示；数据不足部位为 null
+      const nextAdaptiveRanges = {}
+      if (cfg.adaptive && baselineTotals) {
+        for (const id of Object.keys(baselineTotals)) {
+          nextAdaptiveRanges[id] = computeAdaptiveRange(id, baselineTotals[id])
+        }
+      }
+      adaptiveRanges.value = nextAdaptiveRanges
       for (const item of bodyPartGridData.value) {
-        const status = getStatus(item.id, history)
+        const info = windowTotals[item.id]
+        if (!info) continue
+        const status = getStatusFromConfig(
+          item.id,
+          info,
+          cfg,
+          baselineTotals ? baselineTotals[item.id] : null,
+        )
         if (status) {
           statusMap[item.id] = status
         }
       }
     }
     badgeStatus.value = statusMap
+  }
+
+  function onBaselineConfigChange(cfg) {
+    baselineConfig.value = cfg
+    saveConfig(cfg)
+    refreshStats()
   }
 
   function preloadRemainingMonths() {
@@ -463,10 +493,14 @@
     actionStore.load()
     computeMinDateRange()
     loadBodyPartConfig()
+    baselineConfig.value = loadConfig()
     refreshStats()
 
     nextTick(() => {
       preloadRemainingMonths()
+      // v-show 组件已在 DOM 中（display:none），数据就绪后直接显示即可，
+      // 不再触发动态插入节点导致的 WebView GPU 合成丢层问题。
+      dataReady.value = true
     })
   })
 

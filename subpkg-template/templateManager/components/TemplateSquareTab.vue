@@ -106,10 +106,13 @@
         <view class="sq-detail-actions-preview">
           <view class="sqd-section-title">动作清单</view>
           <view class="sqd-action-list">
-            <view v-for="(a, i) in detailActions" :key="i" class="sqd-action-row">
+            <view v-if="detailActions.length > 0" v-for="(a, i) in detailActions" :key="i" class="sqd-action-row">
               <text class="sqd-action-index">{{ i + 1 }}</text>
               <text class="sqd-action-name">{{ a.name }}</text>
               <text class="sqd-action-sets">{{ a.sets }}组</text>
+            </view>
+            <view v-else class="sqd-action-empty">
+              <text class="sqd-action-empty-text">{{ isOffline ? '离线状态下无法加载动作清单，联网后可查看' : '该模板暂无动作清单' }}</text>
             </view>
           </view>
         </view>
@@ -411,6 +414,12 @@
         this.detailTpl = tpl
         this.isCollected = false
         this.showDetail = true
+        // 优先使用本地详情缓存：离线/弱网下也能立即展示动作清单
+        const cached = getCachedTemplateDetail(tpl.id)
+        if (cached) {
+          this.detailTpl = cached
+          this.isCollected = !!cached.collected
+        }
         try {
           const detail = await getTemplateDetail(tpl.id)
           if (!this._isMounted) return
@@ -420,10 +429,10 @@
             cacheTemplateDetail(tpl.id, detail)
           }
         } catch (e) {
-          const cached = getCachedTemplateDetail(tpl.id)
-          if (cached && this._isMounted) {
-            this.detailTpl = cached
-            this.isCollected = !!cached.collected
+          // 网络不可达且本地无缓存：保留列表项，提示动作清单不可用
+          if (!this._isMounted) return
+          if (!cached && this.isOffline) {
+            uni.showToast({ title: '离线状态，动作清单暂不可用', icon: 'none' })
           }
         }
       },
@@ -626,7 +635,7 @@
               })
               this.templateStore.save()
               uni.showToast({
-                title: '覆盖成功',
+                title: this.isOffline ? '离线覆盖成功' : '覆盖成功',
                 icon: 'success'
               })
             }
@@ -638,7 +647,7 @@
             })
             this.templateStore.save()
             uni.showToast({
-              title: '导入成功',
+              title: this.isOffline ? '离线导入成功' : '导入成功',
               icon: 'success'
             })
           }
@@ -1428,6 +1437,20 @@
     font-size: 22rpx;
     font-weight: 600;
     flex-shrink: 0;
+  }
+
+  .sqd-action-empty {
+    padding: 24rpx 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .sqd-action-empty-text {
+    font-size: 24rpx;
+    color: var(--text-secondary);
+    text-align: center;
+    line-height: 1.5;
   }
 
   .sq-detail-desc {

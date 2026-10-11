@@ -105,7 +105,7 @@
       <el-tabs v-model="activeTab" type="card" @tab-change="handleTabChange" class="glass-tabs">
         <!-- 备份历史 -->
         <el-tab-pane label="备份历史" name="backup">
-          <el-table :data="backupList" v-loading="loading.backup" border stripe class="glass-table">
+          <el-table :data="backupList" v-loading="loading.backup" border stripe class="glass-table" scrollbar-always-on>
             <el-table-column prop="id" label="ID" width="70" />
             <el-table-column prop="fileName" label="文件名" min-width="220" show-overflow-tooltip />
             <el-table-column label="备份时间" width="160">
@@ -143,7 +143,7 @@
 
         <!-- 分享模板 -->
         <el-tab-pane label="分享模板" name="share">
-          <el-table :data="shareList" v-loading="loading.share" border stripe class="glass-table">
+          <el-table :data="shareList" v-loading="loading.share" border stripe class="glass-table" scrollbar-always-on>
             <el-table-column prop="id" label="ID" width="70" />
             <el-table-column label="封面" width="80" align="center">
               <template #default="{row}">
@@ -181,7 +181,7 @@
 
         <!-- 反馈历史 -->
         <el-tab-pane label="反馈历史" name="feedback">
-          <el-table :data="feedbackList" v-loading="loading.feedback" border stripe class="glass-table">
+          <el-table :data="feedbackList" v-loading="loading.feedback" border stripe class="glass-table" scrollbar-always-on>
             <el-table-column prop="id" label="ID" width="70" />
             <el-table-column prop="title" label="标题" min-width="220" show-overflow-tooltip />
             <el-table-column label="分类" width="90" align="center">
@@ -240,10 +240,19 @@ const loading = reactive({
 
 function resolveAvatar(url) {
   if (!url) return ''
-  if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) return url
-  if (url.startsWith('/static') || url.startsWith('@/static')) return url
-  if (url.startsWith('/avatars')) return url
+  // 完整外链 / 协议相对 / base64 直接使用
+  if (/^(https?:)?\/\//.test(url) || url.startsWith('data:')) return url
+  // 前端静态资源直接使用
+  if (url.startsWith('@/static') || url.startsWith('/static')) return url
   const base = import.meta.env.VITE_API_BASE || '/api'
+  // /avatars 走后端静态映射：与 /api 同源时直接用相对路径（dev 由 vite 代理），
+  // 若 VITE_API_BASE 配了完整后端地址，则从其中取出源拼接
+  if (url.startsWith('/avatars')) {
+    if (/^https?:\/\//.test(base)) {
+      return base.replace(/\/+$/, '').replace(/\/api\/?$/, '') + url
+    }
+    return url
+  }
   if (url.startsWith('/')) return base + url
   return base + '/' + url
 }

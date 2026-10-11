@@ -40,6 +40,7 @@
         stripe
         style="width: 100%"
         class="glass-table"
+        scrollbar-always-on
       >
         <el-table-column prop="id" label="ID" width="70" />
         <el-table-column prop="userId" label="用户ID" width="90" />
@@ -114,6 +115,7 @@
       width="820px"
       :close-on-click-modal="false"
       class="backup-preview-dialog"
+      append-to-body
     >
       <div v-loading="previewLoading" class="preview-wrapper">
         <el-tabs v-model="activeTab" class="preview-tabs">
@@ -519,21 +521,20 @@ onMounted(fetchList)
 }
 
 /* ===== 备份预览弹窗 ===== */
-.backup-preview-dialog :deep(.el-dialog__body) {
+/* 弹窗通过 append-to-body 传送到 body，样式需用 :global 才能作用到弹窗外壳 */
+:global(.backup-preview-dialog .el-dialog__body) {
   padding: 0 20px 16px;
 }
 
 .preview-wrapper {
   min-height: 400px;
-  max-height: 65vh;
-  overflow-y: auto;
 }
 
 .preview-tabs {
   margin-top: 0;
 }
 
-.preview-tabs :deep(.el-tabs__header) {
+.preview-tabs :global(.el-tabs__header) {
   margin: 0 0 16px 0;
 }
 

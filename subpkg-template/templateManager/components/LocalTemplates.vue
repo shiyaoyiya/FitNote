@@ -243,6 +243,17 @@
         return this.newTemplateName.trim().length > 0 && this.selectedActions.length > 0
       },
     },
+    watch: {
+      // 模板数据变化时（如从模板详情页增删动作后返回、store 重新 load），
+      // 重新同步本地列表快照，避免显示过期的动作数量
+      'templateStore.templates': {
+        handler() {
+          this.filteredTemplates = (this.templateStore.templates || []).filter(t => !t.isAerobic)
+          this.initDragState()
+        },
+        deep: true
+      }
+    },
     mounted() {
       this.loadData()
     },

@@ -97,6 +97,7 @@
       @go-backup="goToBackup"
       @go-template-manager="goToTemplateManager"
       @go-announce="goToAnnounce"
+      @go-notification="goToNotification"
       @feedback="goToFeedback" />
 
     <!-- 阅读说明弹窗 -->
@@ -145,7 +146,7 @@
   import { me } from '@/utils/serverBackup.js'
   import { PRESET_COLORS } from '@/utils/color.js'
   import { formatDate } from '@/utils/theme.js'
-  import { resolveAvatarUrl, getCachedAvatarUrl } from '@/utils/serverRequest.js'
+  import { resolveAvatarUrl, getCachedAvatarUrl, getCachedAvatarImage, downloadAndCacheAvatar } from '@/utils/serverRequest.js'
 
   export default {
     components: {
@@ -227,6 +228,10 @@
         try {
           const u = me()
           const url = (u && u.avatarUrl) || getCachedAvatarUrl() || ''
+          if (!url) return ''
+          // 优先显示缓存的 base64 图片（离线可用），否则回退到原始 URL
+          const cachedImage = getCachedAvatarImage(url)
+          if (cachedImage) return cachedImage
           return resolveAvatarUrl(url)
         } catch (e) { return '' }
       },
@@ -314,6 +319,7 @@
     },
     onShow() {
       this.authVersion++
+      this.prefetchAvatar()
       const selectedYear = uni.getStorageSync('selectedYear');
       const selectedMonth = uni.getStorageSync('selectedMonth');
 
@@ -1151,6 +1157,22 @@
       openMoreMenu() {
         this.showMoreMenu = true
       },
+      /**
+       * 预热头像 base64 缓存：在线打开首页时把头像下载并写入缓存，
+       * 之后离线（个人页 / more-btn / MoreMenu 面板）也能显示头像。
+       * 缓存写好后刷新 authVersion，触发 moreBtnAvatar 重算切换为 base64。
+       */
+      prefetchAvatar() {
+        try {
+          const u = me()
+          const url = (u && u.avatarUrl) || getCachedAvatarUrl() || ''
+          if (!url) return
+          if (getCachedAvatarImage(url)) return
+          downloadAndCacheAvatar(url).then(() => {
+            this.authVersion++
+          }).catch(() => {})
+        } catch (e) {}
+      },
       onToggleTheme() {
         this.daySettingsStore.toggleTheme()
         uni.showToast({
@@ -1169,6 +1191,9 @@
       },
       goToAnnounce() {
         uni.navigateTo({ url: '/subpkg-secondary/announce/announce' })
+      },
+      goToNotification() {
+        uni.navigateTo({ url: '/subpkg-secondary/notification/notification' })
       },
       goToFeedback() {
         uni.navigateTo({

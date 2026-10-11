@@ -152,7 +152,8 @@ function collectFullData() {
     fitness_daydata: daydata,
     fitness_day_settings: uni.getStorageSync('fitness_day_settings') || null,
     fitness_categories: uni.getStorageSync('fitness_categories') || null,
-    fitness_user_profile: uni.getStorageSync('fitness_user_profile') || null
+    fitness_user_profile: uni.getStorageSync('fitness_user_profile') || null,
+    training_stat_config: uni.getStorageSync('training_stat_config') || null
   }
 }
 
@@ -207,7 +208,8 @@ async function collectFullDataWithProgress(dayDataCacheStore, onProgress) {
     fitness_daydata: daydata,
     fitness_day_settings: uni.getStorageSync('fitness_day_settings') || null,
     fitness_categories: uni.getStorageSync('fitness_categories') || null,
-    fitness_user_profile: uni.getStorageSync('fitness_user_profile') || null
+    fitness_user_profile: uni.getStorageSync('fitness_user_profile') || null,
+    training_stat_config: uni.getStorageSync('training_stat_config') || null
   }
 }
 
@@ -261,7 +263,8 @@ function collectIncrementalData(lastBackupTime) {
     fitness_daydata: daydata,
     fitness_day_settings: uni.getStorageSync('fitness_day_settings') || null,
     fitness_categories: uni.getStorageSync('fitness_categories') || null,
-    fitness_user_profile: uni.getStorageSync('fitness_user_profile') || null
+    fitness_user_profile: uni.getStorageSync('fitness_user_profile') || null,
+    training_stat_config: uni.getStorageSync('training_stat_config') || null
   }
 }
 
@@ -1303,6 +1306,12 @@ export async function restoreData(filePath, overwrite) {
       if (data.fitness_user_profile) {
         uni.setStorageSync('fitness_user_profile', data.fitness_user_profile)
       }
+      // 训练基线配置随备份恢复（覆盖语义：还原备份状态；老备份无配置则清除本地）
+      if (data.training_stat_config) {
+        uni.setStorageSync('training_stat_config', data.training_stat_config)
+      } else {
+        uni.removeStorageSync('training_stat_config')
+      }
 
     } else {
       console.log('执行合并导入')
@@ -1341,6 +1350,10 @@ export async function restoreData(filePath, overwrite) {
       }
       if (data.fitness_user_profile) {
         uni.setStorageSync('fitness_user_profile', data.fitness_user_profile)
+      }
+      // 训练基线配置随备份恢复（备份中的配置优先）
+      if (data.training_stat_config) {
+        uni.setStorageSync('training_stat_config', data.training_stat_config)
       }
     }
 

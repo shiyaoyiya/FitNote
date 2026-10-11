@@ -31,7 +31,7 @@
 
       <view class="input-group">
         <text class="input-label">端口</text>
-        <input class="port-input" :value="portInput" @input="onPortInput" placeholder="8080" type="number" maxlength="6" />
+        <input class="port-input" :value="portInput" @input="onPortInput" placeholder="8088" type="number" maxlength="6" />
       </view>
 
       <view class="preview-row">
@@ -71,7 +71,7 @@
         <text class="tips-title">提示</text>
         <text class="tips-item">· 查看电脑 IP：Windows 上按 Win+R，输入 cmd，运行 ipconfig，找到 IPv4 地址</text>
         <text class="tips-item">· 手机和电脑需连接同一个 WiFi（校园网/企业网可能有 AP 隔离，无法互通）</text>
-        <text class="tips-item">· 如果 Windows 防火墙阻止了连接，请放行 8080 端口入站规则</text>
+        <text class="tips-item">· 如果 Windows 防火墙阻止了连接，请放行 8088 端口入站规则</text>
         <text class="tips-item">· 手机热点模式：电脑 IP 通常为 192.168.x.x，热点网关即为电脑 IP</text>
       </view>
     </view>
@@ -88,7 +88,7 @@
       return {
         daySettingsStore: useDaySettingsStore(),
         ipInput: '',
-        portInput: '8080',
+        portInput: '8088',
         testing: false,
         testResult: null,
         saving: false,
@@ -101,7 +101,7 @@
     computed: {
       previewUrl() {
         const ip = this.ipInput.trim()
-        const port = this.portInput.trim() || '8080'
+        const port = this.portInput.trim() || '8088'
         if (!ip) return '(未配置)'
         return `http://${ip}:${port}`
       },
@@ -157,7 +157,7 @@
       buildUrl() {
         const ip = this.ipInput.trim()
         if (!ip) return ''
-        const port = this.portInput.trim() || '8080'
+        const port = this.portInput.trim() || '8088'
         return `http://${ip}:${port}`
       },
       async testConnection() {
@@ -198,7 +198,7 @@
             if (res.confirm) {
               setCustomServerUrl('')
               this.ipInput = ''
-              this.portInput = '8080'
+              this.portInput = '8088'
               this.testResult = null
               uni.showToast({ title: '已恢复默认', icon: 'success' })
             }

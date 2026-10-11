@@ -2538,6 +2538,8 @@ html .container.liquid-glass.light .custom-color-card {
 
 /* 共享基础样式 */
 .container.liquid-glass .period-toggle .toggle-btn,
+.container.liquid-glass .window-picker,
+.container.liquid-glass .grid-container .manage-btn,
 .container.liquid-glass .part-select-btn,
 .container.liquid-glass .sub-tab,
 .container.liquid-glass .export-btn,
@@ -2559,6 +2561,8 @@ html .container.liquid-glass.light .custom-color-card {
 
 /* 按压缩放效果 */
 .container.liquid-glass .period-toggle .toggle-btn:active,
+.container.liquid-glass .window-picker:active,
+.container.liquid-glass .grid-container .manage-btn:active,
 .container.liquid-glass .part-select-btn:active,
 .container.liquid-glass .sub-tab:active,
 .container.liquid-glass .export-btn:active,
@@ -2841,4 +2845,120 @@ body .container.liquid-glass .day-action-pair .day-action-btn.primary {
 .container.liquid-glass .rotating.backup-orb::after {
   background: rgba(55, 155, 255, 0.4) !important;
   box-shadow: 0 0 20px rgba(55, 155, 255, 0.5) !important;
+}
+
+/* ===== 训练基线设置弹窗 液态玻璃 ===== */
+
+/* 基线按钮加入共享玻璃按钮组 */
+.container.liquid-glass .baseline-btn {
+  background: var(--glass-bg) !important;
+  border: none !important;
+  box-shadow:
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 2px var(--glass-shadow-inner) inset !important;
+  -webkit-backdrop-filter: blur(8px) saturate(120%) !important;
+  backdrop-filter: blur(8px) saturate(120%) !important;
+  color: var(--glass-text) !important;
+}
+
+.container.liquid-glass .baseline-btn:active {
+  transform: scale(0.96) !important;
+}
+
+/* 遮罩 */
+.container.liquid-glass .baseline-overlay {
+  background: rgba(0, 0, 0, 0.45) !important;
+  backdrop-filter: blur(6px) !important;
+  -webkit-backdrop-filter: blur(6px) !important;
+}
+
+/* 面板 */
+.container.liquid-glass .baseline-panel {
+  background: var(--glass-bg) !important;
+  border: none !important;
+  box-shadow:
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 3px var(--glass-shadow-inner) inset,
+    0 8px 32px var(--glass-shadow-outer) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(160%) !important;
+  backdrop-filter: blur(16px) saturate(160%) !important;
+}
+
+/* 文字 */
+.container.liquid-glass .baseline-title,
+.container.liquid-glass .baseline-switch-label,
+.container.liquid-glass .baseline-part-name {
+  color: var(--glass-text) !important;
+}
+
+.container.liquid-glass .baseline-close,
+.container.liquid-glass .baseline-hint,
+.container.liquid-glass .baseline-tilde {
+  color: var(--glass-placeholder) !important;
+}
+
+/* 开关轨道 */
+.container.liquid-glass .baseline-switch {
+  background: var(--glass-bg) !important;
+  box-shadow:
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 2px var(--glass-shadow-inner) inset !important;
+  -webkit-backdrop-filter: blur(8px) saturate(120%) !important;
+  backdrop-filter: blur(8px) saturate(120%) !important;
+}
+
+.container.liquid-glass .baseline-switch.on {
+  background: linear-gradient(135deg, #379bff, #0048ff) !important;
+  box-shadow: 0 2px 8px rgba(55, 155, 255, 0.4) !important;
+}
+
+.container.liquid-glass .baseline-switch-dot {
+  background: #ffffff !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* 输入框 */
+.container.liquid-glass .baseline-input {
+  background-color: var(--glass-bg) !important;
+  border: none !important;
+  color: var(--glass-text) !important;
+  box-shadow:
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 2px var(--glass-shadow-inner) inset !important;
+  -webkit-backdrop-filter: blur(8px) saturate(120%) !important;
+  backdrop-filter: blur(8px) saturate(120%) !important;
+}
+
+.container.liquid-glass .baseline-input.disabled {
+  opacity: 0.45 !important;
+}
+
+/* 重置按钮 */
+.container.liquid-glass .baseline-reset {
+  background: var(--glass-bg) !important;
+  border: none !important;
+  color: var(--glass-placeholder) !important;
+  box-shadow:
+    0 0 0 0.5px var(--glass-edge) inset,
+    0 1px 2px var(--glass-shadow-inner) inset !important;
+  -webkit-backdrop-filter: blur(8px) saturate(120%) !important;
+  backdrop-filter: blur(8px) saturate(120%) !important;
+}
+
+.container.liquid-glass .baseline-reset:active {
+  transform: scale(0.96) !important;
+}
+
+/* 保存按钮保持蓝色渐变 */
+.container.liquid-glass .baseline-save {
+  background: linear-gradient(135deg, rgba(55, 155, 255, 0.9), rgba(0, 72, 255, 0.9)) !important;
+  border: none !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 12px rgba(55, 155, 255, 0.3) !important;
+  -webkit-backdrop-filter: blur(8px) saturate(120%) !important;
+  backdrop-filter: blur(8px) saturate(120%) !important;
+}
+
+.container.liquid-glass .baseline-save:active {
+  transform: scale(0.96) !important;
 }

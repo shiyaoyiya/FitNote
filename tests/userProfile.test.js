@@ -106,4 +106,47 @@ describe('用户档案 Store', () => {
     expect(s.state.weightHistory).toHaveLength(1)
     expect(s.state.weightHistory[0].weight).toBe(71)
   })
+
+  it('不同天记录相同体重也会新增趋势点', () => {
+    const s = useUserInMemoryProfileStore({ weight: 70, weightHistory: [{ date: '2020-01-01', weight: 70 }] })
+    s.updateProfile({ weight: 70 })
+    expect(s.state.weightHistory).toHaveLength(2)
+    expect(s.state.weightHistory[1].date).not.toBe('2020-01-01')
+  })
+
+  it('recordWeight 补录历史日期体重，只写趋势不改当前体重', () => {
+    const s = useUserInMemoryProfileStore({ weight: 70 })
+    s.recordWeight('2026-09-30', 70.5)
+    // 当前体重不变
+    expect(s.state.weight).toBe(70)
+    // 趋势中新增该日记录
+    expect(s.state.weightHistory.some(h => h.date === '2026-09-30' && h.weight === 70.5)).toBe(true)
+  })
+
+  it('recordWeight 日期为今天时同步更新当前体重', () => {
+    const s = useUserInMemoryProfileStore({ weight: 70 })
+    const today = new Date()
+    const d = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
+    s.recordWeight(d, 71)
+    expect(s.state.weight).toBe(71)
+    expect(s.state.weightHistory.some(h => h.date === d && h.weight === 71)).toBe(true)
+  })
+
+  it('recordWeight 历史补录后按日期升序、同天去重', () => {
+    const s = useUserInMemoryProfileStore({
+      weightHistory: [{ date: '2026-09-29', weight: 70 }, { date: '2026-10-01', weight: 71 }],
+    })
+    // 补录中间日期 + 覆盖同天
+    s.recordWeight('2026-09-30', 70.3)
+    s.recordWeight('2026-10-01', 70.9)
+    const dates = s.state.weightHistory.map(h => h.date)
+    expect(dates).toEqual(['2026-09-29', '2026-09-30', '2026-10-01'])
+    const first = s.state.weightHistory.find(h => h.date === '2026-10-01')
+    expect(first.weight).toBe(70.9)
+  })
+
+  it('recordWeight 越界校验', () => {
+    const s = useUserInMemoryProfileStore()
+    expect(() => s.recordWeight('2026-09-30', 5)).toThrow(/weight/)
+  })
 })

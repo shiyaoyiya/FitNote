@@ -7,6 +7,7 @@
  */
 import { request, getAccessToken } from '@/utils/serverRequest.js'
 import { isLocalServerAvailable } from '@/utils/serverBackup.js'
+import { getCachedTemplateDetail } from './templateCache.js'
 // #ifdef MP-WEIXIN
 import {
   listSquareTemplatesCloud,
@@ -111,26 +112,50 @@ export async function listTemplateTags() {
   // #endif
 }
 
-/** 模板详情（自动路由；公开，但下载需登录） */
+/** 模板详情（自动路由；公开，但下载需登录）
+ * 本地/云开发均不可达时，回退到本地详情缓存（离线可看动作清单） */
 export async function getTemplateDetail(id) {
-  if (await isLocalServerAvailable()) return _getTemplateDetailLocal(id)
-  // #ifdef MP-WEIXIN
-  return getTemplateDetailCloud(id)
-  // #endif
-  // #ifndef MP-WEIXIN
-  return null
-  // #endif
+  let detail = null
+  try {
+    if (await isLocalServerAvailable()) {
+      detail = await _getTemplateDetailLocal(id)
+    } else {
+      // #ifdef MP-WEIXIN
+      detail = await getTemplateDetailCloud(id)
+      // #endif
+    }
+  } catch (e) {
+    // 网络异常：继续走缓存兜底
+  }
+  if (!detail) {
+    // 离线兜底：返回缓存的详情（含 templateData）
+    const cached = getCachedTemplateDetail(id)
+    if (cached) return cached
+  }
+  return detail
 }
 
-/** 下载模板（自动路由；需登录，返回模板 JSON 字符串） */
+/** 下载模板（自动路由；需登录，返回模板 JSON 字符串）
+ * 本地/云开发均不可达时，回退到本地详情缓存的 templateData（离线可导入） */
 export async function downloadTemplate(id) {
-  if (await isLocalServerAvailable()) return _downloadTemplateLocal(id)
-  // #ifdef MP-WEIXIN
-  return downloadTemplateCloud(id)
-  // #endif
-  // #ifndef MP-WEIXIN
-  return null
-  // #endif
+  let data = null
+  try {
+    if (await isLocalServerAvailable()) {
+      data = await _downloadTemplateLocal(id)
+    } else {
+      // #ifdef MP-WEIXIN
+      data = await downloadTemplateCloud(id)
+      // #endif
+    }
+  } catch (e) {
+    // 网络异常：继续走缓存兜底
+  }
+  if (!data) {
+    // 离线兜底：从详情缓存中提取 templateData
+    const cached = getCachedTemplateDetail(id)
+    if (cached && cached.templateData) return cached.templateData
+  }
+  return data
 }
 
 /**

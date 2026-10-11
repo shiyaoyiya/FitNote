@@ -105,9 +105,8 @@
 
   const emit = defineEmits([
     'close', 'add-action', 'toggle-auto-timer', 'toggle-auto-fill', 'toggle-bubble-fill',
-    'toggle-weight-first',
-    'toggle-hr-button', 'set-heavy-timer', 'set-light-timer', 'export-data', 'import-data',
-    'open-body-profile', 'open-met-selector'
+    'toggle-weight-first', 'set-heavy-timer', 'set-light-timer', 'export-data', 'import-data',
+    'open-body-profile'
   ])
 
   function navigateToManage() {

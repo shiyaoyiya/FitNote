@@ -1,14 +1,14 @@
 @echo off
 REM ============================================================
 REM  FitNote Backend Restart Script (Windows)
-REM  Stops the running backend on port 8080, then starts it again
+REM  Stops the running backend on port 8088, then starts it again
 REM ============================================================
 setlocal enabledelayedexpansion
 title FitNote Backend Restart
 
 set BACKEND_DIR=%~dp0server
 set JAR_FILE=%BACKEND_DIR%\target\fitnote-server-1.0.0.jar
-set SERVER_PORT=8080
+set SERVER_PORT=8088
 
 echo.
 echo ==========================================

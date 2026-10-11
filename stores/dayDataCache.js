@@ -67,31 +67,53 @@ export const useDayDataCacheStore = defineStore('dayDataCache', {
     batchGetLatestRecords(actNames, todayDateStr) {
       const results = {}
       const remaining = new Set(actNames)
-      for (const dateStr of this.sortedDates) {
-        if (dateStr === todayDateStr) continue
-        if (remaining.size === 0) break
-        let data
-        if (this.cache.has(dateStr)) {
-          data = this.cache.get(dateStr)
-        } else {
-          try { data = uni.getStorageSync(DAYDATA_PREFIX + dateStr) } catch (e) { continue }
-        }
-        if (!data || !data.entries) continue
-        for (const actName of remaining) {
-          if (data.entries[actName] && data.entries[actName].length > 0) {
-            const entries = data.entries[actName]
-            const computedTotal = entries.reduce((sum, e) => sum + (e.total || 0), 0)
-            if (computedTotal <= 0) continue
-            results[actName] = {
-              date: dateStr,
-              total: data.actions?.[actName] != null ? data.actions[actName] : Math.round(computedTotal * 100) / 100,
-              entry: entries,
+      const scan = () => {
+        for (const dateStr of this.sortedDates) {
+          if (dateStr === todayDateStr) continue
+          if (remaining.size === 0) break
+          let data
+          if (this.cache.has(dateStr)) {
+            data = this.cache.get(dateStr)
+          } else {
+            try { data = uni.getStorageSync(DAYDATA_PREFIX + dateStr) } catch (e) { continue }
+          }
+          if (!data || !data.entries) continue
+          for (const actName of remaining) {
+            if (data.entries[actName] && data.entries[actName].length > 0) {
+              const entries = data.entries[actName]
+              const computedTotal = entries.reduce((sum, e) => sum + (e.total || 0), 0)
+              if (computedTotal <= 0) continue
+              results[actName] = {
+                date: dateStr,
+                total: data.actions?.[actName] != null ? data.actions[actName] : Math.round(computedTotal * 100) / 100,
+                entry: entries,
+              }
+              remaining.delete(actName)
             }
-            remaining.delete(actName)
           }
         }
       }
+      scan()
+      // 仍有动作未找到时，索引可能与 storage 不同步（如备份导入后索引重建失败/漏建、
+      // 文本导入按 checkHasActivity 过滤导致部分历史日期未入索引等）。
+      // 与 storage 实际 daydata 键数不一致时，从 storage 重建索引并清空缓存后重试一次，
+      // 避免误报「无历史记录」。真正无历史（storage 也无数据）时键数一致，不会触发重试。
+      if (remaining.size > 0 && this.storageDayCount() !== this.sortedDates.length) {
+        this.buildIndex()
+        this.clearCache()
+        scan()
+      }
       return results
+    },
+
+    // storage 中实际存在的 daydata 日期数（与索引对比，判断索引是否过期/漏建）
+    storageDayCount() {
+      try {
+        const info = uni.getStorageInfoSync()
+        return Array.isArray(info.keys) ? info.keys.filter(k => k.startsWith(DAYDATA_PREFIX)).length : 0
+      } catch (e) {
+        return 0
+      }
     },
 
     // 保存单个日期的数据（同时更新缓存和 storage）

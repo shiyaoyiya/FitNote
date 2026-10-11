@@ -271,6 +271,18 @@ export default {
             }
           })
         }
+
+        // 重建日期索引并清空缓存：与本地/云端备份导入保持一致，
+        // 保证 day 页「对比上次」、月/年统计等基于索引的查询能拿到导入后的全部日期。
+        // 逐日 saveDayData 会因 checkHasActivity 过滤漏掉「有 entries 但无 templates 结构」
+        // 的旧版本数据日期，这里统一按 storage 实际键重建，避免误显「无历史记录」。
+        try {
+          const cacheStore = useDayDataCacheStore()
+          cacheStore.buildIndex()
+          cacheStore.clearCache()
+        } catch (e) {
+          console.warn('文本导入后重建日期索引失败:', e)
+        }
         
         uni.showToast({
           title: '导入成功',

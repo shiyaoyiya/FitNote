@@ -3,8 +3,19 @@
     <!-- 部位对比卡片 -->
     <view class="section-title-row">
       <text class="section-title">部位对比</text>
-      <text class="manage-btn" @click="$emit('manage')">管理部位</text>
+      <view class="title-actions">
+        <text class="baseline-btn" @click="baselineVisible = true">基线</text>
+        <text class="manage-btn" @click="$emit('manage')">管理部位</text>
+        <picker class="window-picker-wrap" mode="selector" :range="WINDOW_LABELS" :value="windowIndex" @change="onWindowChange">
+          <view class="window-picker">
+            <text class="window-picker-label">{{ currentWindowLabel }}</text>
+            <text class="window-picker-arrow">▾</text>
+          </view>
+        </picker>
+      </view>
     </view>
+    <BaselineSettings v-if="baselineVisible" :config="baselineConfig" :adaptiveRanges="adaptiveRanges"
+      @close="baselineVisible = false" @update:config="onBaselineConfigChange" />
     <view class="grid">
       <view v-for="part in visibleParts" :key="part.id" class="card"
         :class="{ 'card-selected': selectedPart === part.id }"
@@ -26,11 +37,34 @@
 
 <script setup>
 import { computed, ref } from 'vue'
+import BaselineSettings from './BaselineSettings.vue'
 
 const DIMENSION_LABELS = {
   days: '天',
-  sets: '组',
+  sets: '组/周',
   volume: 'kg',
+}
+
+const WINDOWS = [
+  { value: '7d', label: '7天' },
+  { value: '14d', label: '两周' },
+  { value: '30d', label: '一个月' },
+]
+
+const WINDOW_LABELS = WINDOWS.map(w => w.label)
+
+const windowIndex = computed(() => {
+  const i = WINDOWS.findIndex(w => w.value === props.window)
+  return i === -1 ? 1 : i
+})
+
+const currentWindowLabel = computed(() => WINDOWS[windowIndex.value].label)
+
+function onWindowChange(e) {
+  const i = Number(e.detail.value)
+  if (Number.isInteger(i) && i >= 0 && i < WINDOWS.length) {
+    emit('update:window', WINDOWS[i].value)
+  }
 }
 
 const BODY_PARTS_MAP = {
@@ -70,9 +104,28 @@ const props = defineProps({
     type: Object,
     default: () => ({}),
   },
+  window: {
+    type: String,
+    default: '14d',
+  },
+  baselineConfig: {
+    type: Object,
+    default: () => ({}),
+  },
+  adaptiveRanges: {
+    type: Object,
+    default: () => ({}),
+  },
 })
 
-const emit = defineEmits(['manage', 'select:bodyPart'])
+const emit = defineEmits(['manage', 'update:window', 'select:bodyPart', 'update:baselineConfig'])
+
+const baselineVisible = ref(false)
+
+function onBaselineConfigChange(cfg) {
+  emit('update:baselineConfig', cfg)
+  baselineVisible.value = false
+}
 
 const selectedPart = ref(null)
 
@@ -127,14 +180,60 @@ function getBadgeClass(id) {
   color: var(--section-title, #1a1a1a);
 }
 
+.title-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
 .manage-btn {
   font-size: 13px;
   color: #379bff;
-  padding: 4px 8px;
+  padding: 4px 12px;
+  border-radius: 8px;
+  background: rgba(55, 155, 255, 0.08);
+  line-height: 1.4;
 }
 
 .manage-btn:active {
   opacity: 0.7;
+}
+
+.baseline-btn {
+  font-size: 13px;
+  color: #379bff;
+  padding: 4px 12px;
+  border-radius: 8px;
+  background: rgba(55, 155, 255, 0.08);
+  line-height: 1.4;
+}
+
+.baseline-btn:active {
+  opacity: 0.7;
+}
+
+/* 部位对比时间窗下拉选择器（近7天 / 两周 / 一个月） */
+.window-picker-wrap {
+  display: block;
+}
+
+.window-picker {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  font-size: 12px;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-muted, #999999);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  transition: all 0.3s ease;
+}
+
+.window-picker-arrow {
+  font-size: 10px;
+  opacity: 0.7;
+  transform: translateY(1px);
 }
 
 .grid {

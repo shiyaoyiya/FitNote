@@ -13,7 +13,7 @@ set MYSQL_PORT=3306
 set MYSQL_USER=root
 set MYSQL_PWD=123456
 set MYSQL_DB=fitnote
-set BACKEND_PORT=8080
+set BACKEND_PORT=8088
 set ADMIN_PORT=5175
 set ROOT=%~dp0
 set CREATE_DB_SQL=%ROOT%server\db\create-database.sql
@@ -24,7 +24,7 @@ echo  ###########################################################
 echo  #     FitNote - One-Click Full Stack Launcher           #
 echo  ###########################################################
 echo  #   Phase 1: MySQL check + Database init                 #
-echo  #   Phase 2: Launch Backend  (Spring Boot  on port 8080) #
+echo  #   Phase 2: Launch Backend  (Spring Boot  on port 8088) #
 echo  #   Phase 3: Launch Admin UI (Vue + Vite  on port 5175)  #
 echo  ###########################################################
 echo.
@@ -91,7 +91,7 @@ echo.
 echo [Phase 1/3] Complete.
 echo.
 
-REM ========== Phase 2: Kill any existing backend on 8080 ==========
+REM ========== Phase 2: Kill any existing backend on 8088 ==========
 echo [Phase 2/3] Launching Backend on port %BACKEND_PORT%...
 netstat -ano | findstr ":%BACKEND_PORT% " | findstr LISTENING >nul 2>nul
 if %errorlevel% equ 0 (
@@ -103,7 +103,7 @@ if %errorlevel% equ 0 (
 )
 
 REM Launch backend in a NEW window
-start "FitNote Backend :8080" cmd /k "cd /d ""%ROOT%"" && start-backend.bat"
+start "FitNote Backend :8088" cmd /k "cd /d ""%ROOT%"" && start-backend.bat"
 echo   [OK] Backend launch window opened (wait ~15s for Spring Boot to boot)
 
 REM Give backend a head start

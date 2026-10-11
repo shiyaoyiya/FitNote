@@ -21,19 +21,6 @@
   ],
   "subPackages": [
     {
-      "root": "subpkg-training",
-      "pages": [
-        {
-          "path": "trainingAnalysis/trainingAnalysis",
-          "style": {
-            "navigationBarTitleText": "训练分析",
-            "navigationBarBackgroundColor": "#121212",
-            "navigationBarTextStyle": "white"
-          }
-        }
-      ]
-    },
-    {
       "root": "subpkg-template",
       "pages": [
         {
@@ -46,12 +33,6 @@
           "path": "templateManager/templateManager",
           "style": {
             "navigationBarTitleText": "模板中心"
-          }
-        },
-        {
-          "path": "templateSquare/templateSquare",
-          "style": {
-            "navigationBarTitleText": "模板广场"
           }
         }
       ]

@@ -127,6 +127,54 @@ export function getCachedAvatarImage(url) {
 }
 
 /**
+ * 下载头像到临时文件（兼容微信云存储 cloud:// 文件ID）
+ * - cloud:// 必须用 wx.cloud.downloadFile（uni.downloadFile 不支持 cloud 协议）
+ * - 其余 URL 用 uni.downloadFile
+ * @param {string} url
+ * @returns {Promise<string>} 临时文件路径
+ */
+async function _downloadAvatarTempPath(url) {
+  // #ifdef MP-WEIXIN
+  if (/^cloud:\/\//i.test(url) && wx.cloud && typeof wx.cloud.downloadFile === 'function') {
+    return new Promise((resolve, reject) => {
+      wx.cloud.downloadFile({
+        fileID: url,
+        success: (res) => {
+          if (res && res.tempFilePath) resolve(res.tempFilePath)
+          else reject(new Error('CLOUD_DOWNLOAD_EMPTY'))
+        },
+        fail: (err) => reject(new Error((err && err.errMsg) || 'CLOUD_DOWNLOAD_FAIL')),
+      })
+    })
+  }
+  // #endif
+  return new Promise((resolve, reject) => {
+    uni.downloadFile({
+      url: resolveAvatarUrl(url),
+      success: (res) => {
+        if (res.statusCode === 200) resolve(res.tempFilePath)
+        else reject(new Error('DOWNLOAD_' + res.statusCode))
+      },
+      fail: (err) => reject(new Error(err.errMsg || 'DOWNLOAD_FAIL')),
+    })
+  })
+}
+
+/**
+ * 根据头像 URL 后缀推断图片 MIME 类型（用于拼 data URL）
+ * @param {string} url
+ * @returns {string}
+ */
+function guessImageMime(url) {
+  const s = String(url || '').toLowerCase()
+  if (/\.(jpe?g|jfif)(\?|$)/.test(s)) return 'image/jpeg'
+  if (/\.gif(\?|$)/.test(s)) return 'image/gif'
+  if (/\.webp(\?|$)/.test(s)) return 'image/webp'
+  if (/\.svg(\?|$)/.test(s)) return 'image/svg+xml'
+  return 'image/png'
+}
+
+/**
  * 下载头像图片并缓存为base64（用于离线显示）
  * @param {string} url 头像URL
  * @returns {Promise<string>} base64数据
@@ -145,21 +193,29 @@ export async function downloadAndCacheAvatar(url) {
       return url
     }
     
-    // 下载图片
-    const tempPath = await new Promise((resolve, reject) => {
-      uni.downloadFile({
-        url: resolveAvatarUrl(url),
-        success: (res) => {
-          if (res.statusCode === 200) resolve(res.tempFilePath)
-          else reject(new Error('DOWNLOAD_' + res.statusCode))
-        },
-        fail: (err) => reject(new Error(err.errMsg || 'DOWNLOAD_FAIL')),
-      })
+    // 转换为base64（data URL），各端读取方式不同
+    let base64
+    let tempPath = ''
+    // #ifdef H5
+    // H5 端没有文件系统 API（uni.getFileSystemManager 不存在），
+    // 也无法读取 uni.downloadFile 返回的 blob 临时路径，
+    // 改为 fetch 本地 blob + FileReader 读取为 data URL（含正确 MIME）。
+    tempPath = await _downloadAvatarTempPath(url)
+    const blobResp = await fetch(tempPath)
+    if (!blobResp.ok) throw new Error('DOWNLOAD_' + blobResp.status)
+    const blob = await blobResp.blob()
+    base64 = await new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = () => resolve(reader.result)
+      reader.onerror = () => reject(new Error('FILE_READ_FAIL'))
+      reader.readAsDataURL(blob)
     })
-    
-    // 转换为base64
-    const base64 = await new Promise((resolve, reject) => {
-      // #ifdef MP-WEIXIN
+    // #endif
+    // #ifdef MP-WEIXIN
+    // 微信小程序：cloud:// 走 wx.cloud.downloadFile，普通 URL 走 uni.downloadFile，
+    // 再用文件系统 API 读取为 base64
+    tempPath = await _downloadAvatarTempPath(url)
+    base64 = await new Promise((resolve, reject) => {
       const fs = wx.getFileSystemManager()
       fs.readFile({
         filePath: tempPath,
@@ -167,23 +223,29 @@ export async function downloadAndCacheAvatar(url) {
         success: (r) => resolve('data:image/png;base64,' + r.data),
         fail: reject,
       })
-      // #endif
-      // #ifndef MP-WEIXIN
-      // 其他平台使用uni.arrayBufferToBase64
-      uni.getFileSystemManager().readFile({
-        filePath: tempPath,
-        encoding: 'base64',
-        success: (r) => resolve('data:image/png;base64,' + r.data),
-        fail: reject,
-      })
-      // #endif
     })
+    // #endif
+    // #ifndef H5 || MP-WEIXIN
+    // App 端：不依赖文件系统 API 与下载临时文件（各版本兼容性更稳），
+    // 直接用 uni.request 以二进制下载并转 base64
+    base64 = await new Promise((resolve, reject) => {
+      uni.request({
+        url: resolveAvatarUrl(url),
+        responseType: 'arraybuffer',
+        success: (r) => {
+          if (r.statusCode !== 200) return reject(new Error('DOWNLOAD_' + r.statusCode))
+          resolve('data:' + guessImageMime(url) + ';base64,' + uni.arrayBufferToBase64(r.data))
+        },
+        fail: (err) => reject(new Error(err.errMsg || 'DOWNLOAD_FAIL')),
+      })
+    })
+    // #endif
     
     // 缓存
     cacheAvatarImage(url, base64)
     return base64
   } catch (e) {
-    console.warn('下载头像图片失败:', e)
+    console.warn('下载头像图片失败:', url, e && (e.message || e), e)
     return ''
   }
 }

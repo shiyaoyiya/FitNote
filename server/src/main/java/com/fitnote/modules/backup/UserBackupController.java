@@ -92,9 +92,11 @@ public class UserBackupController {
         long size = file.getSize();
 
         // 存储路径：{baseDir}/{userId}/{yyyyMM}/{uuid}.json
+        // baseDir 相对路径统一锚定到 server 模块根目录，避免随启动工作目录变化
         LocalDateTime now = LocalDateTime.now();
         String monthDir = String.format("%04d%02d", now.getYear(), now.getMonthValue());
-        Path userDir = Paths.get(backupBaseDir, String.valueOf(userId), monthDir);
+        Path userDir = com.fitnote.common.StoragePaths.resolve(backupBaseDir)
+                .resolve(String.valueOf(userId)).resolve(monthDir);
         Files.createDirectories(userDir);
 
         String storedName = UUID.randomUUID().toString().replace("-", "") + ".json";

@@ -72,16 +72,14 @@ function clampValidate(patch) {
 }
 
 // 记录体重历史：同一天只保留最新一条（x 轴以天为单位，避免同天多点）
-function pushWeightHistory(history, weight) {
-  const date = todayStr()
-  const next = Array.isArray(history) ? history.slice() : []
-  const last = next[next.length - 1]
-  if (last && last.date === date) {
-    next[next.length - 1] = { date, weight }
-  } else {
-    next.push({ date, weight })
-  }
-  return next
+// 支持指定日期（补录历史体重）；始终按日期升序、按天去重（保留最新）
+function pushWeightHistory(history, weight, date = todayStr()) {
+  const map = {}
+  ;(Array.isArray(history) ? history : []).forEach(h => {
+    if (h && h.date && h.weight != null) map[h.date] = h.weight
+  })
+  map[date] = weight
+  return Object.keys(map).sort().map(d => ({ date: d, weight: map[d] }))
 }
 
 // 纯逻辑工厂（无 uni 依赖，便于单测）
@@ -107,10 +105,18 @@ export function useUserInMemoryProfileStore(initial = {}) {
     },
     updateProfile(patch) {
       const valid = clampValidate(patch)
-      if (valid.weight !== undefined && valid.weight !== state.weight) {
+      if (valid.weight !== undefined) {
         state.weightHistory = pushWeightHistory(state.weightHistory, valid.weight)
       }
       state = { ...state, ...valid, updatedAt: new Date().toISOString() }
+    },
+    // 补录指定日期的体重：只写入趋势；若日期为今天则同时更新当前体重
+    recordWeight(date, weight) {
+      const valid = clampValidate({ weight })
+      const d = date || todayStr()
+      state.weightHistory = pushWeightHistory(state.weightHistory, valid.weight, d)
+      if (d === todayStr()) state.weight = valid.weight
+      state = { ...state, updatedAt: new Date().toISOString() }
     },
     getMaxHeartRate() {
       const a = this.age
@@ -165,10 +171,19 @@ export const useUserProfileStore = defineStore('userProfile', {
     },
     updateProfile(patch) {
       const valid = clampValidate(patch)
-      if (valid.weight !== undefined && valid.weight !== this.weight) {
+      if (valid.weight !== undefined) {
         this.weightHistory = pushWeightHistory(this.weightHistory, valid.weight)
       }
       Object.assign(this, valid, { updatedAt: new Date().toISOString() })
+      this.save()
+    },
+    // 补录指定日期的体重：只写入趋势；若日期为今天则同时更新当前体重
+    recordWeight(date, weight) {
+      const valid = clampValidate({ weight })
+      const d = date || todayStr()
+      this.weightHistory = pushWeightHistory(this.weightHistory, valid.weight, d)
+      if (d === todayStr()) this.weight = valid.weight
+      this.updatedAt = new Date().toISOString()
       this.save()
     },
     save() {

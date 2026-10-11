@@ -81,12 +81,36 @@
       </template>
       <!-- #endif -->
 
+      <!-- ====== 非微信环境：服务器不可达时的兜底面板（解决"连不上就改不了地址"死锁） ====== -->
+      <!-- #ifndef MP-WEIXIN -->
+      <view v-if="localMode === 'cloud'" class="server-offline-panel">
+        <view class="server-offline-title">无法连接到服务器</view>
+        <view class="server-offline-desc">
+          正在尝试连接：{{ currentBaseUrl || '未配置' }}
+        </view>
+        <view class="server-offline-tip">
+          请确认后端已启动，或修改为当前局域网内的服务器 IP 后重试。
+        </view>
+        <view class="server-offline-actions">
+          <button class="btn-secondary" @click="retestConnection" :disabled="retesting">
+            {{ retesting ? '检测中…' : '重新检测' }}
+          </button>
+          <button class="btn-outline" @click="goServerConfig">修改服务器地址</button>
+        </view>
+      </view>
+      <!-- #endif -->
+
       <view v-if="statusMessage" class="status-banner" :class="statusType">
         <text class="status-icon">{{ statusType === 'success' ? '✅' : '❌' }}</text>
         <text>{{ statusMessage }}</text>
       </view>
 
-      <view class="back-link" @click="handleBack">返回上一页</view>
+      <view class="back-row">
+        <!-- #ifndef MP-WEIXIN -->
+        <text class="back-link" @click="goServerConfig">服务器设置</text>
+        <!-- #endif -->
+        <text class="back-link" @click="handleBack">返回上一页</text>
+      </view>
     </view>
   </scroll-view>
 </template>
@@ -179,6 +203,11 @@
         statusMessage: '',
         // 路由模式：'checking' | 'local' | 'cloud'
         localMode: 'checking',
+        // 服务器不可达兜底面板
+        currentBaseUrl: '',
+        retesting: false,
+        // 从服务器设置页返回时是否自动重测（运行时标志，非响应式）
+        retestOnShow: false,
         // 微信登录完善信息表单
         showProfileForm: false,
         wxProfile: {
@@ -208,11 +237,22 @@
 
       // #ifndef MP-WEIXIN
       // 非微信环境：自动检测本地服务器连通性
+      this.currentBaseUrl = getServerBaseUrl()
       try {
         const ok = await isLocalServerAvailable(true)
         this.localMode = ok ? 'local' : 'cloud'
       } catch (e) {
         this.localMode = 'cloud'
+      }
+      this.currentBaseUrl = getServerBaseUrl()
+      // #endif
+    },
+    // 从服务器设置页 navigateBack 回来时自动重测一次，避免用户改完 IP 还得手动点
+    onShow() {
+      // #ifndef MP-WEIXIN
+      if (this.retestOnShow) {
+        this.retestOnShow = false
+        this.retestConnection()
       }
       // #endif
     },
@@ -222,6 +262,37 @@
         this.authMode = m
         this.statusMessage = ''
         this.statusType = ''
+      },
+      /**
+       * 重新检测服务器连通性（登录页"重新检测"按钮）
+       * 强制重测，避免命中 5 秒缓存
+       */
+      async retestConnection() {
+        // #ifndef MP-WEIXIN
+        this.retesting = true
+        this.localMode = 'checking'
+        this.setStatus('', '')
+        try {
+          const ok = await isLocalServerAvailable(true)
+          this.localMode = ok ? 'local' : 'cloud'
+          if (ok) this.setStatus('success', '服务器连接成功，请登录')
+        } catch (e) {
+          this.localMode = 'cloud'
+        } finally {
+          this.retesting = false
+          this.currentBaseUrl = getServerBaseUrl()
+        }
+        // #endif
+      },
+      /**
+       * 跳转服务器设置页（登录前即可配置，解决死锁）
+       * 标记 onShow 返回时自动重测
+       */
+      goServerConfig() {
+        this.retestOnShow = true
+        uni.navigateTo({
+          url: '/subpkg-secondary/serverConfig/serverConfig',
+        })
       },
       setStatus(type, message) {
         this.statusType = type
@@ -566,11 +637,80 @@
     text-align: center;
     color: var(--text-muted);
     font-size: 13px;
-    margin-top: 18px;
     padding: 6px 0;
   }
 
   .back-link:active {
+    opacity: 0.6;
+  }
+
+  .back-row {
+    display: flex;
+    justify-content: center;
+    gap: 24px;
+    margin-top: 18px;
+  }
+
+  /* ============ 服务器不可达兜底面板 ============ */
+  .server-offline-panel {
+    background: rgba(255, 90, 93, 0.08);
+    border: 1px dashed rgba(255, 90, 93, 0.35);
+    border-radius: 14px;
+    padding: 16px 14px;
+    margin-top: 6px;
+  }
+
+  .server-offline-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--danger, #ff5a5d);
+    margin-bottom: 6px;
+  }
+
+  .server-offline-desc {
+    font-size: 12px;
+    color: var(--text-secondary);
+    word-break: break-all;
+    line-height: 1.5;
+  }
+
+  .server-offline-tip {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 6px;
+    line-height: 1.5;
+  }
+
+  .server-offline-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 14px;
+  }
+
+  .btn-secondary,
+  .btn-outline {
+    flex: 1;
+    height: 42px;
+    line-height: 42px;
+    border-radius: 21px;
+    font-size: 14px;
+    margin: 0;
+    border: none;
+  }
+
+  .btn-secondary {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+  }
+
+  .btn-outline {
+    background: transparent;
+    color: var(--primary, #379bff);
+    border: 1px solid var(--primary, #379bff);
+  }
+
+  .btn-secondary[disabled],
+  .btn-outline[disabled] {
     opacity: 0.6;
   }
 

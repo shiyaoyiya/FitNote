@@ -1,264 +1,167 @@
-const STORAGE_KEY = 'training_volume_history'
+const CONFIG_KEY = 'training_stat_config'
 
+// 配置版本：2 = 固定基线按周（7 天）口径；无此标记的旧配置视为两周口径，读取时自动 ÷2 迁移
+const CONFIG_VERSION = 2
+
+// 徽章判定窗口固定 14 天，静态判定把窗口总量折算为周均值（×7/14）与周区间同口径
+const STATIC_WINDOW_DAYS = 14
+
+const MIN_TRAINING_DAYS = 1
+
+// 自适应基线：历史窗口（近 8 周）至少 2 个训练日才有均值意义，否则回退静态区间
+const MIN_ADAPTIVE_DAYS = 2
+
+// 固定基线：每周（7 天）训练量语义（原两周值 ÷2，与自适应基线观感更接近）
 const FIXED_RANGES = {
-  chest: { low: 20, high: 40 },
-  back: { low: 24, high: 64 },
-  legs: { low: 20, high: 48 },
-  glutes: { low: 16, high: 48 },
-  front_delt: { low: 0, high: 12 },
-  side_delt: { low: 16, high: 40 },
-  rear_delt: { low: 12, high: 28 },
-  biceps: { low: 12, high: 36 },
-  triceps: { low: 12, high: 36 },
+  chest: { low: 10, high: 20 },
+  back: { low: 12, high: 32 },
+  legs: { low: 10, high: 24 },
+  glutes: { low: 8, high: 24 },
+  front_delt: { low: 0, high: 6 },
+  side_delt: { low: 8, high: 20 },
+  rear_delt: { low: 6, high: 14 },
+  biceps: { low: 6, high: 18 },
+  triceps: { low: 6, high: 18 },
 }
 
 const VALID_BODY_PARTS = Object.keys(FIXED_RANGES)
 
-function loadVolumeHistory() {
+function cloneDefaultConfig() {
+  const customRanges = {}
+  for (const [id, r] of Object.entries(FIXED_RANGES)) {
+    customRanges[id] = { low: r.low, high: r.high }
+  }
+  return { adaptive: false, customRanges }
+}
+
+const DEFAULT_CONFIG = cloneDefaultConfig()
+
+/**
+ * 配置读写（用户显式设置，不随训练数据隐式变化）。
+ * 判定不依赖任何"自动写入的派生状态"，同一份数据 + 相同配置在任意设备结果一致。
+ */
+function loadConfig() {
   try {
-    const raw = uni.getStorageSync(STORAGE_KEY)
+    const raw = uni.getStorageSync(CONFIG_KEY)
     if (raw) {
-      return typeof raw === 'string' ? JSON.parse(raw) : raw
+      return normalizeConfig(typeof raw === 'string' ? JSON.parse(raw) : raw)
     }
   } catch (e) { }
-  return {}
+  return cloneDefaultConfig()
 }
 
-function saveVolumeHistory(data) {
-  uni.setStorageSync(STORAGE_KEY, data)
+function saveConfig(config) {
+  uni.setStorageSync(CONFIG_KEY, JSON.stringify({ ...config, version: CONFIG_VERSION }))
 }
 
-function normalizeWeekStart(weekStart) {
-  const parts = weekStart.split('-')
-  if (parts.length === 3) {
-    const y = parts[0].padStart(4, '0')
-    const m = parts[1].padStart(2, '0')
-    const d = parts[2].padStart(2, '0')
-    return `${y}-${m}-${d}`
+function normalizeConfig(raw) {
+  const config = cloneDefaultConfig()
+  if (!raw || typeof raw !== 'object') return config
+
+  config.adaptive = !!raw.adaptive
+  // 旧配置（无 version 标记）为两周口径 → ÷2 迁移为周口径
+  const legacy = raw.version !== CONFIG_VERSION
+  if (raw.customRanges && typeof raw.customRanges === 'object') {
+    for (const id of Object.keys(FIXED_RANGES)) {
+      const userRange = raw.customRanges[id]
+      if (!userRange || typeof userRange !== 'object') continue
+      let low = Number(userRange.low)
+      let high = Number(userRange.high)
+      if (legacy) {
+        low = low / 2
+        high = high / 2
+      }
+      if (Number.isFinite(low) && low >= 0) config.customRanges[id].low = Math.round(low)
+      if (Number.isFinite(high) && high >= 0) config.customRanges[id].high = Math.round(high)
+      // low > high 时交换，保证区间有效
+      if (config.customRanges[id].low > config.customRanges[id].high) {
+        const t = config.customRanges[id].low
+        config.customRanges[id].low = config.customRanges[id].high
+        config.customRanges[id].high = t
+      }
+    }
   }
-  return weekStart
+  return config
 }
 
-function getCurrentWeekStart() {
-  const now = new Date()
-  const dayOfWeek = now.getDay()
-  const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek
-  const monday = new Date(now)
-  monday.setDate(now.getDate() + mondayOffset)
-  return `${monday.getFullYear()}-${String(monday.getMonth() + 1).padStart(2, '0')}-${String(monday.getDate()).padStart(2, '0')}`
-}
-
-function ensureBodyPartEntry(history, bodyPartId) {
-  if (!history[bodyPartId]) {
-    history[bodyPartId] = { weeks: [] }
+/**
+ * 静态区间：用户手填的自定义值优先，未改过则用写死的 FIXED_RANGES。
+ */
+function getStaticRange(bodyPartId, config) {
+  const custom = config && config.customRanges && config.customRanges[bodyPartId]
+  if (custom && typeof custom.low === 'number' && typeof custom.high === 'number') {
+    return { low: custom.low, high: custom.high }
   }
-  return history[bodyPartId]
+  return FIXED_RANGES[bodyPartId] || null
 }
 
-function ensureCurrentWeekRecord(bodyPartId, currentSets, history) {
-  const entry = ensureBodyPartEntry(history, bodyPartId)
-  const currentWeek = normalizeWeekStart(getCurrentWeekStart())
-  const existingIndex = entry.weeks.findIndex(w => w.weekStart === currentWeek)
-
-  if (existingIndex >= 0) {
-    entry.weeks[existingIndex].sets = currentSets
-  } else {
-    entry.weeks.push({ weekStart: currentWeek, sets: currentSets })
+/**
+ * 自适应区间：历史窗口（近 8 周，不含当前判定窗口）该部位"每训练日均值" ±30%。
+ * baselineInfo 形如 { sets, days }（来自 computeAdaptiveBaselineByBodyPart）。
+ * 数据不足（训练日 < MIN_ADAPTIVE_DAYS）返回 null，由调用方回退静态区间。
+ */
+function computeAdaptiveRange(bodyPartId, baselineInfo) {
+  if (!baselineInfo || typeof baselineInfo.sets !== 'number' || typeof baselineInfo.days !== 'number') {
+    return null
   }
-
-  entry.weeks.sort((a, b) => a.weekStart < b.weekStart ? -1 : 1)
-  saveVolumeHistory(history)
+  if (baselineInfo.days < MIN_ADAPTIVE_DAYS) return null
+  const baseline = baselineInfo.sets / baselineInfo.days
+  return {
+    low: baseline * 0.7,
+    high: baseline * 1.3,
+  }
 }
 
-function getLastNWeeksData(bodyPartId, n, history) {
-  const entry = history[bodyPartId]
-  if (!entry || !entry.weeks || entry.weeks.length === 0) return []
-
-  const sorted = [...entry.weeks].sort((a, b) => a.weekStart < b.weekStart ? 1 : -1)
-  return sorted.slice(0, n).reverse()
-}
-
-function getPhase(bodyPartId, history) {
-  const entry = history[bodyPartId]
-  if (!entry || !entry.weeks) return 'A'
-
-  return entry.weeks.length >= 8 ? 'B' : 'A'
-}
-
-function getFixedRangeStatus(bodyPartId, history) {
-  const range = FIXED_RANGES[bodyPartId]
-  if (!range) return null
-
-  const last2Weeks = getLastNWeeksData(bodyPartId, 2, history)
-  if (last2Weeks.length === 0) return null
-
-  const totalSets = last2Weeks.reduce((sum, w) => sum + w.sets, 0)
-
+/**
+ * 纯函数判定：根据滑动窗口聚合 + 用户配置 + 自适应基线窗口现算结果，判断偏高/偏低。
+ * 不读写任何持久化派生状态，结果仅依赖传入数据（跨设备可复现）。
+ * windowInfo 形如 { sets, days }（当前 14 天窗口，来自 computeWindowTotalsByBodyPart）；
+ * baselineInfo 形如 { sets, days }（近 8 周基线窗口，来自 computeAdaptiveBaselineByBodyPart，仅自适应时需要）。
+ * 优先级：自适应开启且数据充足 → 自适应区间（每训练日均值口径）；否则 → 静态区间（自定义优先，默认写死）。
+ */
+function judgeRange(totalSets, range) {
   if (totalSets < range.low) return 'low'
   if (totalSets > range.high) return 'high'
   return 'normal'
 }
 
-function computeWeightedMean(weeksData) {
-  const n = weeksData.length
-  if (n === 0) return 0
-
-  const weightSum = n * (n + 1) / 2
-  let weightedSum = 0
-
-  for (let i = 0; i < n; i++) {
-    const weight = (i + 1) / weightSum
-    weightedSum += weeksData[i].sets * weight
-  }
-
-  return weightedSum
-}
-
-function getAdaptiveStatus(bodyPartId, history) {
-  const entry = history[bodyPartId]
-  if (!entry || !entry.weeks || entry.weeks.length === 0) return null
-
-  const windowSize = Math.min(entry.weeks.length, 8)
-  const recentData = getLastNWeeksData(bodyPartId, windowSize, history)
-
-  if (recentData.length < 2) return null
-
-  const currentWeekSets = recentData[recentData.length - 1].sets
-  const pastData = recentData.slice(0, -1)
-
-  const baseline = computeWeightedMean(pastData)
-  const lowThreshold = baseline * 0.7
-  const highThreshold = baseline * 1.3
-
-  if (currentWeekSets < lowThreshold) return 'low'
-  if (currentWeekSets > highThreshold) return 'high'
-  return 'normal'
-}
-
-function updateBaseline(bodyPartId, history) {
-  const entry = history[bodyPartId]
-  if (!entry || !entry.weeks || entry.weeks.length < 2) return
-
-  const windowSize = Math.min(entry.weeks.length, 8)
-  const recentData = getLastNWeeksData(bodyPartId, windowSize, history)
-
-  if (recentData.length < 2) return
-
-  const pastData = recentData.slice(0, -1)
-  const oldBaseline = computeWeightedMean(pastData)
-  const currentWeekSets = recentData[recentData.length - 1].sets
-
-  const newBaseline = 0.8 * oldBaseline + 0.2 * currentWeekSets
-
-  entry.baseline = Math.round(newBaseline)
-  saveVolumeHistory(history)
-}
-
-function getStatus(bodyPartId, history) {
+function getStatusFromConfig(bodyPartId, windowInfo, config, baselineInfo) {
   if (!VALID_BODY_PARTS.includes(bodyPartId)) return null
 
-  const entry = history[bodyPartId]
+  const sets = windowInfo && typeof windowInfo.sets === 'number' ? windowInfo.sets : 0
+  const days = windowInfo && typeof windowInfo.days === 'number' ? windowInfo.days : 0
 
-  const status = getFixedRangeStatus(bodyPartId, history)
-  if (status && entry && entry.weeks) {
-    const last2Weeks = getLastNWeeksData(bodyPartId, 2, history)
-    const totalSets = last2Weeks.reduce((sum, w) => sum + w.sets, 0)
-    const range = FIXED_RANGES[bodyPartId]
-    console.log(`[BadgeDebug] ${bodyPartId} Phase=A status=${status} weeks=${entry.weeks.length} last2Total=${totalSets} range=[${range.low},${range.high}]`)
-  }
+  // 训练日门槛：窗口内该部位至少训练过 MIN_TRAINING_DAYS 天才判定
+  if (days < MIN_TRAINING_DAYS) return null
 
-  return status || null
-}
-
-function updateWeeklyVolume(weeklyVolumeMap, history) {
-  for (const [weekStart, bodyParts] of Object.entries(weeklyVolumeMap)) {
-    const normalizedWeekStart = normalizeWeekStart(weekStart)
-    for (const [subId, sets] of Object.entries(bodyParts)) {
-      const mappedId = getMappedBodyPartId(subId)
-      if (!mappedId) continue
-
-      if (sets > 200) {
-        console.warn(`[BadgeWarning] ${mappedId} week=${normalizedWeekStart} sets=${sets} exceeds 200, possible data issue`)
-      }
-
-      const entry = ensureBodyPartEntry(history, mappedId)
-      const existingIndex = entry.weeks.findIndex(w => w.weekStart === normalizedWeekStart)
-
-      if (existingIndex >= 0) {
-        entry.weeks[existingIndex].sets = sets
-      } else {
-        entry.weeks.push({ weekStart: normalizedWeekStart, sets })
-      }
+  if (config && config.adaptive) {
+    const adaptiveRange = computeAdaptiveRange(bodyPartId, baselineInfo)
+    if (adaptiveRange) {
+      // 自适应口径：每训练日均值 vs 历史基线均值 ±30%
+      return judgeRange(sets / days, adaptiveRange)
     }
+    // 历史数据不足 → 回退静态区间
   }
 
-  for (const entry of Object.values(history)) {
-    if (entry.weeks) {
-      entry.weeks.sort((a, b) => a.weekStart < b.weekStart ? -1 : 1)
-    }
-  }
-
-  saveVolumeHistory(history)
-}
-
-function rebuildVolumeHistory(fullWeeklyVolumeMap) {
-  const history = {}
-
-  for (const [weekStart, bodyParts] of Object.entries(fullWeeklyVolumeMap)) {
-    const normalizedWeekStart = normalizeWeekStart(weekStart)
-    for (const [subId, sets] of Object.entries(bodyParts)) {
-      const mappedId = getMappedBodyPartId(subId)
-      if (!mappedId) continue
-
-      if (!history[mappedId]) {
-        history[mappedId] = { weeks: [] }
-      }
-
-      const existingIndex = history[mappedId].weeks.findIndex(w => w.weekStart === normalizedWeekStart)
-      const setsValue = typeof sets === 'number' ? sets : 0
-      if (existingIndex >= 0) {
-        history[mappedId].weeks[existingIndex].sets += setsValue
-      } else {
-        history[mappedId].weeks.push({ weekStart: normalizedWeekStart, sets: setsValue })
-      }
-    }
-  }
-
-  for (const entry of Object.values(history)) {
-    if (entry.weeks) {
-      entry.weeks.sort((a, b) => a.weekStart < b.weekStart ? -1 : 1)
-    }
-  }
-
-  saveVolumeHistory(history)
-  return history
-}
-
-function getMappedBodyPartId(subId) {
-  const mergeMap = {
-    upper_chest: 'chest',
-    mid_lower_chest: 'chest',
-    teres_major: 'back',
-    mid_lower_traps: 'back',
-    lats: 'back',
-    quads: 'legs',
-    hamstrings: 'legs',
-  }
-  return mergeMap[subId] || subId
+  const staticRange = getStaticRange(bodyPartId, config)
+  if (!staticRange) return null
+  // 固定基线按周口径：把 STATIC_WINDOW_DAYS 窗口总量折算为周均值再比较（与基线同口径，换算前后判定结果等价）
+  return judgeRange(sets * 7 / STATIC_WINDOW_DAYS, staticRange)
 }
 
 export {
-  loadVolumeHistory,
-  saveVolumeHistory,
-  getLastNWeeksData,
-  getPhase,
-  getFixedRangeStatus,
-  getAdaptiveStatus,
-  updateBaseline,
-  getStatus,
-  updateWeeklyVolume,
-  getMappedBodyPartId,
-  rebuildVolumeHistory,
+  CONFIG_KEY,
+  CONFIG_VERSION,
+  STATIC_WINDOW_DAYS,
+  MIN_TRAINING_DAYS,
+  MIN_ADAPTIVE_DAYS,
   FIXED_RANGES,
   VALID_BODY_PARTS,
+  DEFAULT_CONFIG,
+  loadConfig,
+  saveConfig,
+  getStaticRange,
+  computeAdaptiveRange,
+  getStatusFromConfig,
+  judgeRange,
 }
