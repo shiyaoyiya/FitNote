@@ -34,7 +34,13 @@ jobs:
         run: npm ci --legacy-peer-deps
 
       - name: Build H5
-        run: npm run build:h5 2>&1 | tee /tmp/build-h5.log
+        run: |
+          set -eo pipefail
+          npm run build:h5 2>&1 | tee /tmp/build-h5.log
+
+      - name: Verify build output
+        run: |
+          test -d dist/build/h5 && ls dist/build/h5
 
       - name: Upload build log on failure
         if: failure()
@@ -44,25 +50,20 @@ jobs:
           path: /tmp/build-h5.log
 
       # 将构建产物推送到 gh-pages 分支，由 GitHub Pages（分支源模式）自动发布
+      # 使用用户 PAT（FITNOTE_TOKEN）推送，确保写权限稳定可用
       - name: Deploy to gh-pages branch
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          FITNOTE_TOKEN: ${{ secrets.FITNOTE_TOKEN }}
         run: |
-          set +e
-          (
-            set -e
-            cd dist/build/h5
-            git init -b gh-pages
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add -A
-            git commit -m "Deploy $(date +'%Y-%m-%d %H:%M:%S')"
-            git remote add origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
-            git push -f origin gh-pages
-          ) > /tmp/deploy.log 2>&1
-          code=$?
-          cat /tmp/deploy.log
-          exit $code
+          set -e
+          cd dist/build/h5
+          git init -b gh-pages
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Deploy $(date +'%Y-%m-%d %H:%M:%S')"
+          git remote add origin "https://x-access-token:${FITNOTE_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git push -f origin gh-pages
 
       - name: Upload deploy log on failure
         if: failure()
