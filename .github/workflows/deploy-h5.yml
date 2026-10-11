@@ -5,9 +5,9 @@ on:
     branches: [master]
   workflow_dispatch:
 
-# GitHub Pages 部署所需权限
+# 推送到 gh-pages 分支需要 contents: write
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
@@ -43,18 +43,11 @@ jobs:
           name: build-h5-log
           path: /tmp/build-h5.log
 
-      - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3
+      # 将构建产物推送到 gh-pages 分支，由 GitHub Pages（分支源模式）自动发布
+      - name: Deploy to gh-pages branch
+        uses: peaceiris/actions-gh-pages@v4
         with:
-          path: dist/build/h5
-
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: dist/build/h5
+          publish_branch: gh-pages
+          force_orphan: true
