@@ -34,7 +34,14 @@ jobs:
         run: npm ci --legacy-peer-deps
 
       - name: Build H5
-        run: npm run build:h5
+        run: npm run build:h5 2>&1 | tee /tmp/build-h5.log
+
+      - name: Upload build log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-h5-log
+          path: /tmp/build-h5.log
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
